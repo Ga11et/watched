@@ -11,7 +11,7 @@ export class Game {
   @Column('date')
   completionDate: Date;
 
-  @Column('decimal', { precision: 5, scale: 1 })
+  @Column('decimal', { precision: 5, scale: 1, nullable: true })
   playTimeHours: number;
 
   @Column('text', { nullable: true })

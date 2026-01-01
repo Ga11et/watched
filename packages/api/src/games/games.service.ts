@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, UnprocessableEntityException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Game } from './entities/game.entity';
@@ -13,9 +13,17 @@ export class GamesService {
   ) {}
 
   async create(createGameDto: CreateGameDto): Promise<Game> {
+    if (!createGameDto.title?.trim()) {
+      throw new UnprocessableEntityException({
+        message: 'Произошла ошибка при создании игры',
+        violations: [{ field: 'title', message: 'Название обязательно' }],
+      });
+    }
     const game = this.gamesRepository.create({
       ...createGameDto,
-      completionDate: new Date(createGameDto.completionDate),
+      completionDate: createGameDto.completionDate
+        ? new Date(createGameDto.completionDate)
+        : new Date(),
     });
     return this.gamesRepository.save(game);
   }
@@ -27,17 +35,26 @@ export class GamesService {
   async findOne(id: number): Promise<Game> {
     const game = await this.gamesRepository.findOne({ where: { id } });
     if (!game) {
-      throw new NotFoundException(`Game with ID ${id} not found`);
+      throw new NotFoundException(`Игра с ID ${id} не найдена`);
     }
     return game;
   }
 
   async update(id: number, updateGameDto: UpdateGameDto): Promise<Game> {
+    if (!updateGameDto.title?.trim()) {
+      throw new UnprocessableEntityException({
+        message: 'Произошла ошибка при обновлении игры',
+        violations: [
+          { field: 'title', message: 'Название не может быть пустым' },
+        ],
+      });
+    }
+
     const game = await this.findOne(id);
     const updatedGame = {
       ...game,
       ...updateGameDto,
-      completionDate: updateGameDto.completionDate 
+      completionDate: updateGameDto.completionDate
         ? new Date(updateGameDto.completionDate) 
         : game.completionDate,
     };
@@ -47,7 +64,8 @@ export class GamesService {
   async remove(id: number): Promise<void> {
     const result = await this.gamesRepository.delete(id);
     if (result.affected === 0) {
-      throw new NotFoundException(`Game with ID ${id} not found`);
+      throw new NotFoundException(`Игра с ID ${id} не найдена`);
     }
   }
 }
+

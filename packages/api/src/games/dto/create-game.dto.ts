@@ -9,7 +9,8 @@ export class CreateGameDto {
 
   @IsNumber()
   @Min(0.1)
-  playTimeHours: number;
+  @IsOptional()
+  playTimeHours?: number;
 
   @IsString()
   @IsOptional()
@@ -18,5 +19,6 @@ export class CreateGameDto {
   @IsNumber()
   @Min(1)
   @Max(100)
-  rating: number;
+  @IsOptional()
+  rating?: number;
 }
