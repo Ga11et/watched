@@ -56,7 +56,7 @@
 
 <script setup lang="ts">
 interface Game {
-  id: number | string
+  id: string
   title: string
   completionDate?: string | null
   playTimeHours?: number | null

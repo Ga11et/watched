@@ -1,5 +1,5 @@
 <script setup>
-const { data: games, refresh } = await useFetch('/api/games')
+const { data: games, refresh } = await useFetch(`${useRuntimeConfig().public.apiBase}/games`)
 const deletingIds = ref([])
 const error = ref('')
 

@@ -3,7 +3,7 @@ import { defineNuxtConfig } from 'nuxt/config'
 export default defineNuxtConfig({
   devtools: { enabled: true },
   devServer: {
-    port: 32000
+    port: 33000
   },
   modules: [
     '@nuxtjs/tailwindcss',
@@ -11,7 +11,7 @@ export default defineNuxtConfig({
   ],
   runtimeConfig: {
     public: {
-      apiBase: 'http://localhost:3000' // Your NestJS server URL
+      apiBase: 'http://localhost:33010' // Your NestJS server URL
     }
   },
   app: {

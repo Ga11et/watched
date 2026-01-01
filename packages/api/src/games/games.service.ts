@@ -1,4 +1,8 @@
-import { Injectable, UnprocessableEntityException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  UnprocessableEntityException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Game } from './entities/game.entity';
@@ -32,7 +36,7 @@ export class GamesService {
     return this.gamesRepository.find();
   }
 
-  async findOne(id: number): Promise<Game> {
+  async findOne(id: string): Promise<Game> {
     const game = await this.gamesRepository.findOne({ where: { id } });
     if (!game) {
       throw new NotFoundException(`Игра с ID ${id} не найдена`);
@@ -40,7 +44,7 @@ export class GamesService {
     return game;
   }
 
-  async update(id: number, updateGameDto: UpdateGameDto): Promise<Game> {
+  async update(id: string, updateGameDto: UpdateGameDto): Promise<Game> {
     if (!updateGameDto.title?.trim()) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при обновлении игры',
@@ -61,11 +65,10 @@ export class GamesService {
     return this.gamesRepository.save(updatedGame);
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     const result = await this.gamesRepository.delete(id);
     if (result.affected === 0) {
       throw new NotFoundException(`Игра с ID ${id} не найдена`);
     }
   }
 }
-

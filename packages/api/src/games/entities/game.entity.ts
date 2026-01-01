@@ -2,31 +2,27 @@ import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity()
 export class Game {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   title: string;
 
-  @Column('date')
-  completionDate: Date;
+  @Column({ nullable: true, type: 'date' })
+  completionDate: Date | null;
 
-  @Column('decimal', { precision: 5, scale: 1, nullable: true })
-  playTimeHours: number;
+  @Column({ nullable: true, type: 'real' })
+  playTimeHours: number | null;
 
-  @Column('text', { nullable: true })
-  comment: string;
+  @Column({ nullable: true, type: 'text' })
+  comment: string | null;
 
-  @Column('int', { nullable: true })
-  rating: number; // 1-100 scale
+  @Column({ nullable: true, type: 'int' })
+  rating: number | null;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
-  @Column({
-    type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
-    onUpdate: 'CURRENT_TIMESTAMP',
-  })
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
 }

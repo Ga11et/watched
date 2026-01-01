@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Put,
+  Delete,
+} from '@nestjs/common';;
 import { GamesService } from './games.service';
 import { Game } from './entities/game.entity';
 import { CreateGameDto } from './dto/create-game.dto';
@@ -19,8 +27,8 @@ export class GamesController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<Game> {
-    return this.gamesService.findOne(+id);
+  async findOne(@Param('id') id: string): Promise<Game> {
+    return this.gamesService.findOne(id);
   }
 
   @Put(':id')
@@ -28,11 +36,11 @@ export class GamesController {
     @Param('id') id: string,
     @Body() updateGameDto: UpdateGameDto,
   ): Promise<Game> {
-    return this.gamesService.update(+id, updateGameDto);
+    return this.gamesService.update(id, updateGameDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string): Promise<void> {
-    return this.gamesService.remove(+id);
+  async remove(@Param('id') id: string): Promise<void> {
+    return this.gamesService.remove(id);
   }
 }
