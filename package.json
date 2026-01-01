@@ -4,8 +4,11 @@
   "private": true,
   "packageManager": "pnpm@10.27.0",
   "scripts": {
-    "dev": "pnpm -r dev",
-    "build": "pnpm -r build"
+    "dev:api": "pnpm --filter api start:dev",
+    "dev:client": "pnpm --filter client dev",
+    "build:api": "pnpm --filter api build",
+    "build:client": "pnpm --filter client build",
+    "build": "pnpm run build:api && pnpm run build:client"
   },
   "engines": {
     "node": ">=18.0.0"

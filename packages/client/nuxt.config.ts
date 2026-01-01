@@ -1,3 +1,4 @@
+import { defineNuxtConfig } from 'nuxt/config'
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   devtools: { enabled: true },
@@ -22,5 +23,8 @@ export default defineNuxtConfig({
         { name: 'description', content: 'Track and manage your game collection' }
       ]
     }
+  },
+  nitro: {
+    compatibilityDate: '2026-01-01'
   }
 })

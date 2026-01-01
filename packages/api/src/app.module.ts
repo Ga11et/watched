@@ -7,8 +7,12 @@ import { GamesModule } from './games/games.module';
 @Module({
   imports: [
     TypeOrmModule.forRoot({
-      type: 'sqlite',
-      database: 'database.sqlite',
+      type: 'postgres',
+      host: process.env.DB_HOST || '127.0.0.1',
+      port: +(process.env.DB_PORT || 5433),
+      username: process.env.DB_USER || 'watched',
+      password: process.env.DB_PASSWORD || 'watched',
+      database: process.env.DB_NAME || 'watched',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true, // In development only
     }),
