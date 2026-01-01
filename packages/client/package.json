@@ -1,0 +1,20 @@
+{
+  "name": "watched-client",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "devDependencies": {
+    "@nuxtjs/tailwindcss": "^6.13.1",
+    "nuxt": "^3.9.3"
+  },
+  "dependencies": {
+    "@vueuse/nuxt": "^10.7.2",
+    "axios": "^1.6.2"
+  }
+}
