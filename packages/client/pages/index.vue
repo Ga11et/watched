@@ -1,34 +1,10 @@
 <script setup>
-const sortBy = useCookie('watched_sort_by', {
-  default: () => 'completionDate',
-  sameSite: 'lax',
-})
-
-const sortOrder = useCookie('watched_sort_order', {
-  default: () => 'DESC',
-  sameSite: 'lax',
-})
-
-const { data: games, refresh } = await useFetch(`${useRuntimeConfig().public.apiBase}/games`, {
-  query: { sortBy, sortOrder },
-})
-
-const error = ref('')
-
 const viewMode = useCookie('watched_view_mode', {
   default: () => 'cards',
   sameSite: 'lax',
 })
 
-const updateSorting = (newSortBy) => {
-  if (sortBy.value === newSortBy) {
-    sortOrder.value = sortOrder.value === 'ASC' ? 'DESC' : 'ASC'
-  } else {
-    sortBy.value = newSortBy
-    sortOrder.value = 'ASC'
-  }
-  refresh()
-}
+const error = ref('')
 
 watchEffect(() => {
   if (viewMode.value !== 'cards' && viewMode.value !== 'table') {
@@ -45,64 +21,40 @@ watchEffect(() => {
     >
       {{ error }}
     </div>
-    <div class="flex justify-between items-center mb-6">
-      <h2 class="text-2xl font-bold">Игры</h2>
-      <div class="flex items-center gap-3">
-        <div class="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 p-1">
-          <button
-            type="button"
-            class="rounded-md px-3 py-1.5 text-sm transition"
-            :class="
-              viewMode === 'cards'
-                ? 'bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-600'
-                : 'text-gray-600 hover:text-gray-900'
-            "
-            @click="viewMode = 'cards'"
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <!-- Games Section -->
+      <div class="module-section">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold">Игры</h2>
+          <NuxtLink
+            to="/games"
+            class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
           >
-            Карточки
-          </button>
-          <button
-            type="button"
-            class="rounded-md px-3 py-1.5 text-sm transition"
-            :class="
-              viewMode === 'table'
-                ? 'bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-600'
-                : 'text-gray-600 hover:text-gray-900'
-            "
-            @click="viewMode = 'table'"
-          >
-            Таблица
-          </button>
+            Перейти к играм
+          </NuxtLink>
         </div>
-        <NuxtLink
-          to="/games/new"
-          class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
-        >
-          Добавить игру
-        </NuxtLink>
+        <p class="text-gray-600 mb-4">
+          Отслеживайте пройденные игры, оценивайте их и делитесь впечатлениями
+        </p>
+      </div>
+
+      <!-- Movies Section -->
+      <div class="module-section">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold">Фильмы</h2>
+          <NuxtLink
+            to="/movies"
+            class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+          >
+            Перейти к фильмам
+          </NuxtLink>
+        </div>
+        <p class="text-gray-600 mb-4">
+          Ведите учет просмотренных фильмов и оценивайте работы любимых режиссёров
+        </p>
       </div>
     </div>
-
-    <div v-if="!games?.length" class="text-center py-12 text-gray-500">
-      Игр пока нет. Добавьте свою первую игру, чтобы начать!
-    </div>
-
-    <Transition name="fade" mode="out-in">
-      <GamesCardsView
-        v-if="games?.length && viewMode === 'cards'"
-        :games="games"
-        :sort-by="sortBy"
-        :sort-order="sortOrder"
-        @update-sorting="updateSorting"
-      />
-      <GamesTableView
-        v-else-if="games?.length"
-        :games="games"
-        :sort-by="sortBy"
-        :sort-order="sortOrder"
-        @update-sorting="updateSorting"
-      />
-    </Transition>
   </div>
 </template>
 

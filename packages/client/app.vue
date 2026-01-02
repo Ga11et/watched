@@ -11,3 +11,10 @@
     </main>
   </div>
 </template>
+
+<style>
+html {
+  scroll-behavior: stable;
+  scrollbar-gutter: stable;
+}
+</style>

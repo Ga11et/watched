@@ -1,6 +1,13 @@
 <template>
   <div class="mx-auto max-w-7xl">
-    <Breadcrumbs :items="[{ label: 'Главная', to: '/' }, { label: 'Редактировать' }]" />
+    <Breadcrumbs
+      :items="[
+        { label: 'Главная', to: '/' },
+        { label: 'Игры', to: '/games' },
+        { label: form?.title || 'Загрузка...', to: `/games/${route.params.id}` },
+        { label: 'Редактирование' },
+      ]"
+    />
 
     <div class="rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div class="border-b border-gray-100 px-6 py-5 flex items-center justify-between">

@@ -3,16 +3,13 @@ import { defineNuxtConfig } from 'nuxt/config'
 export default defineNuxtConfig({
   devtools: { enabled: true },
   devServer: {
-    port: 33000
+    port: 33000,
   },
-  modules: [
-    '@nuxtjs/tailwindcss',
-    '@vueuse/nuxt',
-  ],
+  modules: ['@nuxtjs/tailwindcss', '@vueuse/nuxt'],
   runtimeConfig: {
     public: {
-      apiBase: 'http://localhost:33010' // Your NestJS server URL
-    }
+      apiBase: 'http://localhost:33010', // Your NestJS server URL
+    },
   },
   app: {
     head: {
@@ -20,11 +17,11 @@ export default defineNuxtConfig({
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        { name: 'description', content: 'Track and manage your game collection' }
-      ]
-    }
+        { name: 'description', content: 'Track and manage your game collection' },
+      ],
+    },
   },
   nitro: {
-    compatibilityDate: '2026-01-01'
-  }
+    compatibilityDate: '2026-01-01',
+  },
 })
