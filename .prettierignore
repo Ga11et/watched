@@ -1,0 +1,17 @@
+node_modules
+.pnpm-store
+packages/**/node_modules
+
+# Build outputs
+packages/client/.nuxt
+packages/client/.output
+packages/client/dist
+packages/api/dist
+
+# Test/coverage
+coverage
+
+# Misc
+.cache
+.temp
+.temp*

@@ -32,8 +32,24 @@ export class GamesService {
     return this.gamesRepository.save(game);
   }
 
-  async findAll(): Promise<Game[]> {
-    return this.gamesRepository.find();
+  async findAll(sortBy?: string, sortOrder?: 'ASC' | 'DESC'): Promise<Game[]> {
+    const queryBuilder = this.gamesRepository.createQueryBuilder('game');
+
+    if (sortBy) {
+      const validSortFields = [
+        'title',
+        'completionDate',
+        'rating',
+        'playTimeHours',
+      ];
+      if (validSortFields.includes(sortBy)) {
+        queryBuilder.orderBy(`game.${sortBy}`, sortOrder || 'ASC');
+      }
+    } else {
+      queryBuilder.orderBy('game.completionDate', 'DESC');
+    }
+
+    return queryBuilder.getMany();
   }
 
   async findOne(id: string): Promise<Game> {
@@ -59,7 +75,7 @@ export class GamesService {
       ...game,
       ...updateGameDto,
       completionDate: updateGameDto.completionDate
-        ? new Date(updateGameDto.completionDate) 
+        ? new Date(updateGameDto.completionDate)
         : game.completionDate,
     };
     return this.gamesRepository.save(updatedGame);

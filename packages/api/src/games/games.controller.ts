@@ -6,7 +6,8 @@ import {
   Param,
   Put,
   Delete,
-} from '@nestjs/common';;
+  Query,
+} from '@nestjs/common';
 import { GamesService } from './games.service';
 import { Game } from './entities/game.entity';
 import { CreateGameDto } from './dto/create-game.dto';
@@ -22,8 +23,11 @@ export class GamesController {
   }
 
   @Get()
-  findAll(): Promise<Game[]> {
-    return this.gamesService.findAll();
+  findAll(
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'ASC' | 'DESC',
+  ): Promise<Game[]> {
+    return this.gamesService.findAll(sortBy, sortOrder);
   }
 
   @Get(':id')
