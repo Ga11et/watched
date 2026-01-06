@@ -4,7 +4,7 @@
 
     <CustomSelect
       v-model="currentSortBy"
-      :options="sortOptions"
+      :options="options"
       placeholder="Выберите поле"
       class="flex-1 min-w-48"
     />
@@ -37,22 +37,21 @@
 import { computed } from 'vue'
 import CustomSelect from './CustomSelect.vue'
 
+interface SortOption {
+  value: string
+  label: string
+}
+
 interface Props {
   sortBy?: string
   sortOrder?: 'ASC' | 'DESC'
+  options: SortOption[]
 }
 
 const props = defineProps<Props>()
 const emit = defineEmits<{
   'update-sorting': [sortBy: string]
 }>()
-
-const sortOptions = [
-  { value: 'title', label: 'По названию' },
-  { value: 'completionDate', label: 'По дате прохождения' },
-  { value: 'rating', label: 'По рейтингу' },
-  { value: 'playTimeHours', label: 'По времени игры' },
-]
 
 const currentSortBy = computed({
   get: () => props.sortBy || '',

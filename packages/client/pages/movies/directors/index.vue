@@ -78,7 +78,6 @@
 
 <script setup>
 const error = ref('')
-const directors = ref([])
 
 const viewMode = useCookie('watched_directors_view_mode', {
   default: () => 'cards',
@@ -104,7 +103,28 @@ const updateSorting = (newSortBy) => {
   }
 }
 
-// TODO: Implement API call to fetch directors
+const config = useRuntimeConfig()
+
+const { data: directors } = await useAsyncData(
+  'directors',
+  async () => {
+    try {
+      error.value = ''
+      return await $fetch(`${config.public.apiBase}/directors`, {
+        params: {
+          sortBy: sortBy.value,
+          sortOrder: sortOrder.value,
+        },
+      })
+    } catch {
+      error.value = 'Не удалось загрузить режиссёров'
+      return []
+    }
+  },
+  {
+    watch: [sortBy, sortOrder],
+  },
+)
 </script>
 
 <style>

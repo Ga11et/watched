@@ -1,11 +1,18 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { GamesModule } from './games/games.module';
+import { DirectorsModule } from './directors/directors.module';
 
 @Module({
   imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'uploads'),
+      serveRoot: '/uploads',
+    }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST || '127.0.0.1',
@@ -17,6 +24,7 @@ import { GamesModule } from './games/games.module';
       synchronize: true, // In development only
     }),
     GamesModule,
+    DirectorsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

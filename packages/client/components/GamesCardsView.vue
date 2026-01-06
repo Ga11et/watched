@@ -1,7 +1,12 @@
 <template>
   <div>
     <div class="mb-6">
-      <SortControl :sort-by="sortBy" :sort-order="sortOrder" @update-sorting="handleSortUpdate" />
+      <SortControl
+        :sort-by="sortBy"
+        :sort-order="sortOrder"
+        :options="sortOptions"
+        @update-sorting="handleSortUpdate"
+      />
     </div>
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       <GameCard v-for="game in games" :key="game.id" :game="game" />
@@ -32,6 +37,13 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   'update-sorting': [sortBy: string]
 }>()
+
+const sortOptions = [
+  { value: 'title', label: 'По названию' },
+  { value: 'completionDate', label: 'По дате прохождения' },
+  { value: 'rating', label: 'По рейтингу' },
+  { value: 'playTimeHours', label: 'По времени игры' },
+]
 
 const handleSortUpdate = (sortBy: string) => {
   emit('update-sorting', sortBy)

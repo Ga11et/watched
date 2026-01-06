@@ -3,28 +3,39 @@
     :items="directors"
     :columns="columns"
     :sort-by="sortBy"
-    :sort-desc="sortDesc"
-    @update:sort-by="updateSort"
-    @update:sort-desc="updateSortDesc"
+    :sort-order="sortOrder"
+    @update-sorting="updateSort"
   >
-    <template #cell-actions="{ item }">
+    <template #cell-fullName="{ item }">
       <NuxtLink
         :to="`/movies/directors/${item.id}`"
-        class="text-sm text-indigo-600 hover:text-indigo-800"
+        class="font-medium text-indigo-700 hover:underline"
       >
-        Смотреть фильмы
+        {{ item.fullName }}
       </NuxtLink>
+    </template>
+    <template #cell-createdAt="{ item }">
+      <DateDisplay :date="item.createdAt" />
+    </template>
+    <template #cell-actions="{ item }">
+      <div class="flex justify-end gap-2">
+        <NuxtLink
+          :to="`/movies/directors/${item.id}/edit`"
+          class="inline-flex items-center rounded border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+        >
+          Редактировать
+        </NuxtLink>
+      </div>
     </template>
   </Table>
 </template>
 
 <script setup lang="ts">
-import Table from './Table.vue'
-
 interface Director {
   id: string
   fullName: string
   comment?: string | null
+  createdAt?: string | null
 }
 
 interface Props {
@@ -33,24 +44,18 @@ interface Props {
   sortOrder: 'ASC' | 'DESC'
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 const emit = defineEmits<{
   'update-sorting': [sortBy: string]
 }>()
 
-const sortDesc = computed(() => props.sortOrder === 'DESC')
-
 const columns = [
-  { key: 'fullName', label: 'ФИО' },
-  { key: 'comment', label: 'Комментарий' },
-  { key: 'actions', label: '' },
+  { key: 'fullName', label: 'ФИО', sortable: true },
+  { key: 'createdAt', label: 'Дата добавления', sortable: true },
+  { key: 'actions', label: 'Действия', align: 'right' as const },
 ]
 
 const updateSort = (value: string) => {
   emit('update-sorting', value)
-}
-
-const updateSortDesc = (value: boolean) => {
-  emit('update-sorting', props.sortBy)
 }
 </script>

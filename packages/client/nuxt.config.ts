@@ -9,6 +9,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: 'http://localhost:33010', // Your NestJS server URL
+      tmdbApiKey: '',
     },
   },
   app: {
