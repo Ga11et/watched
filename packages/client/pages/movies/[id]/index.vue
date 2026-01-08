@@ -8,7 +8,7 @@
       ]"
     />
 
-    <div class="rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
       <div class="border-b border-gray-200 px-6 py-5 flex items-center justify-between">
         <div>
           <h1 class="text-xl md:text-2xl font-semibold text-gray-900">

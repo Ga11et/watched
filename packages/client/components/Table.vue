@@ -8,14 +8,14 @@
             :key="column.key"
             scope="col"
             :class="[
-              'px-4 py-3 font-medium text-gray-700 transition-colors',
+              'px-4 py-3 font-medium text-gray-700 transition-colors whitespace-nowrap',
               column.sortable ? 'cursor-pointer hover:bg-gray-100' : '',
               column.align === 'right' ? 'text-right' : 'text-left',
             ]"
             @click="column.sortable ? handleSort(column.key) : null"
           >
             <div
-              class="flex items-center gap-1"
+              class="flex items-center gap-1 whitespace-nowrap"
               :class="{ 'justify-end': column.align === 'right' }"
             >
               {{ column.label }}

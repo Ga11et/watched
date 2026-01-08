@@ -76,7 +76,20 @@ export class MoviesService {
         'createdAt',
       ];
       if (validSortFields.includes(sortBy)) {
-        queryBuilder.orderBy(`movie.${sortBy}`, sortOrder || 'ASC');
+        if (sortBy === 'rating') {
+          // For rating sorting, handle null values properly
+          if (sortOrder === 'DESC') {
+            queryBuilder
+              .orderBy('movie.rating IS NULL', 'ASC') // NULL values last
+              .addOrderBy('movie.rating', 'DESC');
+          } else {
+            queryBuilder
+              .orderBy('movie.rating IS NULL', 'ASC') // NULL values first
+              .addOrderBy('movie.rating', 'ASC');
+          }
+        } else {
+          queryBuilder.orderBy(`movie.${sortBy}`, sortOrder || 'ASC');
+        }
       }
     } else {
       queryBuilder.orderBy('movie.watchedAt', 'DESC');

@@ -9,7 +9,7 @@
 # Production
 /dist
 /build
-/uploads/*
+/uploads/**
 
 # Environment variables
 .env

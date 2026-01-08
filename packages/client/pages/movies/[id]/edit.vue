@@ -40,19 +40,65 @@
               <label for="title" class="block text-sm font-medium text-gray-700">
                 Название<span class="text-red-500">*</span>
               </label>
-              <input
-                id="title"
-                v-model="form.title"
-                type="text"
-                :class="[
-                  'mt-1 block w-full rounded-lg border px-3 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 transition',
-                  errors.title
-                    ? 'border-red-300 focus:ring-red-200'
-                    : 'border-gray-300 focus:ring-indigo-200 focus:border-indigo-500',
-                ]"
-                placeholder="например, Интерстеллар"
-              />
+              <div class="flex gap-2">
+                <input
+                  id="title"
+                  v-model="form.title"
+                  type="text"
+                  :class="[
+                    'mt-1 block w-full rounded-lg border px-3 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 transition',
+                    errors.title
+                      ? 'border-red-300 focus:ring-red-200'
+                      : 'border-gray-300 focus:ring-indigo-200 focus:border-indigo-500',
+                  ]"
+                  placeholder="например, Интерстеллар"
+                />
+                <button
+                  type="button"
+                  @click="loadFromTmdb"
+                  :disabled="loadingTmdb || !form.title.trim()"
+                  class="mt-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-sm font-medium"
+                >
+                  <svg
+                    v-if="loadingTmdb"
+                    class="animate-spin h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      class="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      stroke-width="4"
+                    ></circle>
+                    <path
+                      class="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    ></path>
+                  </svg>
+                  <svg
+                    v-else
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                  TMDB
+                </button>
+              </div>
               <p v-if="errors.title" class="mt-1 text-sm text-red-600">{{ errors.title }}</p>
+              <p v-if="tmdbError" class="mt-1 text-sm text-red-600">{{ tmdbError }}</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -91,7 +137,7 @@
                 class="flex-1"
               />
               <NuxtLink
-                to="/movies/directors/new"
+                :to="`/movies/directors/new?redirectTo=${encodeURIComponent(`/movies/${route.params.id}/edit`)}`"
                 class="mt-7 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm"
               >
                 <svg
@@ -211,6 +257,8 @@ const loadError = ref('')
 const error = ref('')
 const errors = ref<Record<string, string>>({})
 const submitting = ref(false)
+const loadingTmdb = ref(false)
+const tmdbError = ref('')
 
 interface MovieForm {
   title: string
@@ -287,6 +335,94 @@ const { data: movie, pending } = await useAsyncData(
   },
   { server: false },
 )
+
+interface TmdbMovie {
+  id: number
+  title: string
+  release_date?: string
+  genre_ids?: number[]
+  poster_path?: string
+}
+
+interface TmdbSearchResponse {
+  results: TmdbMovie[]
+}
+
+interface TmdbGenre {
+  id: number
+  name: string
+}
+
+interface TmdbGenresResponse {
+  genres: TmdbGenre[]
+}
+
+const loadFromTmdb = async () => {
+  if (!form.value.title.trim()) return
+
+  loadingTmdb.value = true
+  tmdbError.value = ''
+
+  try {
+    const response = await $fetch<TmdbSearchResponse>(`https://api.themoviedb.org/3/search/movie`, {
+      params: {
+        api_key: config.public.tmdbApiKey,
+        query: form.value.title.trim(),
+        language: 'ru-RU',
+      },
+    })
+
+    if (response.results && response.results.length > 0) {
+      const movie = response.results[0]
+
+      // Update form with TMDB data
+      form.value.title = movie.title
+      if (movie.release_date) {
+        form.value.releaseYear = parseInt(movie.release_date.slice(0, 4), 10)
+      }
+      if (movie.genre_ids && movie.genre_ids.length > 0) {
+        try {
+          const genresResponse = await $fetch<TmdbGenresResponse>(
+            `https://api.themoviedb.org/3/genre/movie/list`,
+            {
+              params: {
+                api_key: config.public.tmdbApiKey,
+                language: 'ru-RU',
+              },
+            },
+          )
+          const genres = genresResponse.genres
+          const movieGenres = movie.genre_ids
+            .map((id) => genres.find((g) => g.id === id)?.name)
+            .filter(Boolean)
+          if (movieGenres.length > 0) {
+            form.value.genre = movieGenres.join(', ')
+          }
+        } catch (e) {
+          console.error('Failed to fetch TMDB genres:', e)
+        }
+      }
+      if (movie.poster_path) {
+        const url = `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+        try {
+          const response = await fetch(url)
+          const blob = await response.blob()
+          posterFile.value = new File([blob], `${movie.id}.jpg`, { type: blob.type })
+          posterPreview.value = url
+        } catch (e) {
+          console.error('Failed to fetch TMDB poster:', e)
+        }
+      }
+    } else {
+      tmdbError.value = 'Фильм не найден в TMDB'
+    }
+  } catch (e) {
+    console.error('TMDB search error:', e)
+    tmdbError.value = 'Ошибка при поиске в TMDB'
+  } finally {
+    loadingTmdb.value = false
+  }
+}
 
 const onSubmit = async () => {
   if (submitting.value) return
