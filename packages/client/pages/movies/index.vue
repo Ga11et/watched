@@ -78,7 +78,7 @@
 
 <script setup>
 const error = ref('')
-const movies = ref([])
+const config = useRuntimeConfig()
 
 const viewMode = useCookie('watched_movies_view_mode', {
   default: () => 'cards',
@@ -86,7 +86,7 @@ const viewMode = useCookie('watched_movies_view_mode', {
 })
 
 const sortBy = useCookie('watched_movies_sort_by', {
-  default: () => 'watchDate',
+  default: () => 'watchedAt',
   sameSite: 'lax',
 })
 
@@ -104,7 +104,26 @@ const updateSorting = (newSortBy) => {
   }
 }
 
-// TODO: Implement API calls to fetch movies and directors
+const { data: movies } = await useAsyncData(
+  'movies',
+  async () => {
+    try {
+      error.value = ''
+      return await $fetch(`${config.public.apiBase}/movies`, {
+        params: {
+          sortBy: sortBy.value,
+          sortOrder: sortOrder.value,
+        },
+      })
+    } catch {
+      error.value = 'Не удалось загрузить фильмы'
+      return []
+    }
+  },
+  {
+    watch: [sortBy, sortOrder],
+  },
+)
 </script>
 
 <style>

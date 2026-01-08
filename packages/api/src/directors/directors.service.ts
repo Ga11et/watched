@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Director } from './entities/director.entity';
+import { Movie } from '../movies/entities/movie.entity';
 import { CreateDirectorDto } from './dto/create-director.dto';
 import { UpdateDirectorDto } from './dto/update-director.dto';
 import * as fs from 'fs';
@@ -22,6 +23,8 @@ export class DirectorsService {
   constructor(
     @InjectRepository(Director)
     private directorsRepository: Repository<Director>,
+    @InjectRepository(Movie)
+    private moviesRepository: Repository<Movie>,
   ) {
     if (!fs.existsSync(this.uploadPath)) {
       fs.mkdirSync(this.uploadPath, { recursive: true });
@@ -137,6 +140,12 @@ export class DirectorsService {
         fs.unlinkSync(photoPath);
       }
     }
+
+    // Remove director reference from all movies
+    await this.moviesRepository.update(
+      { directorId: id },
+      { directorId: null },
+    );
 
     await this.directorsRepository.delete(id);
   }

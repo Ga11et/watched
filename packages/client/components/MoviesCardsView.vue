@@ -1,7 +1,12 @@
 <template>
   <div>
     <div class="mb-6">
-      <SortControl :sort-by="sortBy" :sort-order="sortOrder" @update-sorting="handleSortUpdate" />
+      <SortControl
+        :sort-by="sortBy"
+        :sort-order="sortOrder"
+        :options="sortOptions"
+        @update-sorting="handleSortUpdate"
+      />
     </div>
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       <MovieCard v-for="movie in movies" :key="movie.id" :movie="movie" />
@@ -10,19 +15,16 @@
 </template>
 
 <script setup lang="ts">
-import MovieCard from './MovieCard.vue'
-import SortControl from './SortControl.vue'
-
 interface Movie {
   id: string
   title: string
-  watchDate?: string | null
+  genre?: string | null
+  poster?: string | null
+  watchedAt?: string | null
   comment?: string | null
   rating?: number | null
-  director: {
-    id: string
-    fullName: string
-  }
+  releaseYear?: number | null
+  directorId?: string | null
 }
 
 interface Props {
@@ -35,6 +37,14 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   'update-sorting': [sortBy: string]
 }>()
+
+const sortOptions = [
+  { value: 'title', label: 'По названию' },
+  { value: 'genre', label: 'По жанру' },
+  { value: 'rating', label: 'По рейтингу' },
+  { value: 'watchedAt', label: 'По дате просмотра' },
+  { value: 'releaseYear', label: 'По году выхода' },
+]
 
 const handleSortUpdate = (sortBy: string) => {
   emit('update-sorting', sortBy)

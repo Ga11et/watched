@@ -34,9 +34,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import CustomSelect from './CustomSelect.vue'
-
 interface SortOption {
   value: string
   label: string

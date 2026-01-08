@@ -176,7 +176,9 @@ const onSubmit = async () => {
       body: formData,
     })
 
-    navigateTo('/movies/directors')
+    const route = useRoute()
+    const redirectTo = route.query.redirectTo as string
+    navigateTo(redirectTo || '/movies/directors')
   } catch (e) {
     const err = e as {
       data?: { message?: string; violations?: Array<{ field: string; message: string }> }
