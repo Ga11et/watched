@@ -7,6 +7,7 @@ import { AppService } from './app.service';
 import { GamesModule } from './games/games.module';
 import { DirectorsModule } from './directors/directors.module';
 import { MoviesModule } from './movies/movies.module';
+import { SeriesModule } from './series/series.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { MoviesModule } from './movies/movies.module';
     GamesModule,
     DirectorsModule,
     MoviesModule,
+    SeriesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
