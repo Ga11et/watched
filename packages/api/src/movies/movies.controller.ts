@@ -29,13 +29,23 @@ export class MoviesController {
     return this.moviesService.create(createMovieDto, poster);
   }
 
+  @Get('stats')
+  getStats(): Promise<{
+    total: number;
+    thisMonth: number;
+    avgRating: number;
+  }> {
+    return this.moviesService.getStats();
+  }
+
   @Get()
   findAll(
     @Query('sortBy') sortBy?: string,
     @Query('sortOrder') sortOrder?: 'ASC' | 'DESC',
     @Query('directorId') directorId?: string,
+    @Query('limit') limit?: string,
   ): Promise<Movie[]> {
-    return this.moviesService.findAll(sortBy, sortOrder, directorId);
+    return this.moviesService.findAll(sortBy, sortOrder, directorId, limit);
   }
 
   @Get(':id')

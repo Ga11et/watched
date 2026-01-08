@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThanOrEqual } from 'typeorm';
 import { Movie } from './entities/movie.entity';
 import { CreateMovieDto } from './dto/create-movie.dto';
 import { UpdateMovieDto } from './dto/update-movie.dto';
@@ -59,6 +59,7 @@ export class MoviesService {
     sortBy?: string,
     sortOrder?: 'ASC' | 'DESC',
     directorId?: string,
+    limit?: string,
   ): Promise<Movie[]> {
     const queryBuilder = this.moviesRepository.createQueryBuilder('movie');
 
@@ -92,7 +93,15 @@ export class MoviesService {
         }
       }
     } else {
+      // Default sorting
       queryBuilder.orderBy('movie.watchedAt', 'DESC');
+    }
+
+    if (limit) {
+      const limitNum = parseInt(limit, 10);
+      if (!isNaN(limitNum) && limitNum > 0) {
+        queryBuilder.limit(limitNum);
+      }
     }
 
     return queryBuilder.getMany();
@@ -163,5 +172,40 @@ export class MoviesService {
     }
 
     await this.moviesRepository.delete(id);
+  }
+
+  async getStats(): Promise<{
+    total: number;
+    thisMonth: number;
+    avgRating: number;
+  }> {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [total, thisMonth, avgRatingResult]: [
+      number,
+      number,
+      { avgRating?: string } | undefined,
+    ] = await Promise.all([
+      this.moviesRepository.count(),
+      this.moviesRepository.count({
+        where: {
+          watchedAt: MoreThanOrEqual(startOfMonth),
+        },
+      }),
+      this.moviesRepository
+        .createQueryBuilder('movie')
+        .select('AVG(movie.rating)', 'avgRating')
+        .where('movie.rating IS NOT NULL')
+        .getRawOne<{ avgRating?: string }>(),
+    ]);
+
+    return {
+      total,
+      thisMonth,
+      avgRating: avgRatingResult?.avgRating
+        ? parseFloat(avgRatingResult.avgRating)
+        : 0,
+    };
   }
 }

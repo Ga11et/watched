@@ -22,12 +22,22 @@ export class GamesController {
     return this.gamesService.create(createGameDto);
   }
 
+  @Get('stats')
+  getStats(): Promise<{
+    total: number;
+    thisMonth: number;
+    avgRating: number;
+  }> {
+    return this.gamesService.getStats();
+  }
+
   @Get()
   findAll(
     @Query('sortBy') sortBy?: string,
     @Query('sortOrder') sortOrder?: 'ASC' | 'DESC',
+    @Query('limit') limit?: string,
   ): Promise<Game[]> {
-    return this.gamesService.findAll(sortBy, sortOrder);
+    return this.gamesService.findAll(sortBy, sortOrder, limit);
   }
 
   @Get(':id')

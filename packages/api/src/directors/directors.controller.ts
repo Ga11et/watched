@@ -29,12 +29,20 @@ export class DirectorsController {
     return this.directorsService.create(createDirectorDto, photo);
   }
 
+  @Get('stats')
+  getStats(): Promise<{
+    total: number;
+  }> {
+    return this.directorsService.getStats();
+  }
+
   @Get()
   findAll(
     @Query('sortBy') sortBy?: string,
     @Query('sortOrder') sortOrder?: 'ASC' | 'DESC',
+    @Query('limit') limit?: string,
   ): Promise<Director[]> {
-    return this.directorsService.findAll(sortBy, sortOrder);
+    return this.directorsService.findAll(sortBy, sortOrder, limit);
   }
 
   @Get(':id')

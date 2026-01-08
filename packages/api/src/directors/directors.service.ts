@@ -62,6 +62,7 @@ export class DirectorsService {
   async findAll(
     sortBy?: string,
     sortOrder?: 'ASC' | 'DESC',
+    limit?: string,
   ): Promise<Director[]> {
     const queryBuilder =
       this.directorsRepository.createQueryBuilder('director');
@@ -73,6 +74,13 @@ export class DirectorsService {
       }
     } else {
       queryBuilder.orderBy('director.createdAt', 'DESC');
+    }
+
+    if (limit) {
+      const limitNum = parseInt(limit, 10);
+      if (!isNaN(limitNum) && limitNum > 0) {
+        queryBuilder.limit(limitNum);
+      }
     }
 
     return queryBuilder.getMany();
@@ -148,5 +156,14 @@ export class DirectorsService {
     );
 
     await this.directorsRepository.delete(id);
+  }
+
+  async getStats(): Promise<{
+    total: number;
+  }> {
+    const total = await this.directorsRepository.count();
+    return {
+      total,
+    };
   }
 }
