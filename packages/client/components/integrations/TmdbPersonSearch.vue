@@ -54,16 +54,10 @@
 </template>
 
 <script setup lang="ts">
+import type { TmdbPerson } from '~/types/api'
+
 const config = useRuntimeConfig()
 const TMDB_API_KEY = config.public.tmdbApiKey
-
-export interface TmdbPerson {
-  id: number
-  name: string
-  profile_path: string | null
-  known_for_department: string | null
-  popularity: number
-}
 
 interface Props {
   modelValue?: TmdbPerson | null

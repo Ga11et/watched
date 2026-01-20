@@ -1,6 +1,6 @@
 <template>
   <div class="mx-auto max-w-7xl">
-    <Breadcrumbs
+    <LayoutBreadcrumbs
       :items="[
         { label: 'Главная', to: '/' },
         { label: 'Фильмы', to: '/movies' },
@@ -18,7 +18,7 @@
 
       <form @submit.prevent="onSubmit" class="px-6 py-6">
         <div class="flex gap-6">
-          <PhotoUpload
+          <UiPhotoUpload
             v-model="posterFile"
             v-model:preview="posterPreview"
             label="Постер"
@@ -28,7 +28,7 @@
           />
 
           <div class="flex-1 grid grid-cols-1 gap-6">
-            <TmdbMovieSearch
+            <IntegrationsTmdbMovieSearch
               v-model="tmdbMovie"
               v-model:manual-query="manualTitle"
               label="Название"
@@ -69,7 +69,7 @@
             </div>
 
             <div class="flex gap-2">
-              <CustomSelect
+              <UiSelect
                 v-model="form.directorId"
                 :options="directorOptions"
                 label="Режиссёр"
@@ -190,48 +190,50 @@
 </template>
 
 <script setup lang="ts">
-import type { TmdbMovie } from '~/components/TmdbMovieSearch.vue'
+import type { TmdbMovie } from '~/types/api'
 
+// Конфигурация
 const config = useRuntimeConfig()
+const router = useRouter()
+
+// Состояние
+const submitting = ref(false)
 const error = ref('')
 const errors = ref<Record<string, string>>({})
-const submitting = ref(false)
 
-const today = new Date().toISOString().split('T')[0]
-
-const tmdbMovie = ref<TmdbMovie | null>(null)
-const manualTitle = ref('')
+// Файлы и превью
 const posterFile = ref<File | null>(null)
 const posterPreview = ref<string | null>(null)
 
-interface MovieForm {
-  genre: string
-  directorId: string
-  watchedAt: string
-  rating: number | undefined
-  releaseYear: number | undefined
-  comment: string
-}
+// Загрузка данных
+const { data: directors } = await useFetch<{ id: string; fullName: string }[]>(
+  `${useRuntimeConfig().public.apiBase}/directors`,
+)
 
-const form = ref<MovieForm>({
-  genre: '',
-  directorId: '',
-  watchedAt: today,
-  rating: undefined,
-  releaseYear: undefined,
-  comment: '',
-})
+// Вычисляемые свойства
+const breadcrumbItems = computed(() => [
+  { label: 'Главная', to: '/' },
+  { label: 'Фильмы', to: '/movies' },
+  { label: 'Добавление' },
+])
 
 const directorOptions = computed(() => [
   { value: '', label: 'Выберите режиссёра' },
-  ...(directors.value?.map((d) => ({ value: d.id, label: d.fullName })) || []),
+  ...(directors.value || []).map((d) => ({ value: d.id, label: d.fullName })),
 ])
 
-const { data: directors } = await useAsyncData('directors-list', async () => {
-  return $fetch<{ id: string; fullName: string }[]>(`${config.public.apiBase}/directors`).catch(
-    () => [],
-  )
+// Данные формы
+const form = reactive({
+  genre: '',
+  directorId: '',
+  watchedAt: new Date().toISOString().split('T')[0],
+  rating: undefined as number | undefined,
+  releaseYear: undefined as number | undefined,
+  comment: '',
 })
+
+const tmdbMovie = ref<TmdbMovie | null>(null)
+const manualTitle = ref('')
 
 // Load form data from localStorage on mount
 onMounted(() => {
@@ -239,12 +241,12 @@ onMounted(() => {
   if (savedData) {
     try {
       const parsed = JSON.parse(savedData)
-      form.value.genre = parsed.genre || ''
-      form.value.directorId = parsed.directorId || ''
-      form.value.watchedAt = parsed.watchedAt || today
-      form.value.rating = parsed.rating
-      form.value.releaseYear = parsed.releaseYear
-      form.value.comment = parsed.comment || ''
+      form.genre = parsed.genre || ''
+      form.directorId = parsed.directorId || ''
+      form.watchedAt = parsed.watchedAt || new Date().toISOString().split('T')[0]
+      form.rating = parsed.rating
+      form.releaseYear = parsed.releaseYear
+      form.comment = parsed.comment || ''
       manualTitle.value = parsed.manualTitle || ''
 
       // Restore TMDB movie data if available
@@ -267,15 +269,15 @@ watch(
   [form, manualTitle, tmdbMovie, posterPreview],
   () => {
     const dataToSave = {
-      genre: form.value.genre,
-      directorId: form.value.directorId,
-      watchedAt: form.value.watchedAt,
-      rating: form.value.rating,
-      releaseYear: form.value.releaseYear,
-      comment: form.value.comment,
-      manualTitle: manualTitle.value,
-      tmdbMovie: tmdbMovie.value,
-      posterPreview: posterPreview.value,
+      genre: form.genre,
+      directorId: form.directorId,
+      watchedAt: form.watchedAt,
+      rating: form.rating,
+      releaseYear: form.releaseYear,
+      comment: form.comment,
+      manualTitle: manualTitle,
+      tmdbMovie: tmdbMovie,
+      posterPreview: posterPreview,
     }
     localStorage.setItem('movieFormDraft', JSON.stringify(dataToSave))
   },
@@ -285,7 +287,7 @@ watch(
 watch(tmdbMovie, async (newMovie) => {
   if (newMovie) {
     if (newMovie.release_date) {
-      form.value.releaseYear = parseInt(newMovie.release_date.slice(0, 4), 10)
+      form.releaseYear = parseInt(newMovie.release_date.slice(0, 4), 10)
     }
     if (newMovie.poster_path) {
       const url = `https://image.tmdb.org/t/p/w500${newMovie.poster_path}`
@@ -314,7 +316,7 @@ watch(tmdbMovie, async (newMovie) => {
           .map((id) => genres.find((g) => g.id === id)?.name)
           .filter(Boolean)
         if (movieGenres.length > 0) {
-          form.value.genre = movieGenres.join(', ')
+          form.genre = movieGenres.join(', ')
         }
       } catch (e) {
         console.error('Failed to fetch TMDB genres:', e)
@@ -339,23 +341,23 @@ const onSubmit = async () => {
 
     const formData = new FormData()
     formData.append('title', title)
-    if (form.value.genre?.trim()) {
-      formData.append('genre', form.value.genre.trim())
+    if (form.genre?.trim()) {
+      formData.append('genre', form.genre.trim())
     }
-    if (form.value.directorId) {
-      formData.append('directorId', form.value.directorId)
+    if (form.directorId) {
+      formData.append('directorId', form.directorId)
     }
-    if (typeof form.value.rating === 'number') {
-      formData.append('rating', String(form.value.rating))
+    if (typeof form.rating === 'number') {
+      formData.append('rating', String(form.rating))
     }
-    if (form.value.watchedAt) {
-      formData.append('watchedAt', form.value.watchedAt)
+    if (form.watchedAt) {
+      formData.append('watchedAt', form.watchedAt)
     }
-    if (form.value.comment?.trim()) {
-      formData.append('comment', form.value.comment.trim())
+    if (form.comment?.trim()) {
+      formData.append('comment', form.comment.trim())
     }
-    if (typeof form.value.releaseYear === 'number') {
-      formData.append('releaseYear', String(form.value.releaseYear))
+    if (typeof form.releaseYear === 'number') {
+      formData.append('releaseYear', String(form.releaseYear))
     }
     if (posterFile.value) {
       formData.append('poster', posterFile.value)

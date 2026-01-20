@@ -1,6 +1,6 @@
 <template>
   <div class="mx-auto max-w-7xl">
-    <Breadcrumbs
+    <LayoutBreadcrumbs
       :items="[
         { label: 'Главная', to: '/' },
         { label: 'Сериалы', to: '/series' },
@@ -123,7 +123,7 @@
               </div>
               <div v-if="series.watchedAt">
                 <div class="text-sm text-gray-500">Дата просмотра</div>
-                <div class="text-gray-900 m-0"><DateDisplay :date="series.watchedAt" /></div>
+                <div class="text-gray-900 m-0"><UiDateDisplay :date="series.watchedAt" /></div>
               </div>
               <div v-if="series.totalSeasons">
                 <div class="text-sm text-gray-500">Просмотрено сезонов</div>
@@ -142,11 +142,11 @@
             <div class="grid grid-cols-2 gap-4 text-sm text-gray-500">
               <div>
                 <div class="tracking-wide">Создано</div>
-                <div class="text-gray-900 m-0"><DateDisplay :date="series.createdAt" /></div>
+                <div class="text-gray-900 m-0"><UiDateDisplay :date="series.createdAt" /></div>
               </div>
               <div>
                 <div class="tracking-wide">Обновлено</div>
-                <div class="text-gray-900 m-0"><DateDisplay :date="series.updatedAt" /></div>
+                <div class="text-gray-900 m-0"><UiDateDisplay :date="series.updatedAt" /></div>
               </div>
             </div>
           </div>

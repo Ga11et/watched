@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="mb-6">
-      <SortControl
+      <UiSorter
         :sort-by="sortBy"
         :sort-order="sortOrder"
         :options="sortOptions"
@@ -9,26 +9,28 @@
       />
     </div>
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      <MovieCard v-for="movie in movies" :key="movie.id" :movie="movie" />
+      <EntitiesSeriesCard v-for="item in series" :key="item.id" :series="item" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-interface Movie {
+interface Series {
   id: string
   title: string
-  genre?: string | null
+  genres?: string | null
+  country?: string | null
   poster?: string | null
   watchedAt?: string | null
   comment?: string | null
   rating?: number | null
-  releaseYear?: number | null
-  directorId?: string | null
+  totalSeasons?: number | null
+  watchedSeasons?: number | null
+  createdAt?: string | null
 }
 
 interface Props {
-  movies: Movie[]
+  series: Series[]
   sortBy?: string
   sortOrder?: 'ASC' | 'DESC'
 }
@@ -40,10 +42,11 @@ const emit = defineEmits<{
 
 const sortOptions = [
   { value: 'title', label: 'По названию' },
-  { value: 'genre', label: 'По жанру' },
   { value: 'rating', label: 'По рейтингу' },
+  { value: 'country', label: 'По стране' },
   { value: 'watchedAt', label: 'По дате просмотра' },
-  { value: 'releaseYear', label: 'По году выхода' },
+  { value: 'totalSeasons', label: 'По количеству сезонов' },
+  { value: 'createdAt', label: 'По дате добавления' },
 ]
 
 const handleSortUpdate = (sortBy: string) => {

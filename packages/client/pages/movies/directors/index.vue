@@ -1,6 +1,6 @@
 <template>
   <div class="mx-auto max-w-7xl">
-    <Breadcrumbs
+    <LayoutBreadcrumbs
       :items="[
         { label: 'Главная', to: '/' },
         { label: 'Фильмы', to: '/movies' },
@@ -18,32 +18,7 @@
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-2xl font-bold">Режиссёры</h2>
       <div class="flex items-center gap-3">
-        <div class="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 p-1">
-          <button
-            type="button"
-            class="rounded-md px-3 py-1.5 text-sm transition"
-            :class="
-              viewMode === 'cards'
-                ? 'bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-600'
-                : 'text-gray-600 hover:text-gray-900'
-            "
-            @click="viewMode = 'cards'"
-          >
-            Карточки
-          </button>
-          <button
-            type="button"
-            class="rounded-md px-3 py-1.5 text-sm transition"
-            :class="
-              viewMode === 'table'
-                ? 'bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-600'
-                : 'text-gray-600 hover:text-gray-900'
-            "
-            @click="viewMode = 'table'"
-          >
-            Таблица
-          </button>
-        </div>
+        <UiViewToggle v-model="viewMode" />
         <NuxtLink
           to="/movies/directors/new"
           class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
@@ -53,19 +28,17 @@
       </div>
     </div>
 
-    <div v-if="!directors?.length" class="text-center py-12 text-gray-500">
-      Режиссёров пока нет. Добавьте первого режиссёра!
-    </div>
+    <UiEmpty v-if="!directors?.length" entity-name="режиссёр" />
 
     <Transition name="fade" mode="out-in">
-      <DirectorsCardsView
+      <EntitiesDirectorsCardsView
         v-if="directors?.length && viewMode === 'cards'"
         :directors="directors"
         :sort-by="sortBy"
         :sort-order="sortOrder"
         @update-sorting="updateSorting"
       />
-      <DirectorsTableView
+      <EntitiesDirectorsTableView
         v-else-if="directors?.length"
         :directors="directors"
         :sort-by="sortBy"
@@ -76,25 +49,36 @@
   </div>
 </template>
 
-<script setup>
-const error = ref('')
+<script setup lang="ts">
+interface Director {
+  id: string
+  fullName: string
+  country?: string
+  birthYear?: number
+  biography?: string
+  photo?: string
+  createdAt: string
+  updatedAt: string
+}
 
-const viewMode = useCookie('watched_directors_view_mode', {
+const error = ref<string>('')
+
+const viewMode = useCookie<'cards' | 'table'>('watched_directors_view_mode', {
   default: () => 'cards',
   sameSite: 'lax',
 })
 
-const sortBy = useCookie('watched_directors_sort_by', {
+const sortBy = useCookie<string>('watched_directors_sort_by', {
   default: () => 'fullName',
   sameSite: 'lax',
 })
 
-const sortOrder = useCookie('watched_directors_sort_order', {
+const sortOrder = useCookie<'ASC' | 'DESC'>('watched_directors_sort_order', {
   default: () => 'ASC',
   sameSite: 'lax',
 })
 
-const updateSorting = (newSortBy) => {
+const updateSorting = (newSortBy: string): void => {
   if (sortBy.value === newSortBy) {
     sortOrder.value = sortOrder.value === 'ASC' ? 'DESC' : 'ASC'
   } else {
@@ -103,14 +87,12 @@ const updateSorting = (newSortBy) => {
   }
 }
 
-const config = useRuntimeConfig()
-
-const { data: directors } = await useAsyncData(
+const { data: directors } = await useAsyncData<Director[]>(
   'directors',
   async () => {
     try {
       error.value = ''
-      return await $fetch(`${config.public.apiBase}/directors`, {
+      return await $fetch<Director[]>(`${useRuntimeConfig().public.apiBase}/directors`, {
         params: {
           sortBy: sortBy.value,
           sortOrder: sortOrder.value,

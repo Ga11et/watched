@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="mb-6">
-      <SortControl
+      <UiSorter
         :sort-by="sortBy"
         :sort-order="sortOrder"
         :options="sortOptions"
@@ -9,26 +9,25 @@
       />
     </div>
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      <GameCard v-for="game in games" :key="game.id" :game="game" />
+      <EntitiesDirectorsCard
+        v-for="director in directors"
+        :key="director.id"
+        :director="director"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import GameCard from './GameCard.vue'
-import SortControl from './SortControl.vue'
-
-interface Game {
+interface Director {
   id: string
-  title: string
-  completionDate?: string | null
-  playTimeHours?: number | null
-  comment?: string | null
-  rating?: number | null
+  fullName: string
+  photo?: string | null
+  createdAt?: string | null
 }
 
 interface Props {
-  games: Game[]
+  directors: Director[]
   sortBy?: string
   sortOrder?: 'ASC' | 'DESC'
 }
@@ -39,10 +38,8 @@ const emit = defineEmits<{
 }>()
 
 const sortOptions = [
-  { value: 'title', label: 'По названию' },
-  { value: 'completionDate', label: 'По дате прохождения' },
-  { value: 'rating', label: 'По рейтингу' },
-  { value: 'playTimeHours', label: 'По времени игры' },
+  { value: 'fullName', label: 'По ФИО' },
+  { value: 'createdAt', label: 'По дате добавления' },
 ]
 
 const handleSortUpdate = (sortBy: string) => {

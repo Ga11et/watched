@@ -68,7 +68,7 @@ export interface TmdbSeries {
   name: string
   poster_path: string | null
   first_air_date: string | null
-  origin_country: string[]
+  origin_country?: string[]
   genre_ids: number[]
   overview: string | null
   number_of_seasons?: number

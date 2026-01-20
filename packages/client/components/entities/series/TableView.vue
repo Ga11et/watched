@@ -1,5 +1,5 @@
 <template>
-  <Table
+  <UiTable
     :items="series"
     :columns="columns"
     :sort-by="sortBy"
@@ -41,7 +41,7 @@
     </template>
 
     <template #cell-watchedAt="{ item }">
-      <DateDisplay :date="item.watchedAt" />
+      <UiDateDisplay :date="item.watchedAt" />
     </template>
 
     <template #cell-actions="{ item }">
@@ -54,7 +54,7 @@
         </NuxtLink>
       </div>
     </template>
-  </Table>
+  </UiTable>
 </template>
 
 <script setup lang="ts">

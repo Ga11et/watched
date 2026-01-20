@@ -1,6 +1,6 @@
 <template>
   <div class="mx-auto max-w-7xl">
-    <Breadcrumbs
+    <LayoutBreadcrumbs
       :items="[
         { label: 'Главная', to: '/' },
         { label: 'Игры', to: '/games' },
@@ -71,7 +71,7 @@
             </div>
             <div>
               <div class="text-sm text-gray-500">Дата прохождения</div>
-              <div class="text-gray-900 m-0"><DateDisplay :date="game.completionDate" /></div>
+              <div class="text-gray-900 m-0"><UiDateDisplay :date="game.completionDate" /></div>
             </div>
             <div>
               <div class="text-sm text-gray-500">Время в игре (часы)</div>
@@ -92,11 +92,11 @@
             <div class="grid grid-cols-2 gap-4 text-sm text-gray-500">
               <div>
                 <div class="tracking-wide">Создано</div>
-                <div class="text-gray-900 m-0"><DateDisplay :date="game.createdAt" /></div>
+                <div class="text-gray-900 m-0"><UiDateDisplay :date="game.createdAt" /></div>
               </div>
               <div>
                 <div class="tracking-wide">Обновлено</div>
-                <div class="text-gray-900 m-0"><DateDisplay :date="game.updatedAt" /></div>
+                <div class="text-gray-900 m-0"><UiDateDisplay :date="game.updatedAt" /></div>
               </div>
             </div>
           </div>

@@ -1,6 +1,6 @@
 <template>
   <div class="mx-auto max-w-7xl">
-    <Breadcrumbs :items="[{ label: 'Главная', to: '/' }, { label: 'Фильмы' }]" />
+    <LayoutBreadcrumbs :items="[{ label: 'Главная', to: '/' }, { label: 'Фильмы' }]" />
 
     <div
       v-if="error"
@@ -58,14 +58,14 @@
     </div>
 
     <Transition name="fade" mode="out-in">
-      <MoviesCardsView
+      <EntitiesMoviesCardsView
         v-if="viewMode === 'cards' && movies?.length"
         :movies="movies"
         :sort-by="sortBy"
         :sort-order="sortOrder"
         @update-sorting="updateSorting"
       />
-      <MoviesTableView
+      <EntitiesMoviesTableView
         v-else-if="movies?.length"
         :movies="movies"
         :sort-by="sortBy"
@@ -76,26 +76,31 @@
   </div>
 </template>
 
-<script setup>
-const error = ref('')
+<script setup lang="ts">
+const error = ref<string>('')
 const config = useRuntimeConfig()
 
-const viewMode = useCookie('watched_movies_view_mode', {
+interface SortOptions {
+  value: string
+  label: string
+}
+
+const viewMode = useCookie<'cards' | 'table'>('watched_movies_view_mode', {
   default: () => 'cards',
   sameSite: 'lax',
 })
 
-const sortBy = useCookie('watched_movies_sort_by', {
+const sortBy = useCookie<string>('watched_movies_sort_by', {
   default: () => 'watchedAt',
   sameSite: 'lax',
 })
 
-const sortOrder = useCookie('watched_movies_sort_order', {
+const sortOrder = useCookie<'ASC' | 'DESC'>('watched_movies_sort_order', {
   default: () => 'DESC',
   sameSite: 'lax',
 })
 
-const updateSorting = (newSortBy) => {
+const updateSorting = (newSortBy: string): void => {
   if (sortBy.value === newSortBy) {
     sortOrder.value = sortOrder.value === 'ASC' ? 'DESC' : 'ASC'
   } else {
@@ -104,12 +109,23 @@ const updateSorting = (newSortBy) => {
   }
 }
 
-const { data: movies } = await useAsyncData(
+interface Movie {
+  id: string
+  title: string
+  genre?: string
+  rating?: number
+  watchedAt?: string
+  releaseYear?: number
+  createdAt: string
+  updatedAt: string
+}
+
+const { data: movies } = await useAsyncData<Movie[]>(
   'movies',
   async () => {
     try {
       error.value = ''
-      return await $fetch(`${config.public.apiBase}/movies`, {
+      return await $fetch<Movie[]>(`${config.public.apiBase}/movies`, {
         params: {
           sortBy: sortBy.value,
           sortOrder: sortOrder.value,

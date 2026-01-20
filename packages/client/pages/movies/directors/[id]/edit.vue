@@ -1,6 +1,6 @@
 <template>
   <div class="mx-auto max-w-7xl">
-    <Breadcrumbs
+    <LayoutBreadcrumbs
       :items="[
         { label: 'Главная', to: '/' },
         { label: 'Фильмы', to: '/movies' },
@@ -27,7 +27,7 @@
 
       <form @submit.prevent="onSubmit" class="px-6 py-6">
         <div class="flex gap-6">
-          <PhotoUpload
+          <UiPhotoUpload
             v-model="photoFile"
             v-model:preview="photoPreview"
             label="Фото"

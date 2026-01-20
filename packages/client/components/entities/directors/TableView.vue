@@ -1,5 +1,5 @@
 <template>
-  <Table
+  <UiTable
     :items="directors"
     :columns="columns"
     :sort-by="sortBy"
@@ -15,7 +15,7 @@
       </NuxtLink>
     </template>
     <template #cell-createdAt="{ item }">
-      <DateDisplay :date="item.createdAt" />
+      <UiDateDisplay :date="item.createdAt" />
     </template>
     <template #cell-actions="{ item }">
       <div class="flex justify-end gap-2">
@@ -27,7 +27,7 @@
         </NuxtLink>
       </div>
     </template>
-  </Table>
+  </UiTable>
 </template>
 
 <script setup lang="ts">

@@ -1,6 +1,6 @@
 <template>
   <div class="mx-auto max-w-7xl">
-    <Breadcrumbs
+    <LayoutBreadcrumbs
       :items="[
         { label: 'Главная', to: '/' },
         { label: 'Фильмы', to: '/movies' },
@@ -104,11 +104,11 @@
             <div class="grid grid-cols-2 gap-4 text-sm text-gray-500">
               <div>
                 <div class="tracking-wide">Создано</div>
-                <div class="text-gray-900 m-0"><DateDisplay :date="director.createdAt" /></div>
+                <div class="text-gray-900 m-0"><UiDateDisplay :date="director.createdAt" /></div>
               </div>
               <div>
                 <div class="tracking-wide">Обновлено</div>
-                <div class="text-gray-900 m-0"><DateDisplay :date="director.updatedAt" /></div>
+                <div class="text-gray-900 m-0"><UiDateDisplay :date="director.updatedAt" /></div>
               </div>
             </div>
           </div>
@@ -130,7 +130,7 @@
       <div v-if="!directorMovies?.length" class="text-center py-12 text-gray-500">
         Фильмов этого режиссёра пока нет.
       </div>
-      <MoviesTableView v-else :movies="directorMovies" />
+      <EntitiesMoviesTableView v-else :movies="directorMovies" />
     </template>
   </div>
 </template>

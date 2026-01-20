@@ -1,6 +1,6 @@
 <template>
   <div class="mx-auto max-w-7xl">
-    <Breadcrumbs
+    <LayoutBreadcrumbs
       :items="[
         { label: 'Главная', to: '/' },
         { label: 'Фильмы', to: '/movies' },
@@ -26,7 +26,7 @@
 
       <form @submit.prevent="onSubmit" class="px-6 py-6">
         <div class="flex gap-6">
-          <PhotoUpload
+          <UiPhotoUpload
             v-model="posterFile"
             v-model:preview="posterPreview"
             label="Постер"
@@ -129,7 +129,7 @@
             </div>
 
             <div class="flex gap-2">
-              <CustomSelect
+              <UiSelect
                 v-model="form.directorId"
                 :options="directorOptions"
                 label="Режиссёр"

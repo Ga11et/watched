@@ -1,6 +1,6 @@
 <template>
   <div class="mx-auto max-w-7xl">
-    <Breadcrumbs
+    <LayoutBreadcrumbs
       :items="[
         { label: 'Главная', to: '/' },
         { label: 'Фильмы', to: '/movies' },
@@ -127,7 +127,7 @@
               <div>
                 <div class="text-sm text-gray-500">Дата просмотра</div>
                 <div class="text-gray-900 m-0">
-                  <DateDisplay v-if="movie.watchedAt" :date="movie.watchedAt" />
+                  <UiDateDisplay v-if="movie.watchedAt" :date="movie.watchedAt" />
                   <span v-else>—</span>
                 </div>
               </div>
@@ -140,11 +140,11 @@
               <div class="grid grid-cols-2 gap-4 text-sm text-gray-500">
                 <div>
                   <div class="tracking-wide">Создано</div>
-                  <div class="text-gray-900 m-0"><DateDisplay :date="movie.createdAt" /></div>
+                  <div class="text-gray-900 m-0"><UiDateDisplay :date="movie.createdAt" /></div>
                 </div>
                 <div>
                   <div class="tracking-wide">Обновлено</div>
-                  <div class="text-gray-900 m-0"><DateDisplay :date="movie.updatedAt" /></div>
+                  <div class="text-gray-900 m-0"><UiDateDisplay :date="movie.updatedAt" /></div>
                 </div>
               </div>
             </div>
@@ -182,20 +182,14 @@ interface Director {
 }
 
 const { data: movie, pending } = await useAsyncData(`movie-${route.params.id}`, async () => {
-  error.value = ''
-  return $fetch<Movie>(`${config.public.apiBase}/movies/${route.params.id}`).catch((e) => {
-    error.value = e?.data?.message || 'Не удалось загрузить фильм'
-    return null
-  })
+  return await $fetch<Movie>(`${config.public.apiBase}/movies/${route.params.id}`)
 })
 
 const { data: director } = await useAsyncData(
   `movie-director-${route.params.id}`,
   async () => {
-    if (!movie.value?.directorId) return null
-    return $fetch<Director>(`${config.public.apiBase}/directors/${movie.value.directorId}`).catch(
-      () => null,
-    )
+    if (!movie.value?.directorId) return
+    return $fetch<Director>(`${config.public.apiBase}/directors/${movie.value.directorId}`)
   },
   { watch: [movie] },
 )

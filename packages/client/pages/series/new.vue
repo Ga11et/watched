@@ -1,6 +1,6 @@
 <template>
   <div class="mx-auto max-w-7xl">
-    <Breadcrumbs
+    <LayoutBreadcrumbs
       :items="[
         { label: 'Главная', to: '/' },
         { label: 'Сериалы', to: '/series' },
@@ -18,7 +18,7 @@
 
       <form @submit.prevent="onSubmit" class="px-6 py-6">
         <div class="flex gap-6">
-          <PhotoUpload
+          <UiPhotoUpload
             v-model="posterFile"
             v-model:preview="posterPreview"
             label="Постер"
@@ -27,7 +27,7 @@
           />
 
           <div class="flex-1 grid grid-cols-1 gap-6">
-            <TmdbSeriesSearch
+            <IntegrationsTmdbSeriesSearch
               v-model="tmdbSeries"
               v-model:manual-query="manualTitle"
               label="Название"
@@ -231,7 +231,7 @@
 </template>
 
 <script setup lang="ts">
-import type { TmdbSeries } from '~/components/TmdbSeriesSearch.vue'
+import type { TmdbSeries } from '~/types/api'
 
 const config = useRuntimeConfig()
 const error = ref('')

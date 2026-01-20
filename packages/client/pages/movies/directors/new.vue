@@ -1,6 +1,6 @@
 <template>
   <div class="mx-auto max-w-7xl">
-    <Breadcrumbs
+    <LayoutBreadcrumbs
       :items="[
         { label: 'Главная', to: '/' },
         { label: 'Фильмы', to: '/movies' },
@@ -19,7 +19,7 @@
         </div>
       </div>
 
-      <TmdbPersonCard
+      <IntegrationsTmdbPersonCard
         v-if="person"
         :person="person"
         title="Выбранный режиссёр (TMDB)"
@@ -28,7 +28,7 @@
 
       <form @submit.prevent="onSubmit" class="px-6 py-6">
         <div class="flex gap-6">
-          <PhotoUpload
+          <UiPhotoUpload
             v-model="photoFile"
             v-model:preview="photoPreview"
             label="Фото"
@@ -37,7 +37,7 @@
           />
 
           <div class="flex-1 grid grid-cols-1 gap-6">
-            <TmdbPersonSearch
+            <IntegrationsTmdbPersonSearch
               v-model="person"
               v-model:manual-query="manualName"
               label="ФИО"
@@ -118,7 +118,7 @@
 </template>
 
 <script setup lang="ts">
-import type { TmdbPerson } from '~/components/TmdbPersonSearch.vue'
+import type { TmdbPerson } from '~/types/api'
 
 const error = ref('')
 const errors = ref<Record<string, string>>({})

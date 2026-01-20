@@ -1,6 +1,6 @@
 <template>
   <div class="mx-auto max-w-7xl">
-    <Breadcrumbs :items="[{ label: 'Главная', to: '/' }, { label: 'Сериалы' }]" />
+    <LayoutBreadcrumbs :items="[{ label: 'Главная', to: '/' }, { label: 'Сериалы' }]" />
 
     <div
       v-if="error"
@@ -52,14 +52,14 @@
     </div>
 
     <Transition name="fade" mode="out-in">
-      <SeriesCardsView
+      <EntitiesSeriesCardsView
         v-if="viewMode === 'cards' && series?.length"
         :series="series"
         :sort-by="sortBy"
         :sort-order="sortOrder"
         @update-sorting="updateSorting"
       />
-      <SeriesTableView
+      <EntitiesSeriesTableView
         v-else-if="series?.length"
         :series="series"
         :sort-by="sortBy"

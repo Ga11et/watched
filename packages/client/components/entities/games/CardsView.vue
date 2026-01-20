@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="mb-6">
-      <SortControl
+      <UiSorter
         :sort-by="sortBy"
         :sort-order="sortOrder"
         :options="sortOptions"
@@ -9,21 +9,23 @@
       />
     </div>
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      <DirectorCard v-for="director in directors" :key="director.id" :director="director" />
+      <EntitiesGamesCard v-for="game in games" :key="game.id" :game="game" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-interface Director {
+interface Game {
   id: string
-  fullName: string
-  photo?: string | null
-  createdAt?: string | null
+  title: string
+  completionDate?: string | null
+  playTimeHours?: number | null
+  comment?: string | null
+  rating?: number | null
 }
 
 interface Props {
-  directors: Director[]
+  games: Game[]
   sortBy?: string
   sortOrder?: 'ASC' | 'DESC'
 }
@@ -34,8 +36,10 @@ const emit = defineEmits<{
 }>()
 
 const sortOptions = [
-  { value: 'fullName', label: 'По ФИО' },
-  { value: 'createdAt', label: 'По дате добавления' },
+  { value: 'title', label: 'По названию' },
+  { value: 'completionDate', label: 'По дате прохождения' },
+  { value: 'rating', label: 'По рейтингу' },
+  { value: 'playTimeHours', label: 'По времени игры' },
 ]
 
 const handleSortUpdate = (sortBy: string) => {

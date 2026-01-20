@@ -1,6 +1,6 @@
 <template>
   <div>
-    <Breadcrumbs :items="[{ label: 'Главная', to: '/' }, { label: 'Игры' }]" />
+    <LayoutBreadcrumbs :items="[{ label: 'Главная', to: '/' }, { label: 'Игры' }]" />
     <div
       v-if="error"
       class="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
@@ -51,14 +51,14 @@
     </div>
 
     <Transition name="fade" mode="out-in">
-      <GamesCardsView
+      <EntitiesGamesCardsView
         v-if="games?.length && viewMode === 'cards'"
         :games="games"
         :sort-by="sortBy"
         :sort-order="sortOrder"
         @update-sorting="updateSorting"
       />
-      <GamesTableView
+      <EntitiesGamesTableView
         v-else-if="games?.length"
         :games="games"
         :sort-by="sortBy"

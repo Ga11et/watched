@@ -168,7 +168,8 @@ export interface TmdbPerson {
   name: string
   profile_path: string | null
   birthday: string | null
-  known_for_department: string
+  known_for_department: string | null
+  popularity: number
 }
 
 export interface TmdbSeries {
@@ -178,6 +179,8 @@ export interface TmdbSeries {
   first_air_date: string | null
   genre_ids: number[]
   overview: string | null
+  origin_country?: string[]
+  number_of_seasons?: number
 }
 
 // API Responses

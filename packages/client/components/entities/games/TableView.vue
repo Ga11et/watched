@@ -1,5 +1,5 @@
 <template>
-  <Table
+  <UiTable
     :columns="columns"
     :items="games"
     :sort-by="sortBy"
@@ -13,7 +13,7 @@
     </template>
 
     <template #cell-completionDate="{ item }">
-      <DateDisplay :date="item.completionDate" />
+      <UiDateDisplay :date="item.completionDate" />
     </template>
 
     <template #cell-playTimeHours="{ item }">
@@ -34,13 +34,10 @@
         </NuxtLink>
       </div>
     </template>
-  </Table>
+  </UiTable>
 </template>
 
 <script setup lang="ts">
-import Table from './Table.vue'
-import DateDisplay from './DateDisplay.vue'
-
 interface Game {
   id: string
   title: string

@@ -32,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import type { TmdbPerson } from '~/components/TmdbPersonSearch.vue'
+import type { TmdbPerson } from '~/types/api'
 
 interface Props {
   person: TmdbPerson
