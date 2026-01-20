@@ -8,6 +8,8 @@ import { GamesModule } from './games/games.module';
 import { DirectorsModule } from './directors/directors.module';
 import { MoviesModule } from './movies/movies.module';
 import { SeriesModule } from './series/series.module';
+import { BooksModule } from './books/books.module';
+import { AuthorsModule } from './authors/authors.module';
 
 @Module({
   imports: [
@@ -29,6 +31,8 @@ import { SeriesModule } from './series/series.module';
     DirectorsModule,
     MoviesModule,
     SeriesModule,
+    BooksModule,
+    AuthorsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

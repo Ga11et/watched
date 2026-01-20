@@ -15,6 +15,7 @@ watched/
 │   │   │   ├── games/       # Модуль игр
 │   │   │   ├── series/      # Модуль сериалов
 │   │   │   ├── books/       # Модуль книг
+│   │   │   ├── authors/     # Модуль авторов
 │   │   │   ├── directors/   # Модуль режиссёров
 │   │   │   └── app.module.ts
 │   │   └── uploads/         # Загруженные файлы
@@ -51,6 +52,13 @@ Client → API (8 parallel requests) → Aggregate → Display
 Client (search) → Google Books API → Client cache → Form population
 ```
 
+### 5. Связь авторов и книг
+
+```
+Books.authorId → Authors.id (один-ко-многим)
+Authors.books ← Book.author (обратная связь)
+```
+
 ## Ключевые зависимости
 
 - **Backend**: NestJS, TypeORM, PostgreSQL, Multer
@@ -59,8 +67,8 @@ Client (search) → Google Books API → Client cache → Form population
 
 ## Правила именования
 
-- Таблицы: множественное число (movies, games, series, books)
-- Эндпоинты: /movies, /games, /series, /books
+- Таблицы: множественное число (movies, games, series, books, authors)
+- Эндпоинты: /movies, /games, /series, /books, /authors
 - Компоненты: PascalCase (MovieCard, TmdbSearch)
 - Файлы: kebab-case (create-movie.dto.ts)
 

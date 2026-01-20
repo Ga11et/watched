@@ -11,8 +11,9 @@ ai-docs/
 ├── README.md                 # Этот файл - обзор документации
 ├── agent-context.md          # 🎯 Краткий контекст для агента (ПЕРВЫЙ ФАЙЛ)
 ├── ARCHITECTURE.md           # 🏛️ Полная архитектура проекта
-├── CODE_TEMPLATES.md         # 📋 Шаблоны кода
+├── CODE_TEMPLATES.md         # 📋 Общие шаблоны кода
 ├── BOOK_TEMPLATES.md         # 📚 Полный гайд по модулю книг
+├── AUTHOR_TEMPLATES.md       # ✍️ Полный гайд по модулю авторов
 ├── DEVELOPMENT_GUIDE.md      # 🛠️ Гайд по разработке
 ├── PERFORMANCE_GUIDE.md      # ⚡ Руководство по производительности
 ├── TROUBLESHOOTING.md        # 🚨 Частые проблемы и решения
@@ -29,8 +30,10 @@ ai-docs/
 
 ### Для конкретных задач
 
-- **🆕 Новая фича**: `DEVELOPMENT_GUIDE.md` + `CODE_TEMPLATES.md` + `BOOK_TEMPLATES.md`
+- **🆕 Новая фича**: `DEVELOPMENT_GUIDE.md` + `CODE_TEMPLATES.md` + `BOOK_TEMPLATES.md` + `AUTHOR_TEMPLATES.md`
 - **📚 Добавить книги**: `BOOK_TEMPLATES.md` (полный гайд по модулю книг)
+- **✍️ Добавить авторов**: `AUTHOR_TEMPLATES.md` (полный гайд по модулю авторов)
+- **🔗 Связи авторов и книг**: `BOOK_TEMPLATES.md` + `AUTHOR_TEMPLATES.md`
 - **⚡ Оптимизация**: `PERFORMANCE_GUIDE.md`
 - **🐛 Баги**: `TROUBLESHOOTING.md`
 - **🏗️ Архитектура**: `ARCHITECTURE.md`
