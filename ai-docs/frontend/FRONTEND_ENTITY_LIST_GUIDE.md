@@ -4,6 +4,23 @@
 
 В приложении используется унифицированный подход к созданию страниц списков для всех сущностей (фильмы, сериалы, игры, книги, авторы, режиссёры). Каждая страница списка следует общей структуре и использует общие компоненты.
 
+## Важное замечание о функциональности
+
+**Текущая реализация страниц списков содержит только сортировку без поиска и фильтрации.** Это сознательное решение для упрощения и консистентности со всеми сущностями.
+
+### Что НЕ включено в страницы списков:
+
+- Поиск по названию
+- Фильтрация по жанру, стране, автору и т.д.
+- Сложные опции фильтрации
+
+### Что включено в страницы списков:
+
+- Переключение вида (карточки/таблица)
+- Сортировка по основным полям
+- Навигация
+- CRUD операции (через детали)
+
 ## Структура страницы списка
 
 ### 1. Основные компоненты страницы
@@ -36,6 +53,11 @@
       </div>
     </div>
 
+    <!-- Панель сортировки -->
+    <div class="mb-6 flex items-center gap-4">
+      <SortControl v-model:sort-by="sortBy" v-model:sort-order="sortOrder" :options="sortOptions" />
+    </div>
+
     <!-- Пустое состояние -->
     <EmptyState v-if="!entities?.length" :entity-name="entityName" />
 
@@ -66,33 +88,40 @@
 <script setup>
 // Конфигурация
 const config = useRuntimeConfig()
-const router = useRouter()
-
-// Состояние
 const error = ref('')
 
-// Настройки вида и сортировки (сохраняются в cookies)
-const viewMode = useCookie(`watched_${entityType}_view_mode`, {
+}
+
+// 2. Конфигурация и состояние
+const error = ref('')
+
+const viewMode = useCookie(`watched_${entity}_view_mode`, {
   default: () => 'cards',
   sameSite: 'lax',
 })
 
-const sortBy = useCookie(`watched_${entityType}_sort_by`, {
-  default: () => defaultSortField,
+const sortBy = useCookie(`watched_${entity}_sort_by`, {
+  default: () => 'createdAt',
   sameSite: 'lax',
 })
 
-const sortOrder = useCookie(`watched_${entityType}_sort_order`, {
+const sortOrder = useCookie(`watched_${entity}_sort_order`, {
   default: () => 'DESC',
   sameSite: 'lax',
 })
 
-// Загрузка данных
-const { data: entities, refresh } = await useFetch(`${config.public.apiBase}/${entityType}`, {
-  query: { sortBy, sortOrder },
+// 3. Загрузка данных
+const { data: entities, refresh, pending: loading } = await useFetch(`${useRuntimeConfig().public.apiBase}/${entityType}`, {
+  query: { sortBy: sortBy.value, sortOrder: sortOrder.value },
 })
 
-// Обновление сортировки
+// 4. Вычисляемые свойства
+const breadcrumbItems = computed(() => [
+  { label: 'Главная', to: '/' },
+  { label: entityTitle, to: `/${entityType}` }
+])
+
+// 5. Методы
 const updateSorting = (newSortBy) => {
   if (sortBy.value === newSortBy) {
     sortOrder.value = sortOrder.value === 'ASC' ? 'DESC' : 'ASC'
@@ -103,12 +132,17 @@ const updateSorting = (newSortBy) => {
   refresh()
 }
 
-// Валидация вида
+// 6. Валидация
 watchEffect(() => {
   if (viewMode.value !== 'cards' && viewMode.value !== 'table') {
     viewMode.value = 'cards'
   }
 })
+
+// 7. Обработчики событий
+const handleDeleted = (id: string) => {
+  refresh()
+}
 </script>
 ```
 

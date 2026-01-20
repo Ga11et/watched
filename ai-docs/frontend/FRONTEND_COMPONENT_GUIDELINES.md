@@ -154,6 +154,103 @@ pages/books/
 
 ## Правила создания компонентов
 
+### 0. Auto-imports в Nuxt 3
+
+**Важно:** В Nuxt 3 используются автоимпорты компонентов, поэтому не нужно явно импортировать компоненты в секции `<script setup>`. Компоненты автоматически доступны в шаблоне по имени файла.
+
+#### 0.1. Правила именования для auto-imports
+
+**Важно:** Имя компонента в Nuxt 3 формируется на основе пути к файлу. Структура папок влияет на имя компонента.
+
+- **Формат имени:** `[Папка][ИмяФайла]` (PascalCase)
+- **Примеры:**
+  - `components/ui/Button.vue` → `<UIButton />`
+  - `components/entities/movies/MovieCard.vue` → `<EntitiesMoviesMovieCard />`
+  - `components/layout/Header.vue` → `<LayoutHeader />`
+
+**Рекомендации по именованию:**
+
+1. **UI компоненты (`components/ui/`):**
+   - `Button.vue` → `<UIButton />`
+   - `Input.vue` → `<UIInput />`
+   - `Modal.vue` → `<UIModal />`
+   - _Рекомендуется использовать префикс `UI` вместо `Base`_
+
+2. **Layout компоненты (`components/layout/`):**
+   - `Header.vue` → `<LayoutHeader />`
+   - `Footer.vue` → `<LayoutFooter />`
+   - `Sidebar.vue` → `<LayoutSidebar />`
+
+3. **Entities компоненты:**
+   - `components/entities/books/BookCard.vue` → `<EntitiesBooksBookCard />`
+   - `components/entities/movies/MovieCard.vue` → `<EntitiesMoviesMovieCard />`
+   - _Для сущностей можно использовать более короткие имена через переименование файлов_
+
+**Стратегии для улучшения имен:**
+
+1. **Переименуйте файлы:**
+   - `components/ui/CustomSelect.vue` → `components/ui/Select.vue` → `<UISelect />`
+   - `components/ui/SortControl.vue` → `components/ui/Sorter.vue` → `<UISorter />`
+
+2. **Используйте индексные файлы для группировки:**
+
+   ```vue
+   <!-- components/ui/forms/index.vue -->
+   <template>
+     <slot />
+   </template>
+   ```
+
+3. **Создавайте алиасы через nuxt.config.ts:**
+   ```typescript
+   export default defineNuxtConfig({
+     components: [
+       {
+         path: '~/components/ui',
+         pathPrefix: false,
+         prefix: 'UI',
+       },
+     ],
+   })
+   ```
+
+#### 0.2. Пример использования
+
+```vue
+<template>
+  <!-- Правильно: компоненты доступны без импорта с именами на основе папок -->
+  <div class="container">
+    <LayoutBreadcrumbs :items="breadcrumbItems" />
+    <EntitiesBooksBookCard :book="book" />
+    <UIButton @click="handleClick">Click me</UIButton>
+    <UISorter v-model:sort-by="sortBy" :options="sortOptions" />
+    <UIEmpty entity-name="книга" />
+    <UIViewToggle v-model="viewMode" />
+  </div>
+</template>
+
+<script setup lang="ts">
+// НЕ нужно импортировать компоненты:
+// import EntitiesBooksBookCard from '~/components/entities/books/BookCard.vue'
+// import LayoutBreadcrumbs from '~/components/layout/Breadcrumbs.vue'
+
+// Нужны только импорты утилит, типов, composables
+import type { Book } from '~/types/entities'
+import { useBook } from '~/composables/useBook'
+
+const { book } = useBook()
+</script>
+```
+
+#### 0.3. Исключения для импорта
+
+Явный импорт требуется только для:
+
+- TypeScript типов: `import type { Movie } from '~/types'`
+- Composables: `import { useMovie } from '~/composables/useMovie'`
+- Утилит: `import { formatDate } from '~/utils/format'`
+- Сторов Pinia: `import { useMovieStore } from '~/stores/movie'`
+
 ### 1. Именование компонентов
 
 #### 1.1. Файлы компонентов
@@ -184,12 +281,17 @@ defineOptions({
 
 ```vue
 <template>
-  <!-- Шаблон компонента -->
+  <!-- Шаблон компонента - компоненты доступны без импорта -->
+  <div class="component-wrapper">
+    <BaseButton @click="handleClick">Click me</BaseButton>
+    <MovieCard :movie="movie" />
+  </div>
 </template>
 
 <script setup lang="ts">
-// Импорты
+// Импорты только для типов, утилит, composables
 import type { ComponentProps } from '~/types'
+import { formatDate } from '~/utils/format'
 
 // Props
 interface Props {
@@ -467,10 +569,22 @@ export const useMovie = () => {
 }
 ```
 
-#### 6.2. Использование composables
+#### 6.2. Использование composables в страницах
 
 ```vue
+<template>
+  <!-- Компоненты доступны без импорта благодаря auto-imports -->
+  <div class="container">
+    <MovieCard v-for="movie in movies" :key="movie.id" :movie="movie" />
+    <BaseButton @click="fetchMovies" :loading="loading"> Обновить </BaseButton>
+  </div>
+</template>
+
 <script setup lang="ts">
+// Импортируем только composables, утилиты и типы
+import { useMovie } from '~/composables/useMovie'
+import { formatDate } from '~/utils/format'
+
 // Использование composable
 const { movies, loading, error, fetchMovies } = useMovie()
 
@@ -681,6 +795,7 @@ const badgeClasses = computed(() => ['badge', `badge--${props.variant}`, `badge-
         {{ book.author.name }}
       </p>
       <div class="book-card__meta">
+        <!-- Badge компонент доступен благодаря auto-imports -->
         <Badge v-if="book.genre" :variant="genreVariant">
           {{ book.genre }}
         </Badge>
@@ -693,6 +808,7 @@ const badgeClasses = computed(() => ['badge', `badge--${props.variant}`, `badge-
 </template>
 
 <script setup lang="ts">
+// Импортируем только типы, утилиты, composables
 import type { Book } from '~/types/entities'
 
 interface Props {

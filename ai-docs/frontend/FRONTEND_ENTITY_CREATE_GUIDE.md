@@ -84,6 +84,11 @@ const form = reactive({
   // Поля формы
 })
 
+// Загрузка данных
+const { data: relatedEntities } = await useFetch<RelatedType[]>(
+  `${useRuntimeConfig().public.apiBase}/related-endpoint`,
+)
+
 // Валидация и отправка
 const onSubmit = async () => {
   if (submitting.value) return
@@ -239,11 +244,12 @@ const form = reactive({
 
 **Особенности:**
 
-- Интеграция с Google Books API
+- Простая форма без внешних API (Google Books API не реализован)
 - Загрузка обложки
 - Связь с автором
 - Год издания
 - Количество страниц
+- Жанр
 
 **Структура формы:**
 
@@ -257,8 +263,8 @@ const form = reactive({
   genre: '',
 })
 
-const googleBook = (ref < GoogleBook) | (null > null)
-const manualTitle = ref('')
+const photoFile = (ref < File) | (null > null)
+const photoPreview = (ref < string) | (null > null)
 ```
 
 ## Общие компоненты
@@ -339,15 +345,31 @@ const handleErrors = (e: any) => {
 ### 3. Подготовка payload
 
 ```javascript
+// Подготовка payload
 const preparePayload = () => {
   const formData = new FormData()
 
-  formData.append('title', title)
+  formData.append('title', form.title.trim())
+  formData.append('authorId', form.authorId)
+
+  if (form.description?.trim()) {
+    formData.append('description', form.description.trim())
+  }
+
+  if (form.publishedYear) {
+    formData.append('publishedYear', form.publishedYear.toString())
+  }
+
+  if (form.pages) {
+    formData.append('pages', form.pages.toString())
+  }
+
   if (form.genre?.trim()) {
     formData.append('genre', form.genre.trim())
   }
+
   if (photoFile.value) {
-    formData.append('poster', photoFile.value)
+    formData.append('cover', photoFile.value)
   }
 
   return formData
@@ -430,16 +452,16 @@ const cancelLink = '/games'
 const successRedirect = '/games'
 ```
 
-### Режиссёры
+### Книги
 
 ```javascript
-const entityType = 'directors'
-const entityName = 'режиссёра'
-const formDescription = 'Заполните поля ниже, чтобы добавить нового режиссёра'
+const entityType = 'books'
+const entityName = 'книгу'
+const formDescription = 'Заполните поля ниже, чтобы добавить новую книгу'
 const hasPhoto = true
-const photoLabel = 'Фото'
-const cancelLink = String($route.query.redirectTo) || '/movies/directors'
-const successRedirect = String($route.query.redirectTo) || '/movies/directors'
+const photoLabel = 'Обложка'
+const cancelLink = '/books'
+const successRedirect = '/books'
 ```
 
 ## Стили и классы

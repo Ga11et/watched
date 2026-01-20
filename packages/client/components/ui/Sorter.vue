@@ -2,7 +2,7 @@
   <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
     <span class="text-sm font-medium text-gray-700 whitespace-nowrap">Сортировка:</span>
 
-    <CustomSelect
+    <UiSelect
       v-model="currentSortBy"
       :options="options"
       placeholder="Выберите поле"
