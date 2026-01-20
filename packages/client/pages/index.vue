@@ -8,30 +8,30 @@ const {
   error,
 } = await useAsyncData('dashboard', async () => {
   try {
-    const [moviesResponse, gamesResponse, directorsResponse, seriesResponse] = await Promise.all([
+    const [moviesResponse, gamesResponse, booksResponse, seriesResponse] = await Promise.all([
       $fetch(`${config.public.apiBase}/movies?limit=5`),
       $fetch(`${config.public.apiBase}/games?limit=5`),
-      $fetch(`${config.public.apiBase}/directors?limit=5`),
+      $fetch(`${config.public.apiBase}/books?limit=5`),
       $fetch(`${config.public.apiBase}/series?limit=5`),
     ])
 
     // Calculate statistics
-    const [allMovies, allGames, allDirectors, allSeries] = await Promise.all([
+    const [allMovies, allGames, allBooks, allSeries] = await Promise.all([
       $fetch(`${config.public.apiBase}/movies/stats`),
       $fetch(`${config.public.apiBase}/games/stats`),
-      $fetch(`${config.public.apiBase}/directors/stats`),
+      $fetch(`${config.public.apiBase}/books/stats`),
       $fetch(`${config.public.apiBase}/series/stats`),
     ])
 
     return {
       recentMovies: moviesResponse.data || [],
       recentGames: gamesResponse.data || [],
-      recentDirectors: directorsResponse.data || [],
+      recentBooks: booksResponse.data || [],
       recentSeries: seriesResponse.data || [],
       stats: {
         movies: allMovies,
         games: allGames,
-        directors: allDirectors,
+        books: allBooks,
         series: allSeries,
       },
     }
@@ -40,12 +40,12 @@ const {
     return {
       recentMovies: [],
       recentGames: [],
-      recentDirectors: [],
+      recentBooks: [],
       recentSeries: [],
       stats: {
         movies: { total: 0, thisMonth: 0, avgRating: 0 },
         games: { total: 0, thisMonth: 0, avgRating: 0 },
-        directors: { total: 0 },
+        books: { total: 0, thisMonth: 0, avgRating: 0 },
         series: { total: 0, thisMonth: 0, avgRating: 0 },
       },
     }
@@ -155,19 +155,21 @@ const formatDate = (dateString) => {
           </div>
         </div>
 
-        <!-- Directors Stats -->
+        <!-- Books Stats -->
         <div class="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-gray-600">Режиссёры</p>
+              <p class="text-sm font-medium text-gray-600">Книги</p>
               <p class="text-2xl font-bold text-gray-900 mt-1">
-                {{ dashboardData.stats.directors.total }}
+                {{ dashboardData.stats.books.total }}
               </p>
-              <p class="text-xs text-gray-500 mt-1">В коллекции</p>
+              <p class="text-xs text-gray-500 mt-1">
+                +{{ dashboardData.stats.books.thisMonth }} за месяц
+              </p>
             </div>
-            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
               <svg
-                class="w-6 h-6 text-purple-600"
+                class="w-6 h-6 text-blue-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -176,13 +178,16 @@ const formatDate = (dateString) => {
                   stroke-linecap="round"
                   stroke-linejoin="round"
                   stroke-width="2"
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
                 />
               </svg>
             </div>
           </div>
           <div class="mt-4 flex items-center text-xs text-gray-500">
-            <span>Уникальные режиссёры</span>
+            <span>Средняя оценка:</span>
+            <span class="ml-1 font-medium text-gray-700">
+              {{ dashboardData.stats.books.avgRating?.toFixed(1) || '0' }}/100
+            </span>
           </div>
         </div>
 
@@ -408,6 +413,100 @@ const formatDate = (dateString) => {
           </div>
         </div>
 
+        <!-- Recent Books -->
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+          <div class="p-6 border-b border-gray-200">
+            <div class="flex justify-between items-center">
+              <h3 class="text-lg font-semibold text-gray-900">Последние книги</h3>
+              <NuxtLink
+                to="/books"
+                class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Все книги
+                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </NuxtLink>
+            </div>
+          </div>
+          <div class="p-6">
+            <div
+              v-if="dashboardData.recentBooks.length === 0"
+              class="text-center py-8 text-gray-500"
+            >
+              <svg
+                class="w-12 h-12 mx-auto text-gray-300 mb-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                />
+              </svg>
+              <p>Книги не найдены</p>
+              <NuxtLink
+                to="/books/new"
+                class="inline-flex items-center mt-3 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+              >
+                Добавить книгу
+              </NuxtLink>
+            </div>
+            <div v-else class="space-y-4">
+              <div
+                v-for="book in dashboardData.recentBooks"
+                :key="book.id"
+                class="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div
+                  class="w-12 h-16 bg-gray-200 rounded flex-shrink-0 flex items-center justify-center"
+                >
+                  <svg
+                    class="w-6 h-6 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                    />
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <NuxtLink
+                    :to="`/books/${book.id}`"
+                    class="text-sm font-medium text-gray-900 truncate hover:text-blue-600"
+                  >
+                    {{ book.title }}
+                  </NuxtLink>
+                  <div class="flex items-center space-x-2 mt-1">
+                    <span v-if="book.readAt" class="text-xs text-gray-500">
+                      {{ formatDate(book.readAt) }}
+                    </span>
+                    <span v-if="book.rating" class="text-xs text-blue-600 font-medium">
+                      ★ {{ book.rating }}/100
+                    </span>
+                    <span v-if="book.pageCount" class="text-xs text-gray-500">
+                      {{ book.pageCount }} стр.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Recent Series -->
         <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
           <div class="p-6 border-b border-gray-200">
@@ -565,11 +664,11 @@ const formatDate = (dateString) => {
             <span class="text-sm font-medium text-orange-900">Добавить сериал</span>
           </NuxtLink>
           <NuxtLink
-            to="/movies/directors/new"
-            class="flex flex-col items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+            to="/books/new"
+            class="flex flex-col items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
           >
             <svg
-              class="w-8 h-8 text-purple-600 mb-2"
+              class="w-8 h-8 text-blue-600 mb-2"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -578,10 +677,10 @@ const formatDate = (dateString) => {
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 stroke-width="2"
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                d="M12 4v16m8-8H4"
               />
             </svg>
-            <span class="text-sm font-medium text-purple-900">Добавить режиссёра</span>
+            <span class="text-sm font-medium text-blue-900">Добавить книгу</span>
           </NuxtLink>
         </div>
       </div>
