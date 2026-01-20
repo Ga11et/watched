@@ -7,7 +7,10 @@ import {
   Put,
   Delete,
   Query,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { BooksService } from './books.service';
 import { Book } from './entities/book.entity';
 import { CreateBookDto } from './dto/create-book.dto';
@@ -18,8 +21,12 @@ export class BooksController {
   constructor(private readonly booksService: BooksService) {}
 
   @Post()
-  create(@Body() createBookDto: CreateBookDto): Promise<Book> {
-    return this.booksService.create(createBookDto);
+  @UseInterceptors(FileInterceptor('cover'))
+  create(
+    @Body() createBookDto: CreateBookDto,
+    @UploadedFile() cover?: Express.Multer.File,
+  ): Promise<Book> {
+    return this.booksService.create(createBookDto, cover);
   }
 
   @Get('stats')
@@ -47,11 +54,13 @@ export class BooksController {
   }
 
   @Put(':id')
+  @UseInterceptors(FileInterceptor('cover'))
   update(
     @Param('id') id: string,
     @Body() updateBookDto: UpdateBookDto,
+    @UploadedFile() cover?: Express.Multer.File,
   ): Promise<Book> {
-    return this.booksService.update(id, updateBookDto);
+    return this.booksService.update(id, updateBookDto, cover);
   }
 
   @Delete(':id')

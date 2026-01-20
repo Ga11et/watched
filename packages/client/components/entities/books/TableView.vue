@@ -1,26 +1,9 @@
 <template>
-  <div>
-    <Table :headers="headers" :items="tableItems" @edit="handleEdit" @delete="handleDelete" />
-  </div>
+  <UiTable :columns="headers" :items="tableItems" @edit="handleEdit" @delete="handleDelete" />
 </template>
 
 <script setup lang="ts">
-interface Author {
-  id: string
-  name: string
-}
-
-interface Book {
-  id: string
-  title: string
-  description?: string
-  publishedYear?: number
-  genre?: string
-  pages?: number
-  cover?: string
-  author?: Author
-  createdAt: string
-}
+import type { Book } from '~/types/api'
 
 interface Props {
   books: Book[]
@@ -30,7 +13,7 @@ interface Props {
 
 const props = defineProps<Props>()
 
-defineEmits<{
+const emit = defineEmits<{
   deleted: [id: string]
   'update-sorting': [sortBy: string]
 }>()
@@ -75,10 +58,10 @@ const tableItems = computed(() => {
   return sortedBooks.value.map((book) => ({
     id: book.id,
     title: book.title,
-    author: book.author?.name || '-',
+    author: book.author?.fullName || '-',
     genre: book.genre || '-',
-    publishedYear: book.publishedYear || '-',
-    pages: book.pages || '-',
+    publishedYear: book.publishYear || '-',
+    pages: book.pageCount || '-',
     createdAt: book.createdAt,
     actions: {
       view: `/books/${book.id}`,

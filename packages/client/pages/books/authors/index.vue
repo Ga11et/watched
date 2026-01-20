@@ -28,10 +28,6 @@
       </div>
     </div>
 
-    <div class="mb-6 flex items-center gap-4">
-      <UiSorter v-model:sort-by="sortBy" v-model:sort-order="sortOrder" :options="sortOptions" />
-    </div>
-
     <div v-if="loading" class="text-center py-8">
       <div
         class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"
@@ -62,15 +58,7 @@
 </template>
 
 <script setup lang="ts">
-interface Author {
-  id: string
-  name: string
-  birthYear?: number
-  deathYear?: number
-  country?: string
-  photo?: string
-  createdAt: string
-}
+import type { Author } from '~/types/api'
 
 // 1. Конфигурация
 const error = ref('')

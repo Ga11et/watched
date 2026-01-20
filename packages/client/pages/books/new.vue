@@ -58,12 +58,12 @@
             </div>
 
             <div>
-              <label for="description" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="comment" class="block text-sm font-medium text-gray-700 mb-1">
                 Описание
               </label>
               <textarea
-                id="description"
-                v-model="form.description"
+                id="comment"
+                v-model="form.comment"
                 rows="4"
                 class="block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
               ></textarea>
@@ -71,26 +71,24 @@
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <label for="publishedYear" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="publishYear" class="block text-sm font-medium text-gray-700 mb-1">
                   Год издания
                 </label>
                 <input
-                  id="publishedYear"
-                  v-model.number="form.publishedYear"
+                  id="publishYear"
+                  v-model.number="form.publishYear"
                   type="number"
-                  min="1000"
-                  :max="new Date().getFullYear()"
                   class="block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                 />
               </div>
 
               <div>
-                <label for="pages" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="pageCount" class="block text-sm font-medium text-gray-700 mb-1">
                   Количество страниц
                 </label>
                 <input
-                  id="pages"
-                  v-model.number="form.pages"
+                  id="pageCount"
+                  v-model.number="form.pageCount"
                   type="number"
                   min="1"
                   class="block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
@@ -181,9 +179,9 @@ const authorOptions = computed(() => [
 const form = reactive({
   title: '',
   authorId: '',
-  description: '',
-  publishedYear: undefined as number | undefined,
-  pages: undefined as number | undefined,
+  comment: '',
+  publishYear: undefined as number | undefined,
+  pageCount: undefined as number | undefined,
   genre: '',
 })
 
@@ -212,16 +210,16 @@ const preparePayload = () => {
     formData.append('authorId', form.authorId)
   }
 
-  if (form.description?.trim()) {
-    formData.append('description', form.description.trim())
+  if (form.comment?.trim()) {
+    formData.append('comment', form.comment.trim())
   }
 
-  if (form.publishedYear) {
-    formData.append('publishedYear', form.publishedYear.toString())
+  if (form.publishYear) {
+    formData.append('publishYear', form.publishYear.toString())
   }
 
-  if (form.pages) {
-    formData.append('pages', form.pages.toString())
+  if (form.pageCount) {
+    formData.append('pageCount', form.pageCount.toString())
   }
 
   if (form.genre?.trim()) {

@@ -1,12 +1,13 @@
+import { Transform } from 'class-transformer';
 import {
   IsString,
   IsOptional,
-  IsNumber,
-  Min,
-  Max,
   IsDateString,
   IsUUID,
+  IsBoolean,
 } from 'class-validator';
+
+// Custom decorator for number fields that accepts both string and number (for FormData)
 
 /**
  * DTO для обновления книги
@@ -41,14 +42,11 @@ export class UpdateBookDto {
 
   /**
    * Рейтинг книги от 0 до 100 (опционально)
-   * @description Пользовательская оценка книги
+   * @description Пользовательская оценка книги. Может быть передано как число или строка (для FormData)
    * @min 0
    * @max 100
    * @example 95
    */
-  @IsNumber()
-  @Min(0)
-  @Max(100)
   @IsOptional()
   rating?: number;
 
@@ -64,9 +62,9 @@ export class UpdateBookDto {
 
   /**
    * Количество страниц (опционально)
+   * @description Может быть передано как число или строка (для FormData)
    * @example 1225
    */
-  @IsNumber()
   @IsOptional()
   pageCount?: number;
 
@@ -81,13 +79,23 @@ export class UpdateBookDto {
 
   /**
    * Год издания (опционально)
-   * @min 1800
-   * @max 2030
+   * @description Может быть передано как число или строка (для FormData)
    * @example 1869
    */
-  @IsNumber()
-  @Min(1800)
-  @Max(2030)
   @IsOptional()
   publishYear?: number;
+
+  /**
+   * Удалить обложку (опционально)
+   * @description Флаг для удаления текущей обложки книги
+   * @example false
+   */
+  @IsBoolean()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return typeof value === 'boolean' ? value : undefined;
+  })
+  @IsOptional()
+  removeCover?: boolean;
 }

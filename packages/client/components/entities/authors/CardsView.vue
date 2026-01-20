@@ -9,10 +9,10 @@
       />
     </div>
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      <EntitiesBooksCard
-        v-for="book in books"
-        :key="book.id"
-        :book="book"
+      <EntitiesAuthorsCard
+        v-for="author in authors"
+        :key="author.id"
+        :author="author"
         @delete="$emit('deleted', $event)"
       />
     </div>
@@ -20,10 +20,10 @@
 </template>
 
 <script setup lang="ts">
-import type { Book } from '~/types/api'
+import type { Author } from '~/types/api'
 
 interface Props {
-  books: Book[]
+  authors: Author[]
   sortBy?: string
   sortOrder?: 'ASC' | 'DESC'
 }
@@ -36,11 +36,9 @@ const emit = defineEmits<{
 }>()
 
 const sortOptions = [
-  { value: 'title', label: 'По названию' },
-  { value: 'author', label: 'По автору' },
-  { value: 'genre', label: 'По жанру' },
-  { value: 'publishedYear', label: 'По году издания' },
-  { value: 'pages', label: 'По количеству страниц' },
+  { value: 'name', label: 'По имени' },
+  { value: 'birthYear', label: 'По году рождения' },
+  { value: 'country', label: 'По стране' },
   { value: 'createdAt', label: 'По дате добавления' },
 ]
 

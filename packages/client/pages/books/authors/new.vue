@@ -24,63 +24,20 @@
 
           <div class="flex-1 grid grid-cols-1 gap-6">
             <div>
-              <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
-                Имя автора *
+              <label for="fullName" class="block text-sm font-medium text-gray-700 mb-1">
+                Полное имя автора *
               </label>
               <input
-                id="name"
-                v-model="form.name"
+                id="fullName"
+                v-model="form.fullName"
                 type="text"
                 required
                 class="block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                :class="{ 'border-red-300 focus:ring-red-200': errors?.name }"
+                :class="{ 'border-red-300 focus:ring-red-200': errors?.fullName }"
               />
-              <p v-if="errors?.name" class="mt-1 text-sm text-red-600">
-                {{ errors.name }}
+              <p v-if="errors?.fullName" class="mt-1 text-sm text-red-600">
+                {{ errors.fullName }}
               </p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label for="birthYear" class="block text-sm font-medium text-gray-700 mb-1">
-                  Год рождения
-                </label>
-                <input
-                  id="birthYear"
-                  v-model.number="form.birthYear"
-                  type="number"
-                  min="1000"
-                  :max="new Date().getFullYear()"
-                  class="block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                />
-              </div>
-
-              <div>
-                <label for="deathYear" class="block text-sm font-medium text-gray-700 mb-1">
-                  Год смерти
-                </label>
-                <input
-                  id="deathYear"
-                  v-model.number="form.deathYear"
-                  type="number"
-                  min="1000"
-                  :max="new Date().getFullYear()"
-                  class="block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label for="country" class="block text-sm font-medium text-gray-700 mb-1">
-                Страна
-              </label>
-              <input
-                id="country"
-                v-model="form.country"
-                type="text"
-                class="block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                placeholder="например: Россия, США, Великобритания"
-              />
             </div>
 
             <div>
@@ -149,10 +106,7 @@ const breadcrumbItems = computed(() => [
 
 // Данные формы
 const form = reactive({
-  name: '',
-  birthYear: undefined as number | undefined,
-  deathYear: undefined as number | undefined,
-  country: '',
+  fullName: '',
   comment: '',
 })
 
@@ -160,13 +114,13 @@ const form = reactive({
 const validateForm = () => {
   errors.value = {}
 
-  if (!form.name.trim()) {
-    errors.value.name = 'Имя автора обязательно'
+  if (!form.fullName.trim()) {
+    errors.value.fullName = 'Полное имя автора обязательно'
     throw new Error('Validation failed')
   }
 
-  if (form.name.length > 200) {
-    errors.value.name = 'Имя слишком длинное'
+  if (form.fullName.length > 200) {
+    errors.value.fullName = 'Имя слишком длинное'
     throw new Error('Validation failed')
   }
 }
@@ -175,19 +129,7 @@ const validateForm = () => {
 const preparePayload = () => {
   const formData = new FormData()
 
-  formData.append('name', form.name.trim())
-
-  if (form.birthYear) {
-    formData.append('birthYear', form.birthYear.toString())
-  }
-
-  if (form.deathYear) {
-    formData.append('deathYear', form.deathYear.toString())
-  }
-
-  if (form.country?.trim()) {
-    formData.append('country', form.country.trim())
-  }
+  formData.append('fullName', form.fullName.trim())
 
   if (form.comment?.trim()) {
     formData.append('comment', form.comment.trim())

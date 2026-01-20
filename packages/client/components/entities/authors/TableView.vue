@@ -1,26 +1,9 @@
 <template>
-  <div>
-    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      <AuthorCard
-        v-for="author in sortedAuthors"
-        :key="author.id"
-        :author="author"
-        @delete="$emit('deleted', $event)"
-      />
-    </div>
-  </div>
+  <UiTable :columns="headers" :items="tableItems" @edit="handleEdit" @delete="handleDelete" />
 </template>
 
 <script setup lang="ts">
-interface Author {
-  id: string
-  name: string
-  birthYear?: number
-  deathYear?: number
-  country?: string
-  photo?: string
-  createdAt: string
-}
+import type { Author } from '~/types/api'
 
 interface Props {
   authors: Author[]
@@ -30,10 +13,20 @@ interface Props {
 
 const props = defineProps<Props>()
 
-defineEmits<{
+const emit = defineEmits<{
   deleted: [id: string]
   'update-sorting': [sortBy: string]
 }>()
+
+const router = useRouter()
+
+const headers = [
+  { key: 'name', label: 'Имя' },
+  { key: 'birthYear', label: 'Годы жизни' },
+  { key: 'country', label: 'Страна' },
+  { key: 'createdAt', label: 'Добавлен' },
+  { key: 'actions', label: 'Действия' },
+]
 
 const sortedAuthors = computed(() => {
   const authorsList = props.authors || []
@@ -58,4 +51,24 @@ const sortedAuthors = computed(() => {
     return props.sortOrder === 'ASC' ? comparison : -comparison
   })
 })
+
+const tableItems = computed(() => {
+  return sortedAuthors.value.map((author) => ({
+    id: author.id,
+    name: author.fullName,
+    createdAt: author.createdAt,
+    actions: {
+      view: `/books/authors/${author.id}`,
+      edit: `/books/authors/${author.id}/edit`,
+    },
+  }))
+})
+
+const handleEdit = (id: string) => {
+  router.push(`/books/authors/${id}/edit`)
+}
+
+const handleDelete = (id: string) => {
+  emit('deleted', id)
+}
 </script>

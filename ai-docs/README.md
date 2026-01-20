@@ -8,16 +8,18 @@
 
 ```
 ai-docs/
-├── README.md                 # Этот файл - обзор документации
-├── agent-context.md          # 🎯 Краткий контекст для агента (ПЕРВЫЙ ФАЙЛ)
-├── ARCHITECTURE.md           # 🏛️ Полная архитектура проекта
-├── CODE_TEMPLATES.md         # 📋 Общие шаблоны кода
-├── BOOK_TEMPLATES.md         # 📚 Полный гайд по модулю книг
-├── AUTHOR_TEMPLATES.md       # ✍️ Полный гайд по модулю авторов
-├── DEVELOPMENT_GUIDE.md      # 🛠️ Гайд по разработке
-├── PERFORMANCE_GUIDE.md      # ⚡ Руководство по производительности
-├── TROUBLESHOOTING.md        # 🚨 Частые проблемы и решения
-└── CHANGELOG.md              # 📝 История изменений проекта
+├── README.md                      # Этот файл - обзор документации
+├── agent-context.md               # 🎯 Краткий контекст для агента (ПЕРВЫЙ ФАЙЛ)
+├── ARCHITECTURE.md                # 🏛️ Полная архитектура проекта
+├── backend/                       # 📁 Документация по бэкенду
+│   └── BACKEND_DEVELOPMENT_WORKFLOW.md  # 🛠️ Полный гайд по разработке на бэкенде
+└── frontend/                      # 📁 Документация по фронтенду
+    ├── FRONTEND_COMPONENT_GUIDELINES.md    # 🧩 Рекомендации по компонентам
+    ├── FRONTEND_DASHBOARD_GUIDE.md         # 📊 Гайд по дашбордам
+    ├── FRONTEND_ENTITY_CREATE_GUIDE.md     # ➕ Создание сущностей
+    ├── FRONTEND_ENTITY_DETAIL_GUIDE.md     # 👀 Детальный просмотр сущностей
+    ├── FRONTEND_ENTITY_EDIT_GUIDE.md       # ✏️ Редактирование сущностей
+    └── FRONTEND_ENTITY_LIST_GUIDE.md       # 📋 Списки сущностей
 ```
 
 ## Как использовать эту документацию
@@ -25,27 +27,27 @@ ai-docs/
 ### Для быстрого старта
 
 1. Прочитать `agent-context.md` - основная информация о проекте
-2. Изучить `CODE_TEMPLATES.md` - готовые шаблоны для частых задач
-3. Смотреть `ARCHITECTURE.md` - для понимания общей архитектуры
+2. Изучить `ARCHITECTURE.md` - для понимания общей архитектуры
+3. Выбрать нужный раздел (backend/frontend) в зависимости от задачи
 
 ### Для конкретных задач
 
-- **🆕 Новая фича**: `DEVELOPMENT_GUIDE.md` + `CODE_TEMPLATES.md` + `BOOK_TEMPLATES.md` + `AUTHOR_TEMPLATES.md`
-- **📚 Добавить книги**: `BOOK_TEMPLATES.md` (полный гайд по модулю книг)
-- **✍️ Добавить авторов**: `AUTHOR_TEMPLATES.md` (полный гайд по модулю авторов)
-- **🔗 Связи авторов и книг**: `BOOK_TEMPLATES.md` + `AUTHOR_TEMPLATES.md`
-- **⚡ Оптимизация**: `PERFORMANCE_GUIDE.md`
-- **🐛 Баги**: `TROUBLESHOOTING.md`
+- **🛠️ Бэкенд разработка**: `backend/BACKEND_DEVELOPMENT_WORKFLOW.md`
+- **🧩 Frontend компоненты**: `frontend/FRONTEND_COMPONENT_GUIDELINES.md`
+- **� Дашборды**: `frontend/FRONTEND_DASHBOARD_GUIDE.md`
+- **➕ Создание сущностей**: `frontend/FRONTEND_ENTITY_CREATE_GUIDE.md`
+- **👀 Детальный просмотр**: `frontend/FRONTEND_ENTITY_DETAIL_GUIDE.md`
+- **✏️ Редактирование**: `frontend/FRONTEND_ENTITY_EDIT_GUIDE.md`
+- **� Списки сущностей**: `frontend/FRONTEND_ENTITY_LIST_GUIDE.md`
 - **🏗️ Архитектура**: `ARCHITECTURE.md`
-- **📋 Шаблоны**: `CODE_TEMPLATES.md`
 
 ### Для агента
 
 При начале работы с проектом всегда:
 
 1. Читать `agent-context.md` первым
-2. Использовать шаблоны из `CODE_TEMPLATES.md`
-3. Следовать правилам из `DEVELOPMENT_GUIDE.md`
+2. Использовать соответствующие гайды из backend/ или frontend/
+3. Следовать рекомендациям из `FRONTEND_COMPONENT_GUIDELINES.md` для UI работы
 
 ## Принципы документации
 
@@ -58,14 +60,6 @@ ai-docs/
 
 При изменении проекта:
 
-1. Обновить соответствующие файлы документации
-2. Добавить запись в `CHANGELOG.md`
-3. Проверить актуальность шаблонов в `CODE_TEMPLATES.md`
-
-## Контакты и поддержка
-
-Если возникли вопросы по документации или проекту:
-
-- Проверить `TROUBLESHOOTING.md` для частых проблем
-- Изучить `ARCHITECTURE.md` для понимания структуры
-- Использовать `CODE_TEMPLATES.md` для типовых задач
+1. Обновить соответствующие файлы документации в backend/ или frontend/
+2. Проверить актуальность `ARCHITECTURE.md` при изменении архитектуры
+3. Обновить `agent-context.md` при изменении ключевых концепций проекта

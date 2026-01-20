@@ -58,22 +58,7 @@
 </template>
 
 <script setup lang="ts">
-interface Author {
-  id: string
-  name: string
-}
-
-interface Book {
-  id: string
-  title: string
-  description?: string
-  publishedYear?: number
-  genre?: string
-  pages?: number
-  cover?: string
-  author?: Author
-  createdAt: string
-}
+import type { Book } from '~/types/api'
 
 // 1. Конфигурация
 const error = ref('')

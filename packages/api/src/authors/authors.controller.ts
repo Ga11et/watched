@@ -7,7 +7,10 @@ import {
   Put,
   Delete,
   Query,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthorsService } from './authors.service';
 import { Author } from './entities/author.entity';
 import { CreateAuthorDto } from './dto/create-author.dto';
@@ -18,15 +21,17 @@ export class AuthorsController {
   constructor(private readonly authorsService: AuthorsService) {}
 
   @Post()
-  create(@Body() createAuthorDto: CreateAuthorDto): Promise<Author> {
-    return this.authorsService.create(createAuthorDto);
+  @UseInterceptors(FileInterceptor('photo'))
+  create(
+    @Body() createAuthorDto: CreateAuthorDto,
+    @UploadedFile() photo?: Express.Multer.File,
+  ): Promise<Author> {
+    return this.authorsService.create(createAuthorDto, photo);
   }
 
   @Get('stats')
   getStats(): Promise<{
     total: number;
-    byCountry: Record<string, number>;
-    avgAge: number;
   }> {
     return this.authorsService.getStats();
   }
@@ -40,10 +45,9 @@ export class AuthorsController {
   findAll(
     @Query('sortBy') sortBy?: string,
     @Query('sortOrder') sortOrder?: 'ASC' | 'DESC',
-    @Query('country') country?: string,
     @Query('limit') limit?: string,
   ): Promise<Author[]> {
-    return this.authorsService.findAll(sortBy, sortOrder, country, limit);
+    return this.authorsService.findAll(sortBy, sortOrder, limit);
   }
 
   @Get(':id')
@@ -52,11 +56,13 @@ export class AuthorsController {
   }
 
   @Put(':id')
+  @UseInterceptors(FileInterceptor('photo'))
   update(
     @Param('id') id: string,
     @Body() updateAuthorDto: UpdateAuthorDto,
+    @UploadedFile() photo?: Express.Multer.File,
   ): Promise<Author> {
-    return this.authorsService.update(id, updateAuthorDto);
+    return this.authorsService.update(id, updateAuthorDto, photo);
   }
 
   @Delete(':id')

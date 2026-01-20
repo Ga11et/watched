@@ -62,10 +62,18 @@ export class CreateBookDto {
   readAt?: string;
 
   /**
+   * Год издания (опционально)
+   * @description Может быть передано как число или строка (для FormData)
+   * @example 1869
+   */
+  @IsOptional()
+  publishYear?: number;
+
+  /**
    * Количество страниц (опционально)
+   * @description Может быть передано как число или строка (для FormData)
    * @example 1225
    */
-  @IsNumber()
   @IsOptional()
   pageCount?: number;
 
@@ -79,14 +87,11 @@ export class CreateBookDto {
   comment?: string;
 
   /**
-   * Год издания (опционально)
-   * @min 1800
-   * @max 2030
-   * @example 1869
+   * Обложка книги (опционально)
+   * @description Путь к файлу обложки, сохраненному на сервере
+   * @example "/uploads/books/1640995200000-cover.jpg"
    */
-  @IsNumber()
-  @Min(1800)
-  @Max(2030)
+  @IsString()
   @IsOptional()
-  publishYear?: number;
+  cover?: string;
 }

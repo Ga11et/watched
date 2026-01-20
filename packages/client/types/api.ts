@@ -10,28 +10,37 @@ interface BaseEntity {
   updatedAt: string
 }
 
+// Авторы
+export interface Author extends BaseEntity {
+  fullName: string
+  photo?: string
+  comment?: string
+}
+
 // Книги
 export interface Book extends BaseEntity {
   title: string
-  author?: string
+  authorId?: string
   genre?: string
   rating?: number // 0-100
   readAt?: string
-  pageCount?: number
+  publishYear?: number | string
+  pageCount?: number | string
   comment?: string
-  publishYear?: number
   cover?: string
+  author?: Author
 }
 
 export interface CreateBookDto {
   title: string
-  author?: string
+  authorId?: string
   genre?: string
   rating?: number
   readAt?: string
-  pageCount?: number
+  publishYear?: number | string
+  pageCount?: number | string
   comment?: string
-  publishYear?: number
+  cover?: string
 }
 
 export interface BookStats {

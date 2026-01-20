@@ -1,126 +1,118 @@
 <template>
-  <div class="mx-auto max-w-2xl">
-    <Breadcrumbs :items="breadcrumbItems" />
+  <div class="mx-auto max-w-7xl">
+    <LayoutBreadcrumbs
+      :items="[
+        { label: 'Главная', to: '/' },
+        { label: 'Книги', to: '/books' },
+        { label: 'Авторы', to: '/books/authors' },
+        { label: author?.fullName || 'Загрузка...', to: `/books/authors/${route.params.id}` },
+        { label: 'Редактирование' },
+      ]"
+    />
 
-    <div v-if="loading" class="text-center py-8">
-      <div
-        class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"
-      ></div>
+    <div
+      v-if="loadError"
+      class="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+    >
+      {{ loadError }}
     </div>
 
-    <div v-else-if="error" class="text-center py-8">
-      <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-        {{ error }}
+    <div v-if="pending" class="text-center py-12 text-gray-500">Загрузка...</div>
+
+    <div v-else class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+      <div class="border-b border-gray-100 px-6 py-5">
+        <h1 class="text-xl md:text-2xl font-semibold text-gray-900">Редактировать автора</h1>
+        <p class="mt-1 text-sm text-gray-500">Измените данные автора</p>
       </div>
-    </div>
 
-    <div v-else-if="author" class="bg-white shadow rounded-lg p-6">
-      <h2 class="text-2xl font-bold mb-6">Редактировать автора</h2>
-
-      <form @submit.prevent="handleSubmit" class="space-y-6">
-        <div
-          v-if="submitError"
-          class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-        >
-          {{ submitError }}
-        </div>
-
-        <div>
-          <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
-            Имя автора *
-          </label>
-          <input
-            id="name"
-            v-model="form.name"
-            type="text"
-            required
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            :class="{ 'border-red-500': errors?.name }"
+      <form @submit.prevent="onSubmit" class="px-6 py-6">
+        <div class="flex gap-6">
+          <UiPhotoUpload
+            v-model="photoFile"
+            v-model:preview="photoPreview"
+            label="Фото"
+            :error="errors.photo"
+            size="lg"
+            class="flex-shrink-0"
           />
-          <p v-if="errors?.name" class="mt-1 text-sm text-red-600">
-            {{ errors.name }}
-          </p>
-        </div>
 
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label for="birthYear" class="block text-sm font-medium text-gray-700 mb-1">
-              Год рождения
-            </label>
-            <input
-              id="birthYear"
-              v-model.number="form.birthYear"
-              type="number"
-              min="1000"
-              :max="new Date().getFullYear()"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
+          <div class="flex-1 grid grid-cols-1 gap-6">
+            <div>
+              <label for="fullName" class="block text-sm font-medium text-gray-700">
+                Имя автора<span class="text-red-500">*</span>
+              </label>
+              <input
+                id="fullName"
+                v-model="form.fullName"
+                type="text"
+                :class="[
+                  'mt-1 block w-full rounded-lg border px-3 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 transition',
+                  errors.fullName
+                    ? 'border-red-300 focus:ring-red-200'
+                    : 'border-gray-300 focus:ring-indigo-200 focus:border-indigo-500',
+                ]"
+                placeholder="например, Лев Толстой"
+              />
+              <p v-if="errors.fullName" class="mt-1 text-sm text-red-600">{{ errors.fullName }}</p>
+            </div>
 
-          <div>
-            <label for="deathYear" class="block text-sm font-medium text-gray-700 mb-1">
-              Год смерти
-            </label>
-            <input
-              id="deathYear"
-              v-model.number="form.deathYear"
-              type="number"
-              min="1000"
-              :max="new Date().getFullYear()"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
+            <div>
+              <label for="comment" class="block text-sm font-medium text-gray-700"
+                >Комментарий</label
+              >
+              <textarea
+                id="comment"
+                v-model="form.comment"
+                rows="3"
+                class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                placeholder="Дополнительная информация об авторе"
+              ></textarea>
+            </div>
           </div>
         </div>
 
-        <div>
-          <label for="country" class="block text-sm font-medium text-gray-700 mb-1"> Страна </label>
-          <input
-            id="country"
-            v-model="form.country"
-            type="text"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            placeholder="например: Россия, США, Великобритания"
-          />
-        </div>
-
-        <div>
-          <label for="comment" class="block text-sm font-medium text-gray-700 mb-1">
-            Комментарий
-          </label>
-          <textarea
-            id="comment"
-            v-model="form.comment"
-            rows="3"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            placeholder="Дополнительная информация об авторе"
-          ></textarea>
-        </div>
-
-        <div>
-          <label for="photo" class="block text-sm font-medium text-gray-700 mb-1"> Фото </label>
-          <PhotoUpload
-            v-model="form.photo"
-            :initial-url="author.photo"
-            accept="image/*"
-            class="w-full"
-          />
-        </div>
-
-        <div class="flex justify-end gap-3">
+        <div class="mt-6 flex items-center justify-end gap-3">
           <NuxtLink
             :to="`/books/authors/${route.params.id}`"
-            class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+            class="rounded-lg px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
           >
             Отмена
           </NuxtLink>
           <button
             type="submit"
             :disabled="submitting"
-            class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50"
+            class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <span v-if="submitting">Сохранение...</span>
-            <span v-else>Сохранить</span>
+            <svg
+              v-if="submitting"
+              class="h-4 w-4 animate-spin"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              />
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+              />
+            </svg>
+            <span>{{ submitting ? 'Сохранение...' : 'Сохранить' }}</span>
           </button>
+        </div>
+
+        <div
+          v-if="error"
+          class="mt-6 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+        >
+          {{ error }}
         </div>
       </form>
     </div>
@@ -128,98 +120,100 @@
 </template>
 
 <script setup lang="ts">
-interface Author {
-  id: string
-  name: string
-  birthYear?: number
-  deathYear?: number
-  country?: string
-  photo?: string
-  comment?: string
-  createdAt: string
-}
-
-definePageMeta({
-  middleware: 'auth',
-})
-
 const route = useRoute()
-const router = useRouter()
 const config = useRuntimeConfig()
 
-const {
-  data: author,
-  loading,
-  error,
-} = await useFetch<Author>(`/api/authors/${route.params.id}`, {
-  baseURL: config.public.apiUrl,
-})
-
-const breadcrumbItems = computed(() => [
-  { label: 'Главная', to: '/' },
-  { label: 'Книги', to: '/books' },
-  { label: 'Авторы', to: '/books/authors' },
-  { label: author.value?.name || 'Автор', to: `/books/authors/${route.params.id}` },
-  { label: 'Редактирование' },
-])
-
-const form = ref({
-  name: '',
-  birthYear: undefined as number | undefined,
-  deathYear: undefined as number | undefined,
-  country: '',
-  comment: '',
-  photo: '',
-})
-
+const loadError = ref('')
+const error = ref('')
+const errors = ref<Record<string, string>>({})
 const submitting = ref(false)
-const submitError = ref('')
-const errors = ref<Record<string, string> | null>(null)
 
-// Заполняем форму данными автора при загрузке
-watchEffect(() => {
-  if (author.value) {
-    form.value = {
-      name: author.value.name,
-      birthYear: author.value.birthYear,
-      deathYear: author.value.deathYear,
-      country: author.value.country || '',
-      comment: author.value.comment || '',
-      photo: author.value.photo || '',
-    }
-  }
+interface AuthorForm {
+  fullName: string
+  comment: string
+}
+
+const form = ref<AuthorForm>({
+  fullName: '',
+  comment: '',
 })
 
-const handleSubmit = async () => {
-  submitting.value = true
-  submitError.value = ''
-  errors.value = null
+const photoFile = ref<File | null>(null)
+const photoPreview = ref<string | null>(null)
+
+const { data: author, pending } = await useAsyncData(
+  `author-edit-${route.params.id}`,
+  async () => {
+    try {
+      loadError.value = ''
+      const data = await $fetch<{
+        id: string
+        fullName: string
+        comment?: string | null
+        photo?: string | null
+        createdAt: string
+        updatedAt: string
+      }>(`${config.public.apiBase}/authors/${route.params.id}`)
+
+      form.value.fullName = data.fullName || ''
+      form.value.comment = data.comment || ''
+      if (data.photo) {
+        photoPreview.value = `${config.public.apiBase}${data.photo}`
+      }
+
+      return data
+    } catch (e: any) {
+      loadError.value = e?.data?.message || 'Не удалось загрузить автора'
+      return null
+    }
+  },
+  { server: false },
+)
+
+const onSubmit = async () => {
+  if (submitting.value) return
 
   try {
-    await $fetch(`/api/authors/${route.params.id}`, {
-      baseURL: config.public.apiUrl,
+    submitting.value = true
+    errors.value = {}
+    error.value = ''
+
+    const fullName = form.value.fullName.trim()
+    if (!fullName) {
+      errors.value.fullName = 'Имя автора обязательно'
+      return
+    }
+
+    const formData = new FormData()
+    formData.append('fullName', fullName)
+    if (form.value.comment?.trim()) {
+      formData.append('comment', form.value.comment.trim())
+    }
+    if (photoFile.value) {
+      formData.append('photo', photoFile.value)
+    } else if (author.value?.photo && !photoPreview.value) {
+      formData.append('removePhoto', 'true')
+    }
+
+    await $fetch(`${config.public.apiBase}/authors/${route.params.id}`, {
       method: 'PUT',
-      body: {
-        name: form.value.name.trim(),
-        birthYear: form.value.birthYear || undefined,
-        deathYear: form.value.deathYear || undefined,
-        country: form.value.country?.trim() || undefined,
-        comment: form.value.comment?.trim() || undefined,
-        photo: form.value.photo || undefined,
-      },
+      body: formData,
     })
 
-    await router.push(`/books/authors/${route.params.id}`)
-  } catch (err: any) {
-    if (err.data?.violations) {
-      errors.value = {}
-      err.data.violations.forEach((violation: any) => {
-        errors.value![violation.field] = violation.message
-      })
-      submitError.value = err.data.message || 'Произошла ошибка при обновлении автора'
-    } else {
-      submitError.value = 'Произошла ошибка при обновлении автора'
+    navigateTo(`/books/authors/${route.params.id}`)
+  } catch (e) {
+    const err = e as {
+      data?: { message?: string; violations?: Array<{ field: string; message: string }> }
     }
+    const base = err.data?.message
+    const violations = err.data?.violations
+
+    if (Array.isArray(violations) && violations.length) {
+      violations.forEach((v) => {
+        errors.value[v.field] = v.message
+      })
+    }
+    error.value = base ?? 'Произошла ошибка при обновлении автора'
   } finally {
     submitting.value = false
   }
