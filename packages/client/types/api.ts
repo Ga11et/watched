@@ -1,0 +1,226 @@
+/**
+ * TypeScript интерфейсы для API ответов
+ * @description Используется для типизации данных на фронтенде
+ */
+
+// Базовые интерфейсы
+interface BaseEntity {
+  id: string
+  createdAt: string
+  updatedAt: string
+}
+
+// Книги
+export interface Book extends BaseEntity {
+  title: string
+  author?: string
+  genre?: string
+  rating?: number // 0-100
+  readAt?: string
+  pageCount?: number
+  comment?: string
+  publishYear?: number
+  cover?: string
+}
+
+export interface CreateBookDto {
+  title: string
+  author?: string
+  genre?: string
+  rating?: number
+  readAt?: string
+  pageCount?: number
+  comment?: string
+  publishYear?: number
+}
+
+export interface BookStats {
+  total: number
+  thisMonth: number
+  avgRating: number
+}
+
+// Фильмы
+export interface Movie extends BaseEntity {
+  title: string
+  genre?: string
+  directorId?: string
+  rating?: number // 0-100
+  watchedAt?: string
+  comment?: string
+  releaseYear?: number
+  poster?: string
+}
+
+export interface CreateMovieDto {
+  title: string
+  genre?: string
+  directorId?: string
+  rating?: number
+  watchedAt?: string
+  comment?: string
+  releaseYear?: number
+}
+
+export interface MovieStats {
+  total: number
+  thisMonth: number
+  avgRating: number
+}
+
+// Игры
+export interface Game extends BaseEntity {
+  title: string
+  completionDate?: string
+  playTimeHours?: number
+  comment?: string
+  rating?: number // 0-100
+}
+
+export interface CreateGameDto {
+  title: string
+  completionDate?: string
+  playTimeHours?: number
+  comment?: string
+  rating?: number
+}
+
+export interface GameStats {
+  total: number
+  thisMonth: number
+  avgRating: number
+}
+
+// Сериалы
+export interface Series extends BaseEntity {
+  title: string
+  genre?: string
+  rating?: number // 0-10
+  watchedAt?: string
+  comment?: string
+  totalSeasons?: number
+  watchedSeasons?: number
+}
+
+export interface CreateSeriesDto {
+  title: string
+  genre?: string
+  rating?: number
+  watchedAt?: string
+  comment?: string
+  totalSeasons?: number
+  watchedSeasons?: number
+}
+
+export interface SeriesStats {
+  total: number
+  thisMonth: number
+  avgRating: number
+}
+
+// Режиссёры
+export interface Director extends BaseEntity {
+  name: string
+  bio?: string
+  birthYear?: number
+  country?: string
+}
+
+export interface CreateDirectorDto {
+  name: string
+  bio?: string
+  birthYear?: number
+  country?: string
+}
+
+export interface DirectorStats {
+  total: number
+}
+
+// Google Books API
+export interface GoogleBook {
+  id: string
+  volumeInfo: {
+    title: string
+    authors?: string[]
+    publishedDate?: string
+    description?: string
+    imageLinks?: {
+      thumbnail?: string
+    }
+    pageCount?: number
+    categories?: string[]
+  }
+}
+
+// TMDB API
+export interface TmdbMovie {
+  id: number
+  title: string
+  poster_path: string | null
+  release_date: string | null
+  genre_ids: number[]
+  overview: string | null
+}
+
+export interface TmdbPerson {
+  id: number
+  name: string
+  profile_path: string | null
+  birthday: string | null
+  known_for_department: string
+}
+
+export interface TmdbSeries {
+  id: number
+  name: string
+  poster_path: string | null
+  first_air_date: string | null
+  genre_ids: number[]
+  overview: string | null
+}
+
+// API Responses
+export interface ApiResponse<T> {
+  data: T[]
+  meta?: {
+    total: number
+    page: number
+    limit: number
+  }
+}
+
+export interface DashboardData {
+  recentMovies: Movie[]
+  recentGames: Game[]
+  recentDirectors: Director[]
+  recentSeries: Series[]
+  recentBooks: Book[]
+  stats: {
+    movies: MovieStats
+    games: GameStats
+    directors: DirectorStats
+    series: SeriesStats
+    books: BookStats
+  }
+}
+
+// Сортировка
+export type SortOrder = 'ASC' | 'DESC'
+export type SortableMovieFields =
+  | 'title'
+  | 'genre'
+  | 'rating'
+  | 'watchedAt'
+  | 'releaseYear'
+  | 'createdAt'
+export type SortableGameFields = 'title' | 'rating' | 'completionDate' | 'createdAt'
+export type SortableSeriesFields = 'title' | 'genre' | 'rating' | 'watchedAt' | 'createdAt'
+export type SortableBookFields =
+  | 'title'
+  | 'author'
+  | 'genre'
+  | 'rating'
+  | 'readAt'
+  | 'publishYear'
+  | 'createdAt'
