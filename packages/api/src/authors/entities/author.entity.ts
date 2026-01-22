@@ -1,37 +1,55 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Book } from '../../books/entities/book.entity';
 
-/**
- * Сущность автора в системе отслеживания прочитанного контента
- * @description Основная модель для хранения информации об авторах книг
- */
 @Entity()
 export class Author {
+  @ApiProperty({
+    description: 'Уникальный идентификатор автора',
+    example: '550e8400-e29b-41d4-a716-446655440001',
+  })
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  /** Полное имя автора (обязательное поле) */
+  @ApiProperty({
+    description: 'Полное имя автора',
+    example: 'Лев Толстой',
+  })
   @Column()
   fullName: string;
 
-  /** URL фотографии автора (опционально) */
+  @ApiPropertyOptional({
+    description: 'URL фотографии автора',
+    example: '/uploads/authors/1640995200000-photo.jpg',
+  })
   @Column({ nullable: true, type: 'text' })
   photo: string | null;
 
-  /** Комментарий к автору (опционально) */
+  @ApiPropertyOptional({
+    description: 'Комментарий к автору',
+    example: 'Русский писатель, мыслитель и общественный деятель',
+  })
   @Column({ nullable: true, type: 'text' })
   comment: string | null;
 
+  @ApiProperty({
+    description: 'Дата создания записи',
+    example: '2026-01-22T17:00:00Z',
+  })
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
+  @ApiProperty({
+    description: 'Дата обновления записи',
+    example: '2026-01-22T17:00:00Z',
+  })
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
 
-  /**
-   * Книги автора
-   * @relation Обратная связь с таблицей books
-   */
+  @ApiPropertyOptional({
+    description: 'Книги автора',
+    type: () => [Book],
+  })
   @OneToMany(() => Book, (book) => book.author)
   books: Book[];
 }
