@@ -19,6 +19,6 @@ function formatDate(d?: string | null) {
   const date = new Date(d)
   if (isNaN(date.getTime())) return '—'
   // Format on client; choose a stable format to avoid flicker if hot reloading
-  return new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC' }).format(date)
+  return new Intl.DateTimeFormat('ru-RU', { timeZone: 'UTC' }).format(date)
 }
 </script>

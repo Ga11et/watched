@@ -75,7 +75,7 @@ export class BooksService {
         'readAt',
         'publishYear',
         'createdAt',
-        'author.name',
+        'author.fullName',
       ];
       if (validSortFields.includes(sortBy)) {
         if (sortBy === 'rating') {
@@ -88,8 +88,8 @@ export class BooksService {
               .orderBy('book.rating IS NULL', 'ASC')
               .addOrderBy('book.rating', 'ASC');
           }
-        } else if (sortBy === 'author.name') {
-          queryBuilder.orderBy('author.name', sortOrder || 'ASC');
+        } else if (sortBy === 'author.fullName') {
+          queryBuilder.orderBy('author.fullName', sortOrder || 'ASC');
         } else {
           queryBuilder.orderBy(`book.${sortBy}`, sortOrder || 'ASC');
         }

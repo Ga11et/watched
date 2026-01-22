@@ -85,67 +85,74 @@
               </svg>
             </div>
           </div>
-          <div class="flex-1 grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div class="space-y-4">
-              <div>
-                <div class="text-sm text-gray-500">Название</div>
-                <div class="text-base text-gray-900 font-medium">{{ book.title }}</div>
-              </div>
-              <div>
-                <div class="text-sm text-gray-500">Автор</div>
-                <div class="text-base text-gray-900">
-                  <NuxtLink
-                    v-if="book.author"
-                    :to="`/books/authors/${book.author.id}`"
-                    class="text-indigo-600 hover:text-indigo-900"
-                  >
-                    {{ book.author.fullName }}
-                  </NuxtLink>
-                  <span v-else>—</span>
+          <div class="flex-1">
+            <!-- Название книги во всю ширину -->
+            <div class="mb-6">
+              <div class="text-sm text-gray-500">Название</div>
+              <div class="text-xl text-gray-900 font-medium">{{ book.title }}</div>
+            </div>
+
+            <!-- Остальная информация в 2 колонки -->
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div class="space-y-4">
+                <div>
+                  <div class="text-sm text-gray-500">Автор</div>
+                  <div class="text-base text-gray-900">
+                    <NuxtLink
+                      v-if="book.author"
+                      :to="`/books/authors/${book.author.id}`"
+                      class="text-indigo-600 hover:text-indigo-900"
+                    >
+                      {{ book.author.fullName }}
+                    </NuxtLink>
+                    <span v-else>—</span>
+                  </div>
+                </div>
+                <div>
+                  <div class="text-sm text-gray-500">Жанр</div>
+                  <div class="text-base text-gray-900">{{ book.genre || '—' }}</div>
+                </div>
+                <div>
+                  <div class="text-sm text-gray-500">Год издания</div>
+                  <div class="text-base text-gray-900">{{ book.publishYear || '—' }}</div>
                 </div>
               </div>
-              <div>
-                <div class="text-sm text-gray-500">Жанр</div>
-                <div class="text-base text-gray-900">{{ book.genre || '—' }}</div>
-              </div>
-              <div>
-                <div class="text-sm text-gray-500">Год издания</div>
-                <div class="text-base text-gray-900">{{ book.publishYear || '—' }}</div>
+              <div class="space-y-4">
+                <div>
+                  <div class="text-sm text-gray-500">Рейтинг</div>
+                  <div class="text-base text-gray-900">
+                    {{ book.rating != null ? `${book.rating}/100` : '—' }}
+                  </div>
+                </div>
+                <div>
+                  <div class="text-sm text-gray-500">Количество страниц</div>
+                  <div class="text-base text-gray-900">{{ book.pageCount || '—' }}</div>
+                </div>
+                <div>
+                  <div class="text-sm text-gray-500">Дата прочтения</div>
+                  <div class="text-gray-900 m-0">
+                    <UiDateDisplay v-if="book.readAt" :date="book.readAt" />
+                    <span v-else>—</span>
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="space-y-4">
+
+            <div v-if="book.comment" class="mt-6">
+              <div class="text-sm font-medium text-gray-700 mb-2">Комментарий</div>
+              <div class="text-base text-gray-900 whitespace-pre-line">
+                {{ book.comment }}
+              </div>
+            </div>
+
+            <div class="mt-6 grid grid-cols-2 gap-4 text-sm text-gray-500">
               <div>
-                <div class="text-sm text-gray-500">Рейтинг</div>
-                <div class="text-base text-gray-900">
-                  {{ book.rating != null ? `${book.rating}/100` : '—' }}
-                </div>
+                <div class="tracking-wide">Создано</div>
+                <div class="text-gray-900 m-0"><UiDateDisplay :date="book.createdAt" /></div>
               </div>
               <div>
-                <div class="text-sm text-gray-500">Количество страниц</div>
-                <div class="text-base text-gray-900">{{ book.pageCount || '—' }}</div>
-              </div>
-              <div>
-                <div class="text-sm text-gray-500">Дата прочтения</div>
-                <div class="text-gray-900 m-0">
-                  <UiDateDisplay v-if="book.readAt" :date="book.readAt" />
-                  <span v-else>—</span>
-                </div>
-              </div>
-              <div>
-                <div class="text-sm text-gray-500">Комментарий</div>
-                <div class="text-base text-gray-900 whitespace-pre-line">
-                  {{ book.comment || '—' }}
-                </div>
-              </div>
-              <div class="grid grid-cols-2 gap-4 text-sm text-gray-500">
-                <div>
-                  <div class="tracking-wide">Создано</div>
-                  <div class="text-gray-900 m-0"><UiDateDisplay :date="book.createdAt" /></div>
-                </div>
-                <div>
-                  <div class="tracking-wide">Обновлено</div>
-                  <div class="text-gray-900 m-0"><UiDateDisplay :date="book.updatedAt" /></div>
-                </div>
+                <div class="tracking-wide">Обновлено</div>
+                <div class="text-gray-900 m-0"><UiDateDisplay :date="book.updatedAt" /></div>
               </div>
             </div>
           </div>

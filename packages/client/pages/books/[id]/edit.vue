@@ -65,7 +65,7 @@
               />
               <NuxtLink
                 :to="`/books/authors/new?redirectTo=${encodeURIComponent(`/books/${route.params.id}/edit`)}`"
-                class="mt-7 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm"
+                class="mt-6 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

@@ -43,7 +43,6 @@
         :sort-by="sortBy"
         :sort-order="sortOrder"
         @update-sorting="updateSorting"
-        @deleted="handleDeleted"
       />
       <EntitiesAuthorsTableView
         v-else-if="authors?.length"
@@ -51,7 +50,6 @@
         :sort-by="sortBy"
         :sort-order="sortOrder"
         @update-sorting="updateSorting"
-        @deleted="handleDeleted"
       />
     </Transition>
   </div>
@@ -61,8 +59,6 @@
 import type { Author } from '~/types/api'
 
 // 1. Конфигурация
-const error = ref('')
-
 // 2. Конфигурация и состояние
 const viewMode = useCookie<'cards' | 'table'>('watched_authors_view_mode', {
   default: () => 'cards',
@@ -70,7 +66,7 @@ const viewMode = useCookie<'cards' | 'table'>('watched_authors_view_mode', {
 })
 
 const sortBy = useCookie('watched_authors_sort_by', {
-  default: () => 'name',
+  default: () => 'fullName',
   sameSite: 'lax',
 })
 
@@ -80,13 +76,29 @@ const sortOrder = useCookie<'ASC' | 'DESC'>('watched_authors_sort_order', {
 })
 
 // 3. Загрузка данных
-const {
-  data: authors,
-  refresh,
-  pending: loading,
-} = await useFetch<Author[]>(`${useRuntimeConfig().public.apiBase}/authors`, {
-  query: { sortBy: sortBy.value, sortOrder: sortOrder.value },
-})
+const error = ref<string>('')
+const config = useRuntimeConfig()
+
+const { data: authors, pending: loading } = await useAsyncData<Author[]>(
+  'authors',
+  async () => {
+    try {
+      error.value = ''
+      return await $fetch<Author[]>(`${config.public.apiBase}/authors`, {
+        params: {
+          sortBy: sortBy.value,
+          sortOrder: sortOrder.value,
+        },
+      })
+    } catch {
+      error.value = 'Не удалось загрузить авторов'
+      return []
+    }
+  },
+  {
+    watch: [sortBy, sortOrder],
+  },
+)
 
 // 4. Вычисляемые свойства
 const breadcrumbItems = computed(() => [
@@ -96,21 +108,18 @@ const breadcrumbItems = computed(() => [
 ])
 
 const sortOptions = [
-  { value: 'name', label: 'По имени' },
-  { value: 'country', label: 'По стране' },
-  { value: 'birthYear', label: 'По году рождения' },
+  { value: 'fullName', label: 'По имени' },
   { value: 'createdAt', label: 'По дате добавления' },
 ]
 
 // 5. Методы
-const updateSorting = (newSortBy: string) => {
+const updateSorting = (newSortBy: string): void => {
   if (sortBy.value === newSortBy) {
     sortOrder.value = sortOrder.value === 'ASC' ? 'DESC' : 'ASC'
   } else {
     sortBy.value = newSortBy
     sortOrder.value = 'ASC'
   }
-  refresh()
 }
 
 // 6. Валидация
@@ -122,9 +131,7 @@ watchEffect(() => {
 })
 
 // 7. Обработчики событий
-const handleDeleted = (id: string) => {
-  refresh()
-}
+// При использовании useAsyncData с watch данные обновляются автоматически
 </script>
 
 <style>

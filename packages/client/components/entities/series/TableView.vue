@@ -88,7 +88,7 @@ const columns = [
   { key: 'genres', label: 'Жанры', sortable: false },
   { key: 'country', label: 'Страна', sortable: true },
   { key: 'rating', label: 'Рейтинг', sortable: true },
-  { key: 'seasons', label: 'Сезоны', sortable: true },
+  { key: 'seasons', label: 'Сезоны' },
   { key: 'watchedAt', label: 'Дата просмотра', sortable: true },
   { key: 'actions', label: 'Действия', align: 'right' as const },
 ]

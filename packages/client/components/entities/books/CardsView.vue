@@ -37,10 +37,11 @@ const emit = defineEmits<{
 
 const sortOptions = [
   { value: 'title', label: 'По названию' },
-  { value: 'author', label: 'По автору' },
+  { value: 'author.fullName', label: 'По автору' },
   { value: 'genre', label: 'По жанру' },
   { value: 'publishedYear', label: 'По году издания' },
-  { value: 'pages', label: 'По количеству страниц' },
+  { value: 'rating', label: 'По рейтингу' },
+  { value: 'readAt', label: 'По дате прочтения' },
   { value: 'createdAt', label: 'По дате добавления' },
 ]
 

@@ -20,43 +20,56 @@
             class="flex-shrink-0"
           />
 
-          <div class="flex-1 grid grid-cols-1 gap-6">
+          <div class="flex-1 space-y-6">
+            <!-- Основная информация -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label for="title" class="block text-sm font-medium text-gray-700 mb-1">
-                  Название книги *
+                  Название
                 </label>
-                <input
+                <IntegrationsBookAutocomplete
                   id="title"
-                  v-model="form.title"
-                  type="text"
-                  required
-                  class="block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                  :class="{ 'border-red-300 focus:ring-red-200': errors?.title }"
+                  v-model="selectedBook"
+                  v-model:manual-query="form.title"
+                  placeholder="Найти книгу..."
+                  :error="errors?.title"
+                  @select="onBookSelect"
                 />
-                <p v-if="errors?.title" class="mt-1 text-sm text-red-600">
-                  {{ errors.title }}
-                </p>
               </div>
 
-              <div>
-                <label for="author" class="block text-sm font-medium text-gray-700 mb-1">
-                  Автор
-                </label>
+              <div class="flex gap-2">
                 <UiSelect
-                  id="author"
                   v-model="form.authorId"
                   :options="authorOptions"
+                  label="Автор"
                   placeholder="Выберите автора"
                   class="flex-1"
                   :error="errors?.authorId"
                 />
-                <p v-if="errors?.authorId" class="mt-1 text-sm text-red-600">
-                  {{ errors.authorId }}
-                </p>
+                <NuxtLink
+                  to="/books/authors/new?redirectTo=/books/new"
+                  class="mt-6 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                  Новый
+                </NuxtLink>
               </div>
             </div>
 
+            <!-- Описание -->
             <div>
               <label for="comment" class="block text-sm font-medium text-gray-700 mb-1">
                 Описание
@@ -66,46 +79,86 @@
                 v-model="form.comment"
                 rows="4"
                 class="block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                placeholder="Ваши впечатления о книге..."
               ></textarea>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <label for="publishYear" class="block text-sm font-medium text-gray-700 mb-1">
-                  Год издания
-                </label>
-                <input
-                  id="publishYear"
-                  v-model.number="form.publishYear"
-                  type="number"
-                  class="block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                />
-              </div>
+            <!-- Детали книги -->
+            <div>
+              <h3 class="text-lg font-medium text-gray-900 mb-4">Детали книги</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label for="publishYear" class="block text-sm font-medium text-gray-700 mb-1">
+                    Год издания
+                  </label>
+                  <input
+                    id="publishYear"
+                    v-model.number="form.publishYear"
+                    type="number"
+                    class="block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                    placeholder="например: 2023"
+                  />
+                </div>
 
-              <div>
-                <label for="pageCount" class="block text-sm font-medium text-gray-700 mb-1">
-                  Количество страниц
-                </label>
-                <input
-                  id="pageCount"
-                  v-model.number="form.pageCount"
-                  type="number"
-                  min="1"
-                  class="block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                />
+                <div>
+                  <label for="pageCount" class="block text-sm font-medium text-gray-700 mb-1">
+                    Количество страниц
+                  </label>
+                  <input
+                    id="pageCount"
+                    v-model.number="form.pageCount"
+                    type="number"
+                    min="1"
+                    class="block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                    placeholder="например: 350"
+                  />
+                </div>
               </div>
+            </div>
 
-              <div>
-                <label for="genre" class="block text-sm font-medium text-gray-700 mb-1">
-                  Жанр
-                </label>
-                <input
-                  id="genre"
-                  v-model="form.genre"
-                  type="text"
-                  class="block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                  placeholder="например: Фантастика, Детектив, Роман"
-                />
+            <!-- Классификация и оценка -->
+            <div>
+              <h3 class="text-lg font-medium text-gray-900 mb-4">Классификация и оценка</h3>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label for="genre" class="block text-sm font-medium text-gray-700 mb-1">
+                    Жанр
+                  </label>
+                  <input
+                    id="genre"
+                    v-model="form.genre"
+                    type="text"
+                    class="block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                    placeholder="например: Фантастика, Детектив"
+                  />
+                </div>
+
+                <div>
+                  <label for="rating" class="block text-sm font-medium text-gray-700 mb-1">
+                    Рейтинг
+                  </label>
+                  <input
+                    id="rating"
+                    v-model.number="form.rating"
+                    type="number"
+                    min="0"
+                    max="100"
+                    class="block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                    placeholder="0-100"
+                  />
+                </div>
+
+                <div>
+                  <label for="readAt" class="block text-sm font-medium text-gray-700 mb-1">
+                    Дата прочтения
+                  </label>
+                  <input
+                    id="readAt"
+                    v-model="form.readAt"
+                    type="date"
+                    class="block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -139,10 +192,8 @@
 </template>
 
 <script setup lang="ts">
-interface Author {
-  id: string
-  name: string
-}
+import type { GoogleBook } from '~/components/integrations/google-books.service'
+import type { Author } from '~/types/api'
 
 // Конфигурация
 const config = useRuntimeConfig()
@@ -156,6 +207,9 @@ const errors = ref<Record<string, string>>({})
 // Файлы и превью
 const photoFile = ref<File | null>(null)
 const photoPreview = ref<string | null>(null)
+
+// Выбранная книга из автокомплита
+const selectedBook = ref<GoogleBook | null>(null)
 
 // 3. Загрузка данных
 const { data: authors } = await useFetch<Author[]>(`${useRuntimeConfig().public.apiBase}/authors`)
@@ -171,7 +225,7 @@ const authorOptions = computed(() => [
   { value: '', label: 'Выберите автора' },
   ...(authors.value || []).map((author) => ({
     value: author.id,
-    label: author.name,
+    label: author.fullName,
   })),
 ])
 
@@ -183,7 +237,54 @@ const form = reactive({
   publishYear: undefined as number | undefined,
   pageCount: undefined as number | undefined,
   genre: '',
+  rating: undefined as number | undefined,
+  readAt: new Date().toISOString().split('T')[0], // Сегодняшняя дата по умолчанию
 })
+
+// Обработка выбора книги из Google Books
+const onBookSelect = (book: GoogleBook) => {
+  // Заполняем название
+  form.title = book.title
+
+  // Заполняем описание
+  if (book.description) {
+    form.comment = book.description
+  }
+
+  // Заполняем год издания
+  if (book.publishedDate) {
+    const year = parseInt(book.publishedDate)
+    if (!isNaN(year) && year > 1800 && year <= new Date().getFullYear()) {
+      form.publishYear = year
+    }
+  }
+
+  // Заполняем количество страниц
+  if (book.pageCount && book.pageCount > 0) {
+    form.pageCount = book.pageCount
+  }
+
+  // Заполняем жанры
+  if (book.genres) {
+    form.genre = book.genres
+  }
+
+  // Устанавливаем обложку если есть
+  if (book.cover && !photoFile.value) {
+    // Загружаем обложку через проксю Nuxt чтобы избежать CORS
+    const proxyUrl = `/api/proxy?url=${encodeURIComponent(book.cover)}`
+    fetch(proxyUrl)
+      .then((response) => response.blob())
+      .then((blob) => {
+        const file = new File([blob], 'cover.jpg', { type: 'image/jpeg' })
+        photoFile.value = file
+        photoPreview.value = book.cover || null
+      })
+      .catch((error) => {
+        console.warn('Failed to fetch book cover:', error)
+      })
+  }
+}
 
 // Валидация
 const validateForm = () => {
@@ -224,6 +325,14 @@ const preparePayload = () => {
 
   if (form.genre?.trim()) {
     formData.append('genre', form.genre.trim())
+  }
+
+  if (form.rating !== undefined && form.rating !== null) {
+    formData.append('rating', form.rating.toString())
+  }
+
+  if (form.readAt) {
+    formData.append('readAt', form.readAt)
   }
 
   if (photoFile.value) {

@@ -31,7 +31,7 @@
             </NuxtLink>
           </h3>
           <NuxtLink
-            :to="`/authors/${author.id}/edit`"
+            :to="`/books/authors/${author.id}/edit`"
             class="text-indigo-600 hover:text-indigo-800"
             aria-label="Редактировать"
           >

@@ -36,9 +36,7 @@ const emit = defineEmits<{
 }>()
 
 const sortOptions = [
-  { value: 'name', label: 'По имени' },
-  { value: 'birthYear', label: 'По году рождения' },
-  { value: 'country', label: 'По стране' },
+  { value: 'fullName', label: 'По имени' },
   { value: 'createdAt', label: 'По дате добавления' },
 ]
 

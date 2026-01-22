@@ -24,16 +24,14 @@
 
           <div class="flex-1 grid grid-cols-1 gap-6">
             <div>
-              <label for="fullName" class="block text-sm font-medium text-gray-700 mb-1">
-                Полное имя автора *
-              </label>
-              <input
+              <IntegrationsTmdbPersonSearch
                 id="fullName"
-                v-model="form.fullName"
-                type="text"
+                v-model="selectedPerson"
+                v-model:manual-query="form.fullName"
+                label="Полное имя автора"
+                placeholder="Найти автора..."
+                :error="errors?.fullName"
                 required
-                class="block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                :class="{ 'border-red-300 focus:ring-red-200': errors?.fullName }"
               />
               <p v-if="errors?.fullName" class="mt-1 text-sm text-red-600">
                 {{ errors.fullName }}
@@ -83,6 +81,8 @@
 </template>
 
 <script setup lang="ts">
+import type { TmdbPerson } from '~/types/api'
+
 // Конфигурация
 const config = useRuntimeConfig()
 const router = useRouter()
@@ -96,6 +96,9 @@ const errors = ref<Record<string, string>>({})
 const photoFile = ref<File | null>(null)
 const photoPreview = ref<string | null>(null)
 
+// Выбранная персона из TMDb
+const selectedPerson = ref<TmdbPerson | null>(null)
+
 // Вычисляемые свойства
 const breadcrumbItems = computed(() => [
   { label: 'Главная', to: '/' },
@@ -108,6 +111,29 @@ const breadcrumbItems = computed(() => [
 const form = reactive({
   fullName: '',
   comment: '',
+})
+
+// Следим за изменением выбранной персоны
+watch(selectedPerson, async (person) => {
+  if (person) {
+    form.fullName = person.name
+
+    // Загружаем фото из TMDb если есть и еще не загружено
+    if (person.profile_path && !photoFile.value) {
+      try {
+        const photoUrl = `https://image.tmdb.org/t/p/w500${person.profile_path}`
+
+        const response = await fetch(photoUrl)
+        const blob = await response.blob()
+        const file = new File([blob], 'author-photo.jpg', { type: 'image/jpeg' })
+
+        photoFile.value = file
+        photoPreview.value = photoUrl
+      } catch (error) {
+        console.warn('Failed to fetch author photo from TMDb:', error)
+      }
+    }
+  }
 })
 
 // Валидация
@@ -173,7 +199,9 @@ const onSubmit = async () => {
       body: payload,
     })
 
-    await router.push('/books/authors')
+    const route = useRoute()
+    const redirectTo = route.query.redirectTo as string
+    navigateTo(redirectTo || '/books/authors')
   } catch (e: any) {
     handleErrors(e)
   } finally {

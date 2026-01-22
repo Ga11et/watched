@@ -1,12 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsNumber,
-  Min,
-  Max,
-  IsDateString,
-  IsUUID,
-} from 'class-validator';
+import { IsString, IsOptional, IsDateString, IsUUID } from 'class-validator';
 
 /**
  * DTO для создания новой книги
@@ -41,13 +33,8 @@ export class CreateBookDto {
   /**
    * Рейтинг книги от 0 до 100 (опционально)
    * @description Пользовательская оценка книги
-   * @min 0
-   * @max 100
    * @example 95
    */
-  @IsNumber()
-  @Min(0)
-  @Max(100)
   @IsOptional()
   rating?: number;
 

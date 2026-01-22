@@ -45,7 +45,6 @@ const sortOptions = [
   { value: 'rating', label: 'По рейтингу' },
   { value: 'country', label: 'По стране' },
   { value: 'watchedAt', label: 'По дате просмотра' },
-  { value: 'totalSeasons', label: 'По количеству сезонов' },
   { value: 'createdAt', label: 'По дате добавления' },
 ]
 

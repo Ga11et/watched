@@ -43,7 +43,6 @@
         :sort-by="sortBy"
         :sort-order="sortOrder"
         @update-sorting="updateSorting"
-        @deleted="handleDeleted"
       />
       <EntitiesBooksTableView
         v-else-if="books?.length"
@@ -51,7 +50,6 @@
         :sort-by="sortBy"
         :sort-order="sortOrder"
         @update-sorting="updateSorting"
-        @deleted="handleDeleted"
       />
     </Transition>
   </div>
@@ -59,9 +57,6 @@
 
 <script setup lang="ts">
 import type { Book } from '~/types/api'
-
-// 1. Конфигурация
-const error = ref('')
 
 // 2. Конфигурация и состояние
 const viewMode = useCookie<'cards' | 'table'>('watched_books_view_mode', {
@@ -80,13 +75,29 @@ const sortOrder = useCookie<'ASC' | 'DESC'>('watched_books_sort_order', {
 })
 
 // 3. Загрузка данных
-const {
-  data: books,
-  refresh,
-  pending: loading,
-} = await useFetch<Book[]>(`${useRuntimeConfig().public.apiBase}/books`, {
-  query: { sortBy: sortBy.value, sortOrder: sortOrder.value },
-})
+const error = ref<string>('')
+const config = useRuntimeConfig()
+
+const { data: books, pending: loading } = await useAsyncData<Book[]>(
+  'books',
+  async () => {
+    try {
+      error.value = ''
+      return await $fetch<Book[]>(`${config.public.apiBase}/books`, {
+        params: {
+          sortBy: sortBy.value,
+          sortOrder: sortOrder.value,
+        },
+      })
+    } catch {
+      error.value = 'Не удалось загрузить книги'
+      return []
+    }
+  },
+  {
+    watch: [sortBy, sortOrder],
+  },
+)
 
 // 4. Вычисляемые свойства
 const breadcrumbItems = computed(() => [{ label: 'Главная', to: '/' }, { label: 'Книги' }])
@@ -99,14 +110,13 @@ const sortOptions = [
 ]
 
 // 5. Методы
-const updateSorting = (newSortBy: string) => {
+const updateSorting = (newSortBy: string): void => {
   if (sortBy.value === newSortBy) {
     sortOrder.value = sortOrder.value === 'ASC' ? 'DESC' : 'ASC'
   } else {
     sortBy.value = newSortBy
     sortOrder.value = 'ASC'
   }
-  refresh()
 }
 
 // 6. Валидация
@@ -117,9 +127,7 @@ watchEffect(() => {
 })
 
 // 7. Обработчики событий
-const handleDeleted = (id: string) => {
-  refresh()
-}
+// При использовании useAsyncData с watch данные обновляются автоматически
 </script>
 
 <style>

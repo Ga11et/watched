@@ -1,12 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsNumber,
-  Min,
-  Max,
-  IsDateString,
-  IsUUID,
-} from 'class-validator';
+import { IsString, IsOptional, IsDateString, IsUUID } from 'class-validator';
 
 /**
  * DTO для создания нового фильма
@@ -41,13 +33,8 @@ export class CreateMovieDto {
   /**
    * Рейтинг фильма от 0 до 100 (опционально)
    * @description Пользовательская оценка фильма
-   * @min 0
-   * @max 100
    * @example 85
    */
-  @IsNumber()
-  @Min(0)
-  @Max(100)
   @IsOptional()
   rating?: number;
 
@@ -73,11 +60,8 @@ export class CreateMovieDto {
   /**
    * Год выпуска фильма (опционально)
    * @description Год выхода фильма в прокат
-   * @min 1900
-   * @max 2030
    * @example 2014
    */
-  @IsNumber()
   @IsOptional()
   releaseYear?: number;
 }
