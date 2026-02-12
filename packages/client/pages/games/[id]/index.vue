@@ -8,7 +8,7 @@
       ]"
     />
 
-    <div class="rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
       <div class="border-b border-gray-200 px-6 py-5 flex items-center justify-between">
         <div>
           <h1 class="text-xl md:text-2xl font-semibold text-gray-900">
@@ -63,33 +63,74 @@
           {{ error }}
         </div>
         <div v-else-if="!game" class="text-gray-500">Игра не найдена.</div>
-        <div v-else class="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <div class="space-y-4">
-            <div>
-              <div class="text-sm text-gray-500">Название</div>
-              <div class="text-base text-gray-900 font-medium">{{ game.title }}</div>
+        <div v-else class="flex gap-6">
+          <div class="flex-shrink-0">
+            <div v-if="game.cover" class="w-40 h-56 rounded-lg overflow-hidden">
+              <img :src="coverUrl" :alt="game.title" class="w-full h-full object-cover" />
             </div>
-            <div>
-              <div class="text-sm text-gray-500">Дата прохождения</div>
-              <div class="text-gray-900 m-0"><UiDateDisplay :date="game.completionDate" /></div>
-            </div>
-            <div>
-              <div class="text-sm text-gray-500">Время в игре (часы)</div>
-              <div class="text-base text-gray-900">{{ game.playTimeHours ?? '—' }}</div>
+            <div v-else class="w-40 h-56 rounded-lg bg-gray-100 flex items-center justify-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-12 w-12 text-gray-300"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
             </div>
           </div>
-          <div class="space-y-4">
-            <div>
-              <div class="text-sm text-gray-500">Оценка</div>
-              <div class="text-base text-gray-900">{{ game.rating ?? '—' }}</div>
+          <div class="flex-1">
+            <!-- Название игры во всю ширину -->
+            <div class="mb-6">
+              <div class="text-sm text-gray-500">Название</div>
+              <div class="text-xl text-gray-900 font-medium">{{ game.title }}</div>
             </div>
-            <div>
-              <div class="text-sm text-gray-500">Комментарий</div>
-              <div class="text-base text-gray-900 whitespace-pre-line">
-                {{ game.comment || '—' }}
+
+            <!-- Остальная информация в 2 колонки -->
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div class="space-y-4">
+                <div>
+                  <div class="text-sm text-gray-500">Дата прохождения</div>
+                  <div class="text-base text-gray-900">
+                    <UiDateDisplay v-if="game.completionDate" :date="game.completionDate" />
+                    <span v-else>—</span>
+                  </div>
+                </div>
+                <div>
+                  <div class="text-sm text-gray-500">Время в игре (часы)</div>
+                  <div class="text-base text-gray-900">{{ game.playTimeHours ?? '—' }}</div>
+                </div>
+              </div>
+              <div class="space-y-4">
+                <div>
+                  <div class="text-sm text-gray-500">Оценка</div>
+                  <div class="text-base text-gray-900">
+                    {{ game.rating != null ? `${game.rating}/100` : '—' }}
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="grid grid-cols-2 gap-4 text-sm text-gray-500">
+
+            <div v-if="game.comment" class="mt-6">
+              <div class="text-sm font-medium text-gray-700 mb-2">Комментарий</div>
+              <div class="text-base text-gray-900 whitespace-pre-line">
+                {{ game.comment }}
+              </div>
+            </div>
+
+            <div class="mt-6 grid grid-cols-2 gap-4 text-sm text-gray-500">
               <div>
                 <div class="tracking-wide">Создано</div>
                 <div class="text-gray-900 m-0"><UiDateDisplay :date="game.createdAt" /></div>
@@ -129,6 +170,13 @@ const { data, pending, refresh } = await useAsyncData('game-show', async () => {
 })
 
 const game = computed(() => data.value)
+
+const coverUrl = computed(() => {
+  if (!game.value?.cover) return ''
+  return game.value.cover.startsWith('http')
+    ? game.value.cover
+    : `${config.public.apiBase}${game.value.cover}`
+})
 
 const onDelete = async () => {
   if (!game.value) return

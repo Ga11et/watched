@@ -42,4 +42,7 @@ async function bootstrap() {
   console.log(`🚀 Application running on: http://localhost:33010`);
   console.log(`📚 API Documentation: http://localhost:33010/api`);
 }
-bootstrap();
+bootstrap().catch((err) => {
+  console.error('Failed to start application:', err);
+  process.exit(1);
+});

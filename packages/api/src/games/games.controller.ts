@@ -7,7 +7,10 @@ import {
   Put,
   Delete,
   Query,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
@@ -15,6 +18,7 @@ import {
   ApiParam,
   ApiBody,
   ApiQuery,
+  ApiConsumes,
 } from '@nestjs/swagger';
 import { GamesService } from './games.service';
 import { Game } from './entities/game.entity';
@@ -27,9 +31,11 @@ export class GamesController {
   constructor(private readonly gamesService: GamesService) {}
 
   @Post()
+  @UseInterceptors(FileInterceptor('cover'))
+  @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary: 'Создать новую игру',
-    description: 'Создает игру в справочнике',
+    description: 'Создает игру в справочнике с возможностью загрузки обложки',
   })
   @ApiResponse({
     status: 201,
@@ -37,8 +43,11 @@ export class GamesController {
     type: Game,
   })
   @ApiBody({ type: CreateGameDto })
-  create(@Body() createGameDto: CreateGameDto): Promise<Game> {
-    return this.gamesService.create(createGameDto);
+  create(
+    @Body() createGameDto: CreateGameDto,
+    @UploadedFile() cover?: Express.Multer.File,
+  ): Promise<Game> {
+    return this.gamesService.create(createGameDto, cover);
   }
 
   @Get('stats')
@@ -126,9 +135,11 @@ export class GamesController {
   }
 
   @Put(':id')
+  @UseInterceptors(FileInterceptor('cover'))
+  @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary: 'Обновить игру',
-    description: 'Обновляет игру в справочнике',
+    description: 'Обновляет игру в справочнике с возможностью замены обложки',
   })
   @ApiParam({
     name: 'id',
@@ -147,8 +158,9 @@ export class GamesController {
   update(
     @Param('id') id: string,
     @Body() updateGameDto: UpdateGameDto,
+    @UploadedFile() cover?: Express.Multer.File,
   ): Promise<Game> {
-    return this.gamesService.update(id, updateGameDto);
+    return this.gamesService.update(id, updateGameDto, cover);
   }
 
   @Delete(':id')

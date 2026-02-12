@@ -53,4 +53,12 @@ export class CreateGameDto {
   @Max(100)
   @IsOptional()
   rating?: number;
+
+  @ApiPropertyOptional({
+    description: 'Обложка игры',
+    example: '/uploads/games/1640995200000-cover.jpg',
+  })
+  @IsString()
+  @IsOptional()
+  cover?: string;
 }

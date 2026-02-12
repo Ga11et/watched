@@ -6,8 +6,10 @@ import {
   IsNumber,
   Min,
   Max,
+  IsBoolean,
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { CreateGameDto } from './create-game.dto';
 
 export class UpdateGameDto extends PartialType(CreateGameDto) {
@@ -56,4 +58,17 @@ export class UpdateGameDto extends PartialType(CreateGameDto) {
   @Max(100)
   @IsOptional()
   rating?: number;
+
+  @ApiPropertyOptional({
+    description: 'Удалить обложку',
+    example: false,
+  })
+  @IsBoolean()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return typeof value === 'boolean' ? value : undefined;
+  })
+  @IsOptional()
+  removeCover?: boolean;
 }

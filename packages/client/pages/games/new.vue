@@ -19,125 +19,103 @@
       </div>
 
       <form @submit.prevent="onSubmit" class="px-6 py-6">
-        <div class="grid grid-cols-1 gap-6">
-          <div>
-            <label for="title" class="block text-sm font-medium text-gray-700"
-              >Название<span class="text-red-500">*</span></label
-            >
-            <input
-              id="title"
-              v-model.trim="form.title"
-              type="text"
-              :class="[
-                'mt-1 block w-full rounded-lg border px-3 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 transition',
-                errors.title
-                  ? 'border-red-300 focus:ring-red-200'
-                  : 'border-gray-300 focus:ring-indigo-200 focus:border-indigo-500',
-              ]"
-              placeholder="например, Baldur's Gate 3"
-            />
-            <p v-if="errors.title" class="mt-1 text-sm text-red-600">{{ errors.title }}</p>
-          </div>
+        <div class="flex gap-6">
+          <UiPhotoUpload
+            v-model="coverFile"
+            v-model:preview="coverPreview"
+            label="Обложка"
+            :error="errors.cover"
+            class="flex-shrink-0"
+          />
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="flex-1 space-y-6">
             <div>
-              <label for="completionDate" class="block text-sm font-medium text-gray-700"
-                >Дата прохождения</label
+              <label for="title" class="block text-sm font-medium text-gray-700"
+                >Название<span class="text-red-500">*</span></label
               >
               <input
-                id="completionDate"
-                v-model="form.completionDate"
-                type="date"
-                class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                id="title"
+                v-model.trim="form.title"
+                type="text"
+                :class="[
+                  'mt-1 block w-full rounded-lg border px-3 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 transition',
+                  errors.title
+                    ? 'border-red-300 focus:ring-red-200'
+                    : 'border-gray-300 focus:ring-indigo-200 focus:border-indigo-500',
+                ]"
+                placeholder="например, Baldur's Gate 3"
               />
-              <p class="mt-1 text-xs text-gray-500">Когда вы прошли эту игру?</p>
+              <p v-if="errors.title" class="mt-1 text-sm text-red-600">{{ errors.title }}</p>
             </div>
-            <div>
-              <label for="playTimeHours" class="block text-sm font-medium text-gray-700"
-                >Время в игре (часы)</label
-              >
-              <div class="mt-1 relative">
-                <input
-                  id="playTimeHours"
-                  v-model.number="form.playTimeHours"
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  class="block w-full rounded-lg border border-gray-300 pl-3 pr-12 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                  placeholder="например, 12.5"
-                />
-                <span
-                  class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-gray-400"
-                  >ч</span
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label for="completionDate" class="block text-sm font-medium text-gray-700"
+                  >Дата прохождения</label
                 >
+                <input
+                  id="completionDate"
+                  v-model="form.completionDate"
+                  type="date"
+                  class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                />
+                <p class="mt-1 text-xs text-gray-500">Когда вы прошли эту игру?</p>
               </div>
-              <p class="mt-1 text-xs text-gray-500">Примерное общее время в игре.</p>
+              <div>
+                <label for="playTimeHours" class="block text-sm font-medium text-gray-700"
+                  >Время в игре (часы)</label
+                >
+                <div class="mt-1 relative">
+                  <input
+                    id="playTimeHours"
+                    v-model.number="form.playTimeHours"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    class="block w-full rounded-lg border border-gray-300 pl-3 pr-12 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                    placeholder="например, 12.5"
+                  />
+                  <span
+                    class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-gray-400"
+                    >ч</span
+                  >
+                </div>
+                <p class="mt-1 text-xs text-gray-500">Примерное общее время в игре.</p>
+              </div>
             </div>
-          </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label for="rating" class="block text-sm font-medium text-gray-700"
-                >Оценка (1-100)</label
-              >
-              <input
-                id="rating"
-                v-model.number="form.rating"
-                type="number"
-                min="1"
-                max="100"
-                class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                placeholder="например, 85"
-              />
-              <p class="mt-1 text-xs text-gray-500">Ваша личная оценка игры.</p>
-            </div>
-            <div>
-              <label for="comment" class="block text-sm font-medium text-gray-700"
-                >Комментарий</label
-              >
-              <textarea
-                id="comment"
-                v-model="form.comment"
-                rows="4"
-                class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                placeholder="Ваши мысли об игре"
-              />
-              <p class="mt-1 text-xs text-gray-500">
-                Необязательно. Поделитесь яркими моментами, плюсами/минусами или впечатлениями.
-              </p>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-3 pt-2">
-            <button
-              type="submit"
-              :disabled="submitting || !hydrated"
-              class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <svg
-                v-if="submitting"
-                class="h-4 w-4 animate-spin"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <circle
-                  class="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  stroke-width="4"
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label for="rating" class="block text-sm font-medium text-gray-700"
+                  >Оценка (1-100)</label
+                >
+                <input
+                  id="rating"
+                  v-model.number="form.rating"
+                  type="number"
+                  min="1"
+                  max="100"
+                  class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                  placeholder="например, 85"
                 />
-                <path
-                  class="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                <p class="mt-1 text-xs text-gray-500">Ваша личная оценка игры.</p>
+              </div>
+              <div>
+                <label for="comment" class="block text-sm font-medium text-gray-700"
+                  >Комментарий</label
+                >
+                <textarea
+                  id="comment"
+                  v-model="form.comment"
+                  rows="4"
+                  class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                  placeholder="Ваши мысли об игре"
                 />
-              </svg>
-              <span>{{ submitting ? 'Сохранение...' : 'Создать' }}</span>
-            </button>
-            <NuxtLink to="/" class="text-gray-600 hover:text-gray-800">Отмена</NuxtLink>
+                <p class="mt-1 text-xs text-gray-500">
+                  Необязательно. Поделитесь яркими моментами, плюсами/минусами или впечатлениями.
+                </p>
+              </div>
+            </div>
           </div>
 
           <div
@@ -146,6 +124,22 @@
           >
             {{ error }}
           </div>
+        </div>
+
+        <div class="mt-6 flex items-center justify-end gap-3">
+          <NuxtLink
+            to="/games"
+            class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Отмена
+          </NuxtLink>
+          <button
+            type="submit"
+            :disabled="submitting"
+            class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+          >
+            {{ submitting ? 'Сохранение...' : 'Создать' }}
+          </button>
         </div>
       </form>
     </div>
@@ -158,6 +152,9 @@ const submitting = ref(false)
 const error = ref('')
 const errors = ref<Record<string, string>>({})
 const hydrated = ref(false)
+
+const coverFile = ref<File | null>(null)
+const coverPreview = ref<string | null>(null)
 
 onMounted(() => {
   hydrated.value = true
@@ -185,17 +182,33 @@ const onSubmit = async () => {
   submitting.value = true
   try {
     const config = useRuntimeConfig()
-    const payload: Record<string, any> = {
-      title: form.title,
-      comment: form.comment || null,
+    const formData = new FormData()
+
+    formData.append('title', form.title.trim())
+
+    if (form.completionDate) {
+      formData.append('completionDate', form.completionDate)
     }
-    if (form.completionDate) payload.completionDate = form.completionDate
-    if (typeof form.playTimeHours === 'number') payload.playTimeHours = form.playTimeHours
-    if (typeof form.rating === 'number') payload.rating = form.rating
+
+    if (typeof form.playTimeHours === 'number') {
+      formData.append('playTimeHours', form.playTimeHours.toString())
+    }
+
+    if (typeof form.rating === 'number') {
+      formData.append('rating', form.rating.toString())
+    }
+
+    if (form.comment?.trim()) {
+      formData.append('comment', form.comment.trim())
+    }
+
+    if (coverFile.value) {
+      formData.append('cover', coverFile.value)
+    }
 
     await $fetch(`${config.public.apiBase}/games`, {
       method: 'POST',
-      body: payload,
+      body: formData,
     })
 
     router.push('/')
@@ -203,7 +216,6 @@ const onSubmit = async () => {
     const base = e?.data?.message || e?.message || 'Не удалось создать игру'
     const violations = e?.data?.violations
     if (Array.isArray(violations) && violations.length) {
-      // Map violations into errors object for inline display
       violations.forEach((v) => {
         errors.value[v.field] = v.message
       })

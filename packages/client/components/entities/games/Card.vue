@@ -1,32 +1,63 @@
 <template>
-  <div class="bg-white rounded-lg shadow overflow-hidden">
-    <div class="p-6">
-      <div class="flex justify-between items-start">
-        <h3 class="text-xl font-semibold">
-          <NuxtLink :to="`/games/${game.id}`" class="text-indigo-700 hover:text-indigo-900">
-            {{ game.title }}
-          </NuxtLink>
-        </h3>
-        <div class="flex space-x-2">
-          <NuxtLink
-            :to="`/games/${game.id}/edit`"
-            class="text-indigo-600 hover:text-indigo-800"
-            aria-label="Edit"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-5 w-5"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"
-              />
-            </svg>
-          </NuxtLink>
-        </div>
+  <EntitiesCommonCard>
+    <template #image>
+      <div v-if="game.cover" class="flex-shrink-0 w-32 h-48">
+        <img :src="coverUrl" :alt="game.title" class="w-full h-full object-cover" />
       </div>
+      <div v-else class="flex-shrink-0 w-32 h-48 bg-gray-100 flex items-center justify-center">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-16 w-16 text-gray-300"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+          />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+      </div>
+    </template>
 
+    <template #title>
+      <h3 class="text-lg font-semibold line-clamp-1">
+        <NuxtLink :to="`/games/${game.id}`" class="text-indigo-700 hover:text-indigo-900">
+          {{ game.title }}
+        </NuxtLink>
+      </h3>
+    </template>
+
+    <template #actions>
+      <div class="flex space-x-2">
+        <NuxtLink
+          :to="`/games/${game.id}/edit`"
+          class="text-indigo-600 hover:text-indigo-800"
+          aria-label="Edit"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"
+            />
+          </svg>
+        </NuxtLink>
+      </div>
+    </template>
+
+    <template #content>
       <div class="mt-4 text-sm text-gray-600 space-y-2">
         <div class="flex items-center" v-if="game.completionDate">
           <svg
@@ -76,8 +107,8 @@
           {{ game.rating }}/100
         </div>
       </div>
-    </div>
-  </div>
+    </template>
+  </EntitiesCommonCard>
 </template>
 
 <script setup lang="ts">
@@ -88,10 +119,18 @@ interface Game {
   playTimeHours?: number | null
   comment?: string | null
   rating?: number | null
+  cover?: string | null
 }
 
-defineProps<{ game: Game; disabled?: boolean }>()
+const { game } = defineProps<{ game: Game; disabled?: boolean }>()
 const emit = defineEmits<{ (e: 'delete', id: Game['id']): void }>()
+
+const config = useRuntimeConfig()
+
+const coverUrl = computed(() => {
+  if (!game.cover) return null
+  return `${config.public.apiBase}${game.cover}`
+})
 
 function formatHours(hours?: number | null) {
   if (hours == null) return '—'

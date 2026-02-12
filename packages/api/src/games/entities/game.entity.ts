@@ -50,6 +50,13 @@ export class Game {
   @Column({ nullable: true, type: 'int' })
   rating: number | null;
 
+  @ApiPropertyOptional({
+    description: 'Обложка игры',
+    example: '/uploads/games/1640995200000-cover.jpg',
+  })
+  @Column({ nullable: true, type: 'text' })
+  cover: string | null;
+
   @ApiProperty({
     description: 'Дата создания записи',
     example: '2026-01-22T17:00:00Z',

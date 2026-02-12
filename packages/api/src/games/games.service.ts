@@ -8,23 +8,45 @@ import { Repository, MoreThanOrEqual } from 'typeorm';
 import { Game } from './entities/game.entity';
 import { CreateGameDto } from './dto/create-game.dto';
 import { UpdateGameDto } from './dto/update-game.dto';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class GamesService {
+  private readonly uploadPath = path.join(process.cwd(), 'uploads', 'games');
+
   constructor(
     @InjectRepository(Game)
     private gamesRepository: Repository<Game>,
-  ) {}
+  ) {
+    if (!fs.existsSync(this.uploadPath)) {
+      fs.mkdirSync(this.uploadPath, { recursive: true });
+    }
+  }
 
-  async create(createGameDto: CreateGameDto): Promise<Game> {
+  async create(
+    createGameDto: CreateGameDto,
+    cover?: Express.Multer.File,
+  ): Promise<Game> {
     if (!createGameDto.title?.trim()) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при создании игры',
         violations: [{ field: 'title', message: 'Название обязательно' }],
       });
     }
+
+    let coverPath: string | null = null;
+
+    if (cover) {
+      const fileName = `${Date.now()}-${cover.originalname}`;
+      const filePath = path.join(this.uploadPath, fileName);
+      fs.writeFileSync(filePath, cover.buffer);
+      coverPath = `/uploads/games/${fileName}`;
+    }
+
     const game = this.gamesRepository.create({
       ...createGameDto,
+      cover: coverPath,
       completionDate: createGameDto.completionDate
         ? new Date(createGameDto.completionDate)
         : new Date(),
@@ -71,8 +93,12 @@ export class GamesService {
     return game;
   }
 
-  async update(id: string, updateGameDto: UpdateGameDto): Promise<Game> {
-    if (!updateGameDto.title?.trim()) {
+  async update(
+    id: string,
+    updateGameDto: UpdateGameDto,
+    cover?: Express.Multer.File,
+  ): Promise<Game> {
+    if (updateGameDto.title !== undefined && !updateGameDto.title?.trim()) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при обновлении игры',
         violations: [
@@ -82,9 +108,26 @@ export class GamesService {
     }
 
     const game = await this.findOne(id);
+
+    if (game.cover && (updateGameDto.removeCover || cover)) {
+      const oldCoverPath = path.join(process.cwd(), game.cover);
+      if (fs.existsSync(oldCoverPath)) {
+        fs.unlinkSync(oldCoverPath);
+      }
+      game.cover = null;
+    }
+
+    if (cover) {
+      const fileName = `${Date.now()}-${cover.originalname}`;
+      const filePath = path.join(this.uploadPath, fileName);
+      fs.writeFileSync(filePath, cover.buffer);
+      game.cover = `/uploads/games/${fileName}`;
+    }
+
     const updatedGame = {
       ...game,
       ...updateGameDto,
+      cover: game.cover,
       completionDate: updateGameDto.completionDate
         ? new Date(updateGameDto.completionDate)
         : game.completionDate,
@@ -93,10 +136,16 @@ export class GamesService {
   }
 
   async remove(id: string): Promise<void> {
-    const result = await this.gamesRepository.delete(id);
-    if (result.affected === 0) {
-      throw new NotFoundException(`Игра с ID ${id} не найдена`);
+    const game = await this.findOne(id);
+
+    if (game.cover) {
+      const coverPath = path.join(process.cwd(), game.cover);
+      if (fs.existsSync(coverPath)) {
+        fs.unlinkSync(coverPath);
+      }
     }
+
+    await this.gamesRepository.delete(id);
   }
 
   async getStats(): Promise<{
