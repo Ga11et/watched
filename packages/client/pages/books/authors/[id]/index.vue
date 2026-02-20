@@ -96,13 +96,8 @@
                 <div class="text-sm text-gray-500">Имя</div>
                 <div class="text-base text-gray-900 font-medium">{{ author.fullName }}</div>
               </div>
-              <div>
-                <div class="text-sm text-gray-500">Комментарий</div>
-                <div class="text-base text-gray-900 whitespace-pre-line">
-                  {{ author.comment || '—' }}
-                </div>
-              </div>
             </div>
+            <EntitiesCommonCommentBlock :comment="author.comment" />
             <div class="space-y-4">
               <div>
                 <div class="text-sm text-gray-500">Фотография</div>

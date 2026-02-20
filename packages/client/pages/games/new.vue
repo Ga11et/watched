@@ -33,19 +33,14 @@
               <label for="title" class="block text-sm font-medium text-gray-700"
                 >Название<span class="text-red-500">*</span></label
               >
-              <input
+              <IntegrationsGamesAutocomplete
                 id="title"
-                v-model.trim="form.title"
-                type="text"
-                :class="[
-                  'mt-1 block w-full rounded-lg border px-3 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 transition',
-                  errors.title
-                    ? 'border-red-300 focus:ring-red-200'
-                    : 'border-gray-300 focus:ring-indigo-200 focus:border-indigo-500',
-                ]"
-                placeholder="например, Baldur's Gate 3"
+                v-model="selectedGame"
+                v-model:manual-query="form.title"
+                placeholder="Найти игру..."
+                :error="errors?.title"
+                @select="onGameSelect"
               />
-              <p v-if="errors.title" class="mt-1 text-sm text-red-600">{{ errors.title }}</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -117,13 +112,13 @@
               </div>
             </div>
           </div>
+        </div>
 
-          <div
-            v-if="error"
-            class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-          >
-            {{ error }}
-          </div>
+        <div
+          v-if="error"
+          class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 mt-3"
+        >
+          {{ error }}
         </div>
 
         <div class="mt-6 flex items-center justify-end gap-3">
@@ -147,6 +142,8 @@
 </template>
 
 <script setup lang="ts">
+import type { IGDBGame } from '~/components/integrations/igdb-games.service'
+
 const router = useRouter()
 const submitting = ref(false)
 const error = ref('')
@@ -155,6 +152,7 @@ const hydrated = ref(false)
 
 const coverFile = ref<File | null>(null)
 const coverPreview = ref<string | null>(null)
+const selectedGame = ref<IGDBGame | null>(null)
 
 onMounted(() => {
   hydrated.value = true
@@ -167,6 +165,35 @@ const form = reactive({
   comment: '',
   rating: undefined as number | undefined,
 })
+
+const onGameSelect = (game: IGDBGame) => {
+  form.title = game.name
+
+  if (game.summary) {
+    form.comment = game.summary
+  }
+
+  if (game.releaseDate) {
+    const year = parseInt(game.releaseDate)
+    if (!isNaN(year) && year > 1980 && year <= new Date().getFullYear()) {
+      form.completionDate = game.releaseDate
+    }
+  }
+
+  if (game.cover && !coverFile.value) {
+    const proxyUrl = `/api/proxy?url=${encodeURIComponent(game.cover)}`
+    fetch(proxyUrl)
+      .then((response) => response.blob())
+      .then((blob) => {
+        const file = new File([blob], 'cover.jpg', { type: 'image/jpeg' })
+        coverFile.value = file
+        coverPreview.value = game.cover || null
+      })
+      .catch((error) => {
+        console.warn('Failed to fetch game cover:', error)
+      })
+  }
+}
 
 const onSubmit = async () => {
   error.value = ''

@@ -123,12 +123,7 @@
               </div>
             </div>
 
-            <div v-if="game.comment" class="mt-6">
-              <div class="text-sm font-medium text-gray-700 mb-2">Комментарий</div>
-              <div class="text-base text-gray-900 whitespace-pre-line">
-                {{ game.comment }}
-              </div>
-            </div>
+            <EntitiesCommonCommentBlock :comment="game.comment" />
 
             <div class="mt-6 grid grid-cols-2 gap-4 text-sm text-gray-500">
               <div>

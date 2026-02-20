@@ -8,7 +8,7 @@
       ]"
     />
 
-    <div class="rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div class="rounded-xl border border-gray-200 shadow-sm overflow-hidden bg-white">
       <div class="border-b border-gray-200 px-6 py-5 flex items-center justify-between">
         <div>
           <h1 class="text-xl md:text-2xl font-semibold text-gray-900">
@@ -132,13 +132,9 @@
                 </div>
               </div>
             </div>
-            <div>
-              <div class="text-sm text-gray-500">Комментарий</div>
-              <div class="text-base text-gray-900 whitespace-pre-line">
-                {{ series.comment || '—' }}
-              </div>
+            <div class="col-span-2">
+              <EntitiesCommonCommentBlock :comment="series.comment" />
             </div>
-
             <div class="grid grid-cols-2 gap-4 text-sm text-gray-500">
               <div>
                 <div class="tracking-wide">Создано</div>

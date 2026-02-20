@@ -1,11 +1,4 @@
-import {
-  IsString,
-  IsDateString,
-  IsNumber,
-  Min,
-  Max,
-  IsOptional,
-} from 'class-validator';
+import { IsString, IsDateString, IsOptional } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateGameDto {
@@ -27,10 +20,7 @@ export class CreateGameDto {
   @ApiPropertyOptional({
     description: 'Время игры в часах',
     example: 125.5,
-    minimum: 0.1,
   })
-  @IsNumber()
-  @Min(0.1)
   @IsOptional()
   playTimeHours?: number;
 
@@ -38,19 +28,13 @@ export class CreateGameDto {
     description: 'Комментарий к игре',
     example: 'Отличная RPG с глубоким сюжетом',
   })
-  @IsString()
   @IsOptional()
   comment?: string;
 
   @ApiPropertyOptional({
     description: 'Рейтинг игры от 1 до 100',
     example: 95,
-    minimum: 1,
-    maximum: 100,
   })
-  @IsNumber()
-  @Min(1)
-  @Max(100)
   @IsOptional()
   rating?: number;
 
@@ -58,7 +42,6 @@ export class CreateGameDto {
     description: 'Обложка игры',
     example: '/uploads/games/1640995200000-cover.jpg',
   })
-  @IsString()
   @IsOptional()
   cover?: string;
 }

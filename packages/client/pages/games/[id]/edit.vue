@@ -98,54 +98,53 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label for="rating" class="block text-sm font-medium text-gray-700"
-                  >Оценка (1-100)</label
-                >
-                <input
-                  id="rating"
-                  v-model.number="form.rating"
-                  type="number"
-                  min="1"
-                  max="100"
-                  :disabled="!hydrated"
-                  :class="[
-                    'mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200',
-                    !hydrated ? 'disabled:cursor-not-allowed disabled:opacity-60' : '',
-                  ]"
-                  placeholder="например, 85"
-                />
-                <p class="mt-1 text-xs text-gray-500">Ваша личная оценка игры.</p>
-              </div>
-              <div>
-                <label for="comment" class="block text-sm font-medium text-gray-700"
-                  >Комментарий</label
-                >
-                <textarea
-                  id="comment"
-                  v-model="form.comment"
-                  rows="4"
-                  :disabled="!hydrated"
-                  :class="[
-                    'mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200',
-                    !hydrated ? 'disabled:cursor-not-allowed disabled:opacity-60' : '',
-                  ]"
-                  placeholder="Ваши мысли об игре"
-                />
-                <p class="mt-1 text-xs text-gray-500">
-                  Необязательно. Поделитесь яркими моментами, плюсами/минусами или впечатлениями.
-                </p>
-              </div>
+            <div>
+              <label for="rating" class="block text-sm font-medium text-gray-700"
+                >Оценка (1-100)</label
+              >
+              <input
+                id="rating"
+                v-model.number="form.rating"
+                type="number"
+                min="1"
+                max="100"
+                :disabled="!hydrated"
+                :class="[
+                  'mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200',
+                  !hydrated ? 'disabled:cursor-not-allowed disabled:opacity-60' : '',
+                ]"
+                placeholder="например, 85"
+              />
+              <p class="mt-1 text-xs text-gray-500">Ваша личная оценка игры.</p>
+            </div>
+
+            <div>
+              <label for="comment" class="block text-sm font-medium text-gray-700"
+                >Комментарий</label
+              >
+              <textarea
+                id="comment"
+                v-model="form.comment"
+                rows="4"
+                :disabled="!hydrated"
+                :class="[
+                  'mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200',
+                  !hydrated ? 'disabled:cursor-not-allowed disabled:opacity-60' : '',
+                ]"
+                placeholder="Ваши мысли об игре"
+              />
+              <p class="mt-1 text-xs text-gray-500">
+                Необязательно. Поделитесь яркими моментами, плюсами/минусами или впечатлениями.
+              </p>
             </div>
           </div>
+        </div>
 
-          <div
-            v-if="error"
-            class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-          >
-            {{ error }}
-          </div>
+        <div
+          v-if="error"
+          class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 mt-3"
+        >
+          {{ error }}
         </div>
 
         <div class="mt-6 flex items-center justify-end gap-3">

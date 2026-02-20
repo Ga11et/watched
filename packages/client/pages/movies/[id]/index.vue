@@ -89,63 +89,62 @@
               </svg>
             </div>
           </div>
-          <div class="flex-1 grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div class="space-y-4">
-              <div>
-                <div class="text-sm text-gray-500">Название</div>
-                <div class="text-base text-gray-900 font-medium">{{ movie.title }}</div>
-              </div>
-              <div>
-                <div class="text-sm text-gray-500">Жанр</div>
-                <div class="text-base text-gray-900">{{ movie.genre || '—' }}</div>
-              </div>
-              <div>
-                <div class="text-sm text-gray-500">Режиссёр</div>
-                <div class="text-base text-gray-900">
-                  <NuxtLink
-                    v-if="director"
-                    :to="`/movies/directors/${director.id}`"
-                    class="text-indigo-600 hover:text-indigo-900"
-                  >
-                    {{ director.fullName }}
-                  </NuxtLink>
-                  <span v-else>—</span>
+          <div class="flex-1 space-y-6">
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div class="space-y-4">
+                <div>
+                  <div class="text-sm text-gray-500">Название</div>
+                  <div class="text-base text-gray-900 font-medium">{{ movie.title }}</div>
+                </div>
+                <div>
+                  <div class="text-sm text-gray-500">Жанр</div>
+                  <div class="text-base text-gray-900">{{ movie.genre || '—' }}</div>
+                </div>
+                <div>
+                  <div class="text-sm text-gray-500">Режиссёр</div>
+                  <div class="text-base text-gray-900">
+                    <NuxtLink
+                      v-if="director"
+                      :to="`/movies/directors/${director.id}`"
+                      class="text-indigo-600 hover:text-indigo-900"
+                    >
+                      {{ director.fullName }}
+                    </NuxtLink>
+                    <span v-else>—</span>
+                  </div>
                 </div>
               </div>
-              <div>
-                <div class="text-sm text-gray-500">Год выхода</div>
-                <div class="text-base text-gray-900">{{ movie.releaseYear || '—' }}</div>
+              <div class="space-y-4">
+                <div>
+                  <div class="text-sm text-gray-500">Рейтинг</div>
+                  <div class="text-base text-gray-900">
+                    {{ movie.rating != null ? `${movie.rating}/100` : '—' }}
+                  </div>
+                </div>
+                <div>
+                  <div class="text-sm text-gray-500">Дата просмотра</div>
+                  <div class="text-gray-900 m-0">
+                    <UiDateDisplay v-if="movie.watchedAt" :date="movie.watchedAt" />
+                    <span v-else>—</span>
+                  </div>
+                </div>
+                <div>
+                  <div class="text-sm text-gray-500">Год выхода</div>
+                  <div class="text-base text-gray-900">{{ movie.releaseYear || '—' }}</div>
+                </div>
               </div>
             </div>
-            <div class="space-y-4">
+
+            <EntitiesCommonCommentBlock :comment="movie.comment" />
+
+            <div class="grid grid-cols-2 gap-4 text-sm text-gray-500">
               <div>
-                <div class="text-sm text-gray-500">Рейтинг</div>
-                <div class="text-base text-gray-900">
-                  {{ movie.rating != null ? `${movie.rating}/100` : '—' }}
-                </div>
+                <div class="tracking-wide">Создано</div>
+                <div class="text-gray-900 m-0"><UiDateDisplay :date="movie.createdAt" /></div>
               </div>
               <div>
-                <div class="text-sm text-gray-500">Дата просмотра</div>
-                <div class="text-gray-900 m-0">
-                  <UiDateDisplay v-if="movie.watchedAt" :date="movie.watchedAt" />
-                  <span v-else>—</span>
-                </div>
-              </div>
-              <div>
-                <div class="text-sm text-gray-500">Комментарий</div>
-                <div class="text-base text-gray-900 whitespace-pre-line">
-                  {{ movie.comment || '—' }}
-                </div>
-              </div>
-              <div class="grid grid-cols-2 gap-4 text-sm text-gray-500">
-                <div>
-                  <div class="tracking-wide">Создано</div>
-                  <div class="text-gray-900 m-0"><UiDateDisplay :date="movie.createdAt" /></div>
-                </div>
-                <div>
-                  <div class="tracking-wide">Обновлено</div>
-                  <div class="text-gray-900 m-0"><UiDateDisplay :date="movie.updatedAt" /></div>
-                </div>
+                <div class="tracking-wide">Обновлено</div>
+                <div class="text-gray-900 m-0"><UiDateDisplay :date="movie.updatedAt" /></div>
               </div>
             </div>
           </div>

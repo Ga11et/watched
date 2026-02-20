@@ -1,13 +1,5 @@
 import { PartialType } from '@nestjs/mapped-types';
-import {
-  IsString,
-  IsOptional,
-  IsDateString,
-  IsNumber,
-  Min,
-  Max,
-  IsBoolean,
-} from 'class-validator';
+import { IsString, IsOptional, IsDateString, IsBoolean } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { CreateGameDto } from './create-game.dto';
@@ -34,8 +26,6 @@ export class UpdateGameDto extends PartialType(CreateGameDto) {
     example: 125.5,
     minimum: 0.1,
   })
-  @IsNumber()
-  @Min(0.1)
   @IsOptional()
   playTimeHours?: number;
 
@@ -53,9 +43,6 @@ export class UpdateGameDto extends PartialType(CreateGameDto) {
     minimum: 1,
     maximum: 100,
   })
-  @IsNumber()
-  @Min(1)
-  @Max(100)
   @IsOptional()
   rating?: number;
 

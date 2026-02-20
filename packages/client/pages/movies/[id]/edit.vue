@@ -452,9 +452,7 @@ const onSubmit = async () => {
     if (form.value.watchedAt) {
       formData.append('watchedAt', form.value.watchedAt)
     }
-    if (form.value.comment?.trim()) {
-      formData.append('comment', form.value.comment.trim())
-    }
+    formData.append('comment', form.value.comment?.trim() || '')
     if (typeof form.value.releaseYear === 'number') {
       formData.append('releaseYear', String(form.value.releaseYear))
     }
