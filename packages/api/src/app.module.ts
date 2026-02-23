@@ -10,6 +10,8 @@ import { MoviesModule } from './movies/movies.module';
 import { SeriesModule } from './series/series.module';
 import { BooksModule } from './books/books.module';
 import { AuthorsModule } from './authors/authors.module';
+import { PublishersModule } from './publishers/publishers.module';
+import { DevelopersModule } from './developers/developers.module';
 
 @Module({
   imports: [
@@ -33,6 +35,8 @@ import { AuthorsModule } from './authors/authors.module';
     SeriesModule,
     BooksModule,
     AuthorsModule,
+    PublishersModule,
+    DevelopersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

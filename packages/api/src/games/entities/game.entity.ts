@@ -2,9 +2,14 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
+  CreateDateColumn,
   UpdateDateColumn,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Publisher } from '../../publishers/entities/publisher.entity';
+import { Developer } from '../../developers/entities/developer.entity';
 
 @Entity()
 export class Game {
@@ -57,17 +62,53 @@ export class Game {
   @Column({ nullable: true, type: 'text' })
   cover: string | null;
 
+  @ApiPropertyOptional({
+    description: 'Издатели игры',
+    type: () => [Publisher],
+  })
+  @ManyToMany(() => Publisher, (publisher) => publisher.games)
+  @JoinTable({
+    name: 'game_publishers',
+    joinColumn: {
+      name: 'gameId',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'publisherId',
+      referencedColumnName: 'id',
+    },
+  })
+  publishers: Publisher[];
+
+  @ApiPropertyOptional({
+    description: 'Разработчики игры',
+    type: () => [Developer],
+  })
+  @ManyToMany(() => Developer, (developer) => developer.games)
+  @JoinTable({
+    name: 'game_developers',
+    joinColumn: {
+      name: 'gameId',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'developerId',
+      referencedColumnName: 'id',
+    },
+  })
+  developers: Developer[];
+
   @ApiProperty({
     description: 'Дата создания записи',
     example: '2026-01-22T17:00:00Z',
   })
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn()
   createdAt: Date;
 
   @ApiProperty({
     description: 'Дата обновления записи',
     example: '2026-01-22T17:00:00Z',
   })
-  @UpdateDateColumn({ type: 'timestamp' })
+  @UpdateDateColumn()
   updatedAt: Date;
 }

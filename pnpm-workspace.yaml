@@ -1,3 +1,6 @@
 packages:
-  - 'packages/api'
-  - 'packages/client'
+  - packages/api
+  - packages/client
+
+onlyBuiltDependencies:
+  - sqlite3

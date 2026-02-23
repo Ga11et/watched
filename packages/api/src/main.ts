@@ -33,6 +33,8 @@ async function bootstrap() {
     .addTag('games')
     .addTag('authors')
     .addTag('directors')
+    .addTag('publishers')
+    .addTag('developers')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

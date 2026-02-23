@@ -42,6 +42,10 @@ export class GamesController {
     description: 'Игра создана',
     type: Game,
   })
+  @ApiResponse({
+    status: 422,
+    description: 'Ошибка валидации данных игры',
+  })
   @ApiBody({ type: CreateGameDto })
   create(
     @Body() createGameDto: CreateGameDto,
@@ -153,6 +157,10 @@ export class GamesController {
   @ApiResponse({
     status: 404,
     description: 'Игра не найдена',
+  })
+  @ApiResponse({
+    status: 422,
+    description: 'Ошибка валидации данных игры',
   })
   @ApiBody({ type: UpdateGameDto })
   update(

@@ -4,10 +4,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual } from 'typeorm';
+import { Repository, MoreThanOrEqual, In } from 'typeorm';
 import { Game } from './entities/game.entity';
 import { CreateGameDto } from './dto/create-game.dto';
 import { UpdateGameDto } from './dto/update-game.dto';
+import { Publisher } from '../publishers/entities/publisher.entity';
+import { Developer } from '../developers/entities/developer.entity';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -18,6 +20,10 @@ export class GamesService {
   constructor(
     @InjectRepository(Game)
     private gamesRepository: Repository<Game>,
+    @InjectRepository(Publisher)
+    private publishersRepository: Repository<Publisher>,
+    @InjectRepository(Developer)
+    private developersRepository: Repository<Developer>,
   ) {
     if (!fs.existsSync(this.uploadPath)) {
       fs.mkdirSync(this.uploadPath, { recursive: true });
@@ -44,13 +50,25 @@ export class GamesService {
       coverPath = `/uploads/games/${fileName}`;
     }
 
+    const publishers = await this.resolvePublishers(
+      createGameDto.publisherIds,
+      'Произошла ошибка при создании игры',
+    );
+    const developers = await this.resolveDevelopers(
+      createGameDto.developerIds,
+      'Произошла ошибка при создании игры',
+    );
+
     const game = this.gamesRepository.create({
       ...createGameDto,
       cover: coverPath,
       completionDate: createGameDto.completionDate
         ? new Date(createGameDto.completionDate)
         : new Date(),
+      publishers,
+      developers,
     });
+
     return this.gamesRepository.save(game);
   }
 
@@ -59,7 +77,10 @@ export class GamesService {
     sortOrder?: 'ASC' | 'DESC',
     limit?: string,
   ): Promise<Game[]> {
-    const queryBuilder = this.gamesRepository.createQueryBuilder('game');
+    const queryBuilder = this.gamesRepository
+      .createQueryBuilder('game')
+      .leftJoinAndSelect('game.publishers', 'publisher')
+      .leftJoinAndSelect('game.developers', 'developer');
 
     if (sortBy) {
       const validSortFields = [
@@ -86,10 +107,18 @@ export class GamesService {
   }
 
   async findOne(id: string): Promise<Game> {
-    const game = await this.gamesRepository.findOne({ where: { id } });
+    const game = await this.gamesRepository.findOne({
+      where: { id },
+      relations: {
+        publishers: true,
+        developers: true,
+      },
+    });
+
     if (!game) {
       throw new NotFoundException(`Игра с ID ${id} не найдена`);
     }
+
     return game;
   }
 
@@ -122,6 +151,20 @@ export class GamesService {
       const filePath = path.join(this.uploadPath, fileName);
       fs.writeFileSync(filePath, cover.buffer);
       game.cover = `/uploads/games/${fileName}`;
+    }
+
+    if (updateGameDto.publisherIds !== undefined) {
+      game.publishers = await this.resolvePublishers(
+        updateGameDto.publisherIds,
+        'Произошла ошибка при обновлении игры',
+      );
+    }
+
+    if (updateGameDto.developerIds !== undefined) {
+      game.developers = await this.resolveDevelopers(
+        updateGameDto.developerIds,
+        'Произошла ошибка при обновлении игры',
+      );
     }
 
     const updatedGame = {
@@ -177,5 +220,73 @@ export class GamesService {
         ? parseFloat(avgRatingResult.avgRating)
         : 0,
     };
+  }
+
+  private async resolvePublishers(
+    publisherIds: string[] | undefined,
+    errorMessage: string,
+  ): Promise<Publisher[]> {
+    if (publisherIds === undefined) {
+      return [];
+    }
+
+    if (publisherIds.length === 0) {
+      return [];
+    }
+
+    const publishers = await this.publishersRepository.findBy({
+      id: In(publisherIds),
+    });
+
+    const foundIds = new Set(publishers.map((publisher) => publisher.id));
+    const missingPublisherIds = publisherIds.filter((id) => !foundIds.has(id));
+
+    if (missingPublisherIds.length > 0) {
+      throw new UnprocessableEntityException({
+        message: errorMessage,
+        violations: [
+          {
+            field: 'publisherIds',
+            message: `Издатели не найдены: ${missingPublisherIds.join(', ')}`,
+          },
+        ],
+      });
+    }
+
+    return publishers;
+  }
+
+  private async resolveDevelopers(
+    developerIds: string[] | undefined,
+    errorMessage: string,
+  ): Promise<Developer[]> {
+    if (developerIds === undefined) {
+      return [];
+    }
+
+    if (developerIds.length === 0) {
+      return [];
+    }
+
+    const developers = await this.developersRepository.findBy({
+      id: In(developerIds),
+    });
+
+    const foundIds = new Set(developers.map((developer) => developer.id));
+    const missingDeveloperIds = developerIds.filter((id) => !foundIds.has(id));
+
+    if (missingDeveloperIds.length > 0) {
+      throw new UnprocessableEntityException({
+        message: errorMessage,
+        violations: [
+          {
+            field: 'developerIds',
+            message: `Разработчики не найдены: ${missingDeveloperIds.join(', ')}`,
+          },
+        ],
+      });
+    }
+
+    return developers;
   }
 }

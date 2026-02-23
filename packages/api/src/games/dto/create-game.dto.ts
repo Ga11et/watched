@@ -1,4 +1,10 @@
-import { IsString, IsDateString, IsOptional } from 'class-validator';
+import {
+  IsString,
+  IsDateString,
+  IsOptional,
+  IsArray,
+  IsUUID,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateGameDto {
@@ -44,4 +50,30 @@ export class CreateGameDto {
   })
   @IsOptional()
   cover?: string;
+
+  @ApiPropertyOptional({
+    description: 'Список ID издателей',
+    type: [String],
+    example: [
+      '550e8400-e29b-41d4-a716-446655440001',
+      '550e8400-e29b-41d4-a716-446655440002',
+    ],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  publisherIds?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Список ID разработчиков',
+    type: [String],
+    example: [
+      '550e8400-e29b-41d4-a716-446655440003',
+      '550e8400-e29b-41d4-a716-446655440004',
+    ],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  developerIds?: string[];
 }
