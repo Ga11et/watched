@@ -38,6 +38,18 @@
           </button>
         </div>
         <NuxtLink
+          to="/games/developers"
+          class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
+        >
+          Разработчики
+        </NuxtLink>
+        <NuxtLink
+          to="/games/publishers"
+          class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
+        >
+          Издатели
+        </NuxtLink>
+        <NuxtLink
           to="/games/new"
           class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
         >

@@ -1,0 +1,153 @@
+<template>
+  <div class="flex items-start gap-2">
+    <div class="flex-1">
+      <CommonInputsSelectChipsInput
+        id="developerIds"
+        :model-value="selectedOptions"
+        :options="options"
+        :search-query="searchQuery"
+        label="Разработчики"
+        placeholder="Найдите разработчиков по имени"
+        search-placeholder="Добавить разработчика"
+        hint="Можно выбрать несколько разработчиков"
+        :error="error"
+        :disabled="disabled"
+        :loading="loading || resolvingSelected"
+        no-results-text="Разработчики не найдены"
+        @update:model-value="onSelectedOptionsChange"
+        @update:search-query="searchQuery = $event"
+      />
+    </div>
+
+    <NuxtLink
+      :to="{ path: '/games/developers/new', query: { redirectTo: route.fullPath } }"
+      class="mt-6 h-10 inline-flex items-center gap-1 whitespace-nowrap rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+    >
+      + Создать
+    </NuxtLink>
+  </div>
+</template>
+
+<script setup lang="ts">
+import type { Developer } from '~/types/api'
+
+interface SelectOption {
+  value: string
+  label: string
+}
+
+interface Props {
+  modelValue?: string[]
+  error?: string
+  disabled?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  modelValue: () => [],
+  error: '',
+  disabled: false,
+})
+
+const emit = defineEmits<{
+  'update:modelValue': [value: string[]]
+}>()
+
+const config = useRuntimeConfig()
+const route = useRoute()
+
+const searchQuery = ref('')
+const loading = ref(false)
+const resolvingSelected = ref(false)
+const options = ref<SelectOption[]>([])
+const selectedOptions = ref<SelectOption[]>([])
+
+let searchTimeout: ReturnType<typeof setTimeout> | null = null
+
+const onSelectedOptionsChange = (value: SelectOption[]) => {
+  selectedOptions.value = value
+  emit(
+    'update:modelValue',
+    value.map((item) => item.value),
+  )
+}
+
+const syncSelectedOptions = async (ids?: string[]) => {
+  if (!ids?.length) {
+    selectedOptions.value = []
+    return
+  }
+
+  const currentMap = new Map(selectedOptions.value.map((option) => [option.value, option]))
+  const missingIds = ids.filter((id) => !currentMap.has(id))
+
+  if (missingIds.length > 0) {
+    resolvingSelected.value = true
+    try {
+      const loadedItems = await Promise.all(
+        missingIds.map((id) => $fetch<Developer>(`${config.public.apiBase}/developers/${id}`)),
+      )
+
+      loadedItems.forEach((developer) => {
+        currentMap.set(developer.id, {
+          value: developer.id,
+          label: developer.fullName,
+        })
+      })
+    } catch (e) {
+      console.warn('Failed to load selected developers:', e)
+    } finally {
+      resolvingSelected.value = false
+    }
+  }
+
+  selectedOptions.value = ids
+    .map((id) => currentMap.get(id))
+    .filter((option): option is SelectOption => Boolean(option))
+}
+
+watch(
+  () => props.modelValue,
+  (ids) => {
+    void syncSelectedOptions(ids)
+  },
+  { immediate: true },
+)
+
+watch(searchQuery, (query) => {
+  if (searchTimeout) {
+    clearTimeout(searchTimeout)
+  }
+
+  if (!query.trim()) {
+    options.value = []
+    loading.value = false
+    return
+  }
+
+  loading.value = true
+
+  searchTimeout = setTimeout(async () => {
+    try {
+      const results = await $fetch<Developer[]>(`${config.public.apiBase}/developers/search`, {
+        params: { q: query.trim() },
+      })
+
+      options.value = results.map((developer) => ({
+        value: developer.id,
+        label: developer.fullName,
+      }))
+    } catch (e) {
+      console.warn('Failed to search developers:', e)
+      options.value = []
+    } finally {
+      loading.value = false
+    }
+  }, 300)
+})
+
+onUnmounted(() => {
+  if (searchTimeout) {
+    clearTimeout(searchTimeout)
+  }
+})
+</script>

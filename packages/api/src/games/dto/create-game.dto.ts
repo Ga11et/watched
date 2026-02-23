@@ -6,6 +6,35 @@ import {
   IsUUID,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
+
+const toStringArray = (value: unknown): string[] | undefined => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (value === '') {
+    return [];
+  }
+
+  const isPrimitive = (item: unknown): item is string | number | boolean => {
+    return (
+      typeof item === 'string' ||
+      typeof item === 'number' ||
+      typeof item === 'boolean'
+    );
+  };
+
+  if (Array.isArray(value)) {
+    return value.filter(isPrimitive).map((item) => String(item));
+  }
+
+  if (isPrimitive(value)) {
+    return [String(value)];
+  }
+
+  return undefined;
+};
 
 export class CreateGameDto {
   @ApiProperty({
@@ -60,6 +89,7 @@ export class CreateGameDto {
     ],
   })
   @IsOptional()
+  @Transform(({ value }) => toStringArray(value))
   @IsArray()
   @IsUUID('4', { each: true })
   publisherIds?: string[];
@@ -73,6 +103,7 @@ export class CreateGameDto {
     ],
   })
   @IsOptional()
+  @Transform(({ value }) => toStringArray(value))
   @IsArray()
   @IsUUID('4', { each: true })
   developerIds?: string[];

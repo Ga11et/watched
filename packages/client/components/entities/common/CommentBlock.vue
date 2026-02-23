@@ -1,5 +1,5 @@
 <template>
-  <div v-if="comment" class="mt-6 border border-gray-200 rounded-lg overflow-hidden">
+  <div v-if="comment" class="border border-gray-200 rounded-lg overflow-hidden">
     <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
       <div class="text-md font-medium text-gray-700">{{ title }}</div>
     </div>

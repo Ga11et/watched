@@ -4,12 +4,12 @@
       :items="[
         { label: 'Главная', to: '/' },
         { label: 'Игры', to: '/games' },
-        { label: form?.title || 'Загрузка...', to: `/games/${route.params.id}` },
+        { label: gameTitle || 'Загрузка...', to: `/games/${route.params.id}` },
         { label: 'Редактирование' },
       ]"
     />
 
-    <div class="rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div class="rounded-xl border border-gray-200 shadow-sm overflow-hidden bg-white">
       <div class="border-b border-gray-100 px-6 py-5 flex items-center justify-between">
         <div>
           <h1 class="text-xl md:text-2xl font-semibold text-gray-900">Редактировать игру</h1>
@@ -22,264 +22,15 @@
         >
       </div>
 
-      <form @submit.prevent="onSubmit" class="px-6 py-6">
-        <div class="flex gap-6">
-          <UiPhotoUpload
-            v-model="coverFile"
-            v-model:preview="coverPreview"
-            label="Обложка"
-            :error="errors.cover"
-            class="flex-shrink-0"
-          />
-
-          <div class="flex-1 space-y-6">
-            <div>
-              <label for="title" class="block text-sm font-medium text-gray-700"
-                >Название<span class="text-red-500">*</span></label
-              >
-              <input
-                id="title"
-                v-model.trim="form.title"
-                type="text"
-                :disabled="!hydrated"
-                :class="[
-                  'mt-1 block w-full rounded-lg border px-3 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 transition',
-                  errors.title
-                    ? 'border-red-300 focus:ring-red-200'
-                    : 'border-gray-300 focus:ring-indigo-200 focus:border-indigo-500',
-                  !hydrated ? 'disabled:cursor-not-allowed disabled:opacity-60' : '',
-                ]"
-                placeholder="например, Baldur's Gate 3"
-              />
-              <p v-if="errors.title" class="mt-1 text-sm text-red-600">{{ errors.title }}</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label for="completionDate" class="block text-sm font-medium text-gray-700"
-                  >Дата прохождения</label
-                >
-                <input
-                  id="completionDate"
-                  v-model="form.completionDate"
-                  type="date"
-                  :disabled="!hydrated"
-                  :class="[
-                    'mt-1 block w-full rounded-lg border px-3 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200',
-                    !hydrated ? 'disabled:cursor-not-allowed disabled:opacity-60' : '',
-                  ]"
-                />
-                <p class="mt-1 text-xs text-gray-500">Когда вы прошли эту игру?</p>
-              </div>
-              <div>
-                <label for="playTimeHours" class="block text-sm font-medium text-gray-700"
-                  >Время в игре (часы)</label
-                >
-                <div class="mt-1 relative">
-                  <input
-                    id="playTimeHours"
-                    v-model.number="form.playTimeHours"
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    :disabled="!hydrated"
-                    :class="[
-                      'block w-full rounded-lg border border-gray-300 pl-3 pr-12 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200',
-                      !hydrated ? 'disabled:cursor-not-allowed disabled:opacity-60' : '',
-                    ]"
-                    placeholder="например, 12.5"
-                  />
-                  <span
-                    class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-gray-400"
-                    >ч</span
-                  >
-                </div>
-                <p class="mt-1 text-xs text-gray-500">Примерное общее время в игре.</p>
-              </div>
-            </div>
-
-            <div>
-              <label for="rating" class="block text-sm font-medium text-gray-700"
-                >Оценка (1-100)</label
-              >
-              <input
-                id="rating"
-                v-model.number="form.rating"
-                type="number"
-                min="1"
-                max="100"
-                :disabled="!hydrated"
-                :class="[
-                  'mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200',
-                  !hydrated ? 'disabled:cursor-not-allowed disabled:opacity-60' : '',
-                ]"
-                placeholder="например, 85"
-              />
-              <p class="mt-1 text-xs text-gray-500">Ваша личная оценка игры.</p>
-            </div>
-
-            <div>
-              <label for="comment" class="block text-sm font-medium text-gray-700"
-                >Комментарий</label
-              >
-              <textarea
-                id="comment"
-                v-model="form.comment"
-                rows="4"
-                :disabled="!hydrated"
-                :class="[
-                  'mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200',
-                  !hydrated ? 'disabled:cursor-not-allowed disabled:opacity-60' : '',
-                ]"
-                placeholder="Ваши мысли об игре"
-              />
-              <p class="mt-1 text-xs text-gray-500">
-                Необязательно. Поделитесь яркими моментами, плюсами/минусами или впечатлениями.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div
-          v-if="error"
-          class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 mt-3"
-        >
-          {{ error }}
-        </div>
-
-        <div class="mt-6 flex items-center justify-end gap-3">
-          <NuxtLink
-            to="/games"
-            class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Отмена
-          </NuxtLink>
-          <button
-            type="submit"
-            :disabled="submitting"
-            class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
-          >
-            {{ submitting ? 'Сохранение...' : 'Сохранить изменения' }}
-          </button>
-        </div>
-      </form>
+      <EntitiesGamesFormsEdit
+        :game-id="String(route.params.id)"
+        @title-loaded="gameTitle = $event"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 const route = useRoute()
-const router = useRouter()
-
-type GameApiResponse = {
-  id: string
-  title: string
-  completionDate: string | null
-  playTimeHours: number | null
-  comment: string | null
-  rating: number | null
-  cover: string | null
-  createdAt: string
-  updatedAt: string
-}
-
-const submitting = ref(false)
-const error = ref('')
-const errors = ref<Record<string, string>>({})
-const hydrated = ref(false)
-
-const coverFile = ref<File | null>(null)
-const coverPreview = ref<string | null>(null)
-
-onMounted(() => {
-  hydrated.value = true
-})
-
-const form = reactive({
-  title: '',
-  completionDate: '',
-  playTimeHours: undefined as number | undefined,
-  comment: '',
-  rating: undefined as number | undefined,
-})
-
-onMounted(async () => {
-  hydrated.value = true
-  try {
-    const config = useRuntimeConfig()
-    const data = await $fetch<GameApiResponse>(`${config.public.apiBase}/games/${route.params.id}`)
-    form.title = data.title || ''
-    form.completionDate = data.completionDate ? String(data.completionDate).slice(0, 10) : ''
-    form.playTimeHours = typeof data.playTimeHours === 'number' ? data.playTimeHours : undefined
-    form.comment = data.comment || ''
-    form.rating = typeof data.rating === 'number' ? data.rating : undefined
-    if (data.cover) {
-      coverPreview.value = data.cover.startsWith('http')
-        ? data.cover
-        : `${config.public.apiBase}${data.cover}`
-    }
-  } catch (e: any) {
-    error.value = e?.data?.message || e?.message || 'Не удалось загрузить игру'
-  }
-})
-
-const onSubmit = async () => {
-  error.value = ''
-  errors.value = {}
-  if (!form.title.trim()) {
-    errors.value.title = 'Название обязательно'
-    return
-  }
-  if (form.title.length > 200) {
-    errors.value.title = 'Название слишком длинное'
-    return
-  }
-  submitting.value = true
-  try {
-    const config = useRuntimeConfig()
-    const formData = new FormData()
-
-    formData.append('title', form.title.trim())
-
-    if (form.completionDate) {
-      formData.append('completionDate', form.completionDate)
-    }
-
-    if (typeof form.playTimeHours === 'number' && !Number.isNaN(form.playTimeHours)) {
-      formData.append('playTimeHours', form.playTimeHours.toString())
-    }
-
-    if (typeof form.rating === 'number' && !Number.isNaN(form.rating)) {
-      formData.append('rating', form.rating.toString())
-    }
-
-    if (form.comment?.trim()) {
-      formData.append('comment', form.comment.trim())
-    }
-
-    if (coverFile.value) {
-      formData.append('cover', coverFile.value)
-    } else if (!coverPreview.value) {
-      formData.append('removeCover', 'true')
-    }
-
-    await $fetch(`${config.public.apiBase}/games/${route.params.id}`, {
-      method: 'PUT',
-      body: formData,
-    })
-
-    router.push(`/games/${route.params.id}`)
-  } catch (e: any) {
-    const base = e?.data?.message || e?.message || 'Не удалось сохранить изменения'
-    const violations = e?.data?.violations
-    if (Array.isArray(violations) && violations.length) {
-      violations.forEach((v) => {
-        errors.value[v.field] = v.message
-      })
-    }
-    error.value = base
-  } finally {
-    submitting.value = false
-  }
-}
+const gameTitle = ref('')
 </script>

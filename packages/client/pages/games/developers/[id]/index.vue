@@ -4,7 +4,8 @@
       :items="[
         { label: 'Главная', to: '/' },
         { label: 'Игры', to: '/games' },
-        { label: game?.title || 'Загрузка...' },
+        { label: 'Разработчики', to: '/games/developers' },
+        { label: developer?.fullName || 'Загрузка...' },
       ]"
     />
 
@@ -12,13 +13,13 @@
       <div class="border-b border-gray-200 px-6 py-5 flex items-center justify-between">
         <div>
           <h1 class="text-xl md:text-2xl font-semibold text-gray-900">
-            {{ game?.title || 'Игра' }}
+            {{ developer?.fullName || 'Разработчик' }}
           </h1>
-          <p class="mt-1 text-sm text-gray-500" v-if="game">Детали игры</p>
+          <p class="mt-1 text-sm text-gray-500" v-if="developer">Детали разработчика</p>
         </div>
         <div class="flex items-center gap-3">
           <NuxtLink
-            :to="`/games/${route.params.id}/edit`"
+            :to="`/games/developers/${route.params.id}/edit`"
             class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-white shadow-sm transition hover:bg-indigo-700"
           >
             Редактировать
@@ -62,46 +63,48 @@
         >
           {{ error }}
         </div>
-        <div v-else-if="!game" class="text-gray-500">Игра не найдена.</div>
-        <EntitiesGamesOutputsDetails v-else :game="game" />
+        <div v-else-if="!developer" class="text-gray-500">Разработчик не найден.</div>
+        <EntitiesGamesOutputsDevelopersDetails v-else :developer="developer" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-
 const route = useRoute()
 const router = useRouter()
-
-const config = useRuntimeConfig()
-const deleting = ref(false)
 const error = ref('')
+const deleting = ref(false)
 
-const { data, pending, refresh } = await useAsyncData('game-show', async () => {
-  error.value = ''
-  try {
-    const res = await $fetch(`${config.public.apiBase}/games/${route.params.id}`)
-    return res as any
-  } catch (e: any) {
-    error.value = e?.data?.message || e?.message || 'Не удалось загрузить игру'
-    return null
-  }
-})
+interface Developer {
+  id: string
+  fullName: string
+  comment?: string | null
+  photo?: string | null
+  createdAt: string
+  updatedAt: string
+}
 
-const game = computed(() => data.value)
+const { data: developer, pending } = await useAsyncData(
+  `developer-${route.params.id}`,
+  async () => {
+    return await $fetch<Developer>(
+      `${useRuntimeConfig().public.apiBase}/developers/${route.params.id}`,
+    )
+  },
+)
 
 const onDelete = async () => {
-  if (!game.value) return
-  if (!confirm('Удалить эту игру? Это действие нельзя отменить.')) return
+  if (!developer.value) return
+  if (!confirm('Удалить этого разработчика? Это действие нельзя отменить.')) return
   deleting.value = true
   try {
-    await $fetch(`${config.public.apiBase}/games/${route.params.id}`, { method: 'DELETE' })
-    router.push('/')
+    await $fetch(`${useRuntimeConfig().public.apiBase}/developers/${route.params.id}`, {
+      method: 'DELETE',
+    })
+    router.push('/games/developers')
   } catch (e: any) {
-    error.value = e?.data?.message || e?.message || 'Не удалось удалить игру'
+    error.value = e?.data?.message || 'Не удалось удалить разработчика'
   } finally {
     deleting.value = false
   }
