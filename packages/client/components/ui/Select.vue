@@ -7,7 +7,7 @@
       <button
         type="button"
         @click="toggleDropdown"
-        class="relative w-full cursor-pointer rounded-md border border-gray-300 bg-white py-2.5 pl-3 pr-10 text-left shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm"
+        class="h-[38px] relative w-full cursor-pointer rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-left shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm"
         :class="{ 'ring-2 ring-indigo-500 border-indigo-500': isOpen }"
       >
         <span class="block truncate" :class="{ 'text-gray-500': !selectedOption }">

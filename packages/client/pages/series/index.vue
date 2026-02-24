@@ -53,15 +53,17 @@
 
     <Transition name="fade" mode="out-in">
       <EntitiesSeriesCardsView
-        v-if="viewMode === 'cards' && series?.length"
-        :series="series"
+        v-if="viewMode === 'cards'"
+        :series="filteredSeries"
         :sort-by="sortBy"
         :sort-order="sortOrder"
+        :search-query="searchQuery"
         @update-sorting="updateSorting"
+        @update:searchQuery="updateSearchQuery"
       />
       <EntitiesSeriesTableView
-        v-else-if="series?.length"
-        :series="series"
+        v-else
+        :series="filteredSeries"
         :sort-by="sortBy"
         :sort-order="sortOrder"
         @update-sorting="updateSorting"
@@ -88,6 +90,8 @@ const sortOrder = useCookie('watched_series_sort_order', {
   default: () => 'DESC',
   sameSite: 'lax',
 })
+
+const searchQuery = ref('')
 
 const updateSorting = (newSortBy) => {
   if (sortBy.value === newSortBy) {
@@ -118,16 +122,19 @@ const { data: series } = await useAsyncData(
     watch: [sortBy, sortOrder],
   },
 )
+
+const filteredSeries = computed(() => {
+  const list = series.value || []
+  const query = searchQuery.value.trim().toLowerCase()
+
+  if (!query) {
+    return list
+  }
+
+  return list.filter((item) => (item.title || '').toLowerCase().includes(query))
+})
+
+const updateSearchQuery = (value) => {
+  searchQuery.value = value
+}
 </script>
-
-<style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>

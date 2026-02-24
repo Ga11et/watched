@@ -94,6 +94,9 @@ export class PublishersService {
   async findOne(id: string): Promise<Publisher> {
     const publisher = await this.publishersRepository.findOne({
       where: { id },
+      relations: {
+        games: true,
+      },
     });
 
     if (!publisher) {

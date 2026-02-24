@@ -57,6 +57,29 @@ describe('PublishersService', () => {
     ).rejects.toThrow(NotFoundException);
   });
 
+  it('findOne: returns publisher with linked games', async () => {
+    const publisher = await service.create({ fullName: 'Linked Publisher' });
+    const developer = await developersRepository.save(
+      developersRepository.create({ fullName: 'Linked Studio' }),
+    );
+
+    const game = await gamesRepository.save(
+      gamesRepository.create({
+        title: 'Linked Game',
+        completionDate: new Date(),
+        publishers: [publisher],
+        developers: [developer],
+      }),
+    );
+
+    const found = await service.findOne(publisher.id);
+
+    expect(found.games).toBeDefined();
+    expect(found.games).toHaveLength(1);
+    expect(found.games[0].id).toBe(game.id);
+    expect(found.games[0].title).toBe('Linked Game');
+  });
+
   it('update: updates publisher fields', async () => {
     const created = await service.create({ fullName: 'Old Name' });
 

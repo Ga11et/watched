@@ -1,16 +1,19 @@
 <template>
   <div>
     <div class="mb-6">
-      <UiSorter
+      <EntitiesCommonCardsSorter
         :sort-by="sortBy"
         :sort-order="sortOrder"
         :options="sortOptions"
+        :search-query="searchQuery"
+        search-placeholder="Найти фильм..."
         @update-sorting="handleSortUpdate"
+        @update:searchQuery="handleSearchUpdate"
       />
     </div>
-    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <TransitionGroup name="cards-list" tag="div" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       <EntitiesMoviesCard v-for="movie in movies" :key="movie.id" :movie="movie" />
-    </div>
+    </TransitionGroup>
   </div>
 </template>
 
@@ -31,11 +34,13 @@ interface Props {
   movies: Movie[]
   sortBy?: string
   sortOrder?: 'ASC' | 'DESC'
+  searchQuery?: string
 }
 
 const props = defineProps<Props>()
 const emit = defineEmits<{
   'update-sorting': [sortBy: string]
+  'update:searchQuery': [value: string]
 }>()
 
 const sortOptions = [
@@ -48,5 +53,9 @@ const sortOptions = [
 
 const handleSortUpdate = (sortBy: string) => {
   emit('update-sorting', sortBy)
+}
+
+const handleSearchUpdate = (value: string) => {
+  emit('update:searchQuery', value)
 }
 </script>

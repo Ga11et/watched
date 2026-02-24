@@ -133,7 +133,8 @@ export class PublishersController {
   @Get(':id')
   @ApiOperation({
     summary: 'Получить издателя по ID',
-    description: 'Возвращает конкретного издателя из справочника',
+    description:
+      'Возвращает конкретного издателя из справочника вместе со связанными играми',
   })
   @ApiParam({
     name: 'id',
@@ -142,7 +143,7 @@ export class PublishersController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Информация об издателе',
+    description: 'Информация об издателе со списком связанных игр',
     type: Publisher,
   })
   @ApiResponse({

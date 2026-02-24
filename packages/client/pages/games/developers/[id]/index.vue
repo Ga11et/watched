@@ -67,6 +67,23 @@
         <EntitiesGamesOutputsDevelopersDetails v-else :developer="developer" />
       </div>
     </div>
+
+    <template v-if="developer && !pending">
+      <div class="flex justify-between items-center mb-6 mt-8">
+        <h2 class="text-xl font-semibold">Игры разработчика</h2>
+        <NuxtLink
+          to="/games/new"
+          class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+        >
+          Добавить игру
+        </NuxtLink>
+      </div>
+
+      <div v-if="!developer.games?.length" class="text-center py-12 text-gray-500">
+        Игр этого разработчика пока нет.
+      </div>
+      <EntitiesGamesTableView v-else :games="developer.games" />
+    </template>
   </div>
 </template>
 
@@ -76,11 +93,20 @@ const router = useRouter()
 const error = ref('')
 const deleting = ref(false)
 
+interface DeveloperGame {
+  id: string
+  title: string
+  completionDate?: string | null
+  playTimeHours?: number | null
+  rating?: number | null
+}
+
 interface Developer {
   id: string
   fullName: string
   comment?: string | null
   photo?: string | null
+  games?: DeveloperGame[]
   createdAt: string
   updatedAt: string
 }

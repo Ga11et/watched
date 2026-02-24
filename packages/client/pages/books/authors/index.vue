@@ -38,15 +38,17 @@
 
     <Transition name="fade" mode="out-in">
       <EntitiesAuthorsCardsView
-        v-if="viewMode === 'cards' && authors?.length"
-        :authors="authors"
+        v-if="viewMode === 'cards'"
+        :authors="filteredAuthors"
         :sort-by="sortBy"
         :sort-order="sortOrder"
+        :search-query="searchQuery"
         @update-sorting="updateSorting"
+        @update:searchQuery="updateSearchQuery"
       />
       <EntitiesAuthorsTableView
-        v-else-if="authors?.length"
-        :authors="authors"
+        v-else
+        :authors="filteredAuthors"
         :sort-by="sortBy"
         :sort-order="sortOrder"
         @update-sorting="updateSorting"
@@ -74,6 +76,8 @@ const sortOrder = useCookie<'ASC' | 'DESC'>('watched_authors_sort_order', {
   default: () => 'ASC',
   sameSite: 'lax',
 })
+
+const searchQuery = ref('')
 
 // 3. Загрузка данных
 const error = ref<string>('')
@@ -107,6 +111,17 @@ const breadcrumbItems = computed(() => [
   { label: 'Авторы' },
 ])
 
+const filteredAuthors = computed(() => {
+  const list = authors.value || []
+  const query = searchQuery.value.trim().toLowerCase()
+
+  if (!query) {
+    return list
+  }
+
+  return list.filter((author) => (author.fullName || '').toLowerCase().includes(query))
+})
+
 const sortOptions = [
   { value: 'fullName', label: 'По имени' },
   { value: 'createdAt', label: 'По дате добавления' },
@@ -122,6 +137,10 @@ const updateSorting = (newSortBy: string): void => {
   }
 }
 
+const updateSearchQuery = (value: string): void => {
+  searchQuery.value = value
+}
+
 // 6. Валидация
 
 watchEffect(() => {
@@ -133,15 +152,3 @@ watchEffect(() => {
 // 7. Обработчики событий
 // При использовании useAsyncData с watch данные обновляются автоматически
 </script>
-
-<style>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 150ms ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>

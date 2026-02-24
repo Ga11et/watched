@@ -91,6 +91,9 @@ export class DevelopersService {
   async findOne(id: string): Promise<Developer> {
     const developer = await this.developersRepository.findOne({
       where: { id },
+      relations: {
+        games: true,
+      },
     });
 
     if (!developer) {

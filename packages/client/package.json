@@ -12,7 +12,8 @@
   "devDependencies": {
     "@nuxtjs/tailwindcss": "^6.13.1",
     "nuxt": "^3.9.3",
-    "prettier": "^3.4.2"
+    "prettier": "^3.4.2",
+    "sass-embedded": "^1.97.3"
   },
   "dependencies": {
     "@vueuse/nuxt": "^10.7.2",

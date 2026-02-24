@@ -67,6 +67,23 @@
         <EntitiesGamesOutputsPublishersDetails v-else :publisher="publisher" />
       </div>
     </div>
+
+    <template v-if="publisher && !pending">
+      <div class="flex justify-between items-center mb-6 mt-8">
+        <h2 class="text-xl font-semibold">Игры издателя</h2>
+        <NuxtLink
+          to="/games/new"
+          class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+        >
+          Добавить игру
+        </NuxtLink>
+      </div>
+
+      <div v-if="!publisher.games?.length" class="text-center py-12 text-gray-500">
+        Игр этого издателя пока нет.
+      </div>
+      <EntitiesGamesTableView v-else :games="publisher.games" />
+    </template>
   </div>
 </template>
 
@@ -76,11 +93,20 @@ const router = useRouter()
 const error = ref('')
 const deleting = ref(false)
 
+interface PublisherGame {
+  id: string
+  title: string
+  completionDate?: string | null
+  playTimeHours?: number | null
+  rating?: number | null
+}
+
 interface Publisher {
   id: string
   fullName: string
   comment?: string | null
   photo?: string | null
+  games?: PublisherGame[]
   createdAt: string
   updatedAt: string
 }

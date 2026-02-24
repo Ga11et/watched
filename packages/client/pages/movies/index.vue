@@ -59,15 +59,17 @@
 
     <Transition name="fade" mode="out-in">
       <EntitiesMoviesCardsView
-        v-if="viewMode === 'cards' && movies?.length"
-        :movies="movies"
+        v-if="viewMode === 'cards'"
+        :movies="filteredMovies"
         :sort-by="sortBy"
         :sort-order="sortOrder"
+        :search-query="searchQuery"
         @update-sorting="updateSorting"
+        @update:searchQuery="updateSearchQuery"
       />
       <EntitiesMoviesTableView
-        v-else-if="movies?.length"
-        :movies="movies"
+        v-else
+        :movies="filteredMovies"
         :sort-by="sortBy"
         :sort-order="sortOrder"
         @update-sorting="updateSorting"
@@ -99,6 +101,8 @@ const sortOrder = useCookie<'ASC' | 'DESC'>('watched_movies_sort_order', {
   default: () => 'DESC',
   sameSite: 'lax',
 })
+
+const searchQuery = ref('')
 
 const updateSorting = (newSortBy: string): void => {
   if (sortBy.value === newSortBy) {
@@ -140,16 +144,21 @@ const { data: movies } = await useAsyncData<Movie[]>(
     watch: [sortBy, sortOrder],
   },
 )
+
+const filteredMovies = computed(() => {
+  const list = movies.value || []
+  const query = searchQuery.value.trim().toLowerCase()
+
+  if (!query) {
+    return list
+  }
+
+  return list.filter((movie) => {
+    return (movie.title || '').toLowerCase().includes(query)
+  })
+})
+
+const updateSearchQuery = (value: string): void => {
+  searchQuery.value = value
+}
 </script>
-
-<style>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 150ms ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>

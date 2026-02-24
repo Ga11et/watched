@@ -64,15 +64,17 @@
 
     <Transition name="fade" mode="out-in">
       <EntitiesGamesCardsView
-        v-if="games?.length && viewMode === 'cards'"
-        :games="games"
+        v-if="viewMode === 'cards'"
+        :games="filteredGames"
         :sort-by="sortBy"
         :sort-order="sortOrder"
+        :search-query="searchQuery"
         @update-sorting="updateSorting"
+        @update:searchQuery="updateSearchQuery"
       />
       <EntitiesGamesTableView
-        v-else-if="games?.length"
-        :games="games"
+        v-else
+        :games="filteredGames"
         :sort-by="sortBy"
         :sort-order="sortOrder"
         @update-sorting="updateSorting"
@@ -99,8 +101,21 @@ const sortOrder = useCookie('watched_sort_order', {
   sameSite: 'lax',
 })
 
+const searchQuery = ref('')
+
 const { data: games, refresh } = await useFetch(`${useRuntimeConfig().public.apiBase}/games`, {
   query: { sortBy, sortOrder },
+})
+
+const filteredGames = computed(() => {
+  const list = games.value || []
+  const query = searchQuery.value.trim().toLowerCase()
+
+  if (!query) {
+    return list
+  }
+
+  return list.filter((game) => game.title?.toLowerCase().includes(query))
 })
 
 const updateSorting = (newSortBy) => {
@@ -113,21 +128,13 @@ const updateSorting = (newSortBy) => {
   refresh()
 }
 
+const updateSearchQuery = (value) => {
+  searchQuery.value = value
+}
+
 watchEffect(() => {
   if (viewMode.value !== 'cards' && viewMode.value !== 'table') {
     viewMode.value = 'cards'
   }
 })
 </script>
-
-<style>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 150ms ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>

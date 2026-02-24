@@ -38,15 +38,17 @@
 
     <Transition name="fade" mode="out-in">
       <EntitiesBooksCardsView
-        v-if="viewMode === 'cards' && books?.length"
-        :books="books"
+        v-if="viewMode === 'cards'"
+        :books="filteredBooks"
         :sort-by="sortBy"
         :sort-order="sortOrder"
+        :search-query="searchQuery"
         @update-sorting="updateSorting"
+        @update:searchQuery="updateSearchQuery"
       />
       <EntitiesBooksTableView
-        v-else-if="books?.length"
-        :books="books"
+        v-else
+        :books="filteredBooks"
         :sort-by="sortBy"
         :sort-order="sortOrder"
         @update-sorting="updateSorting"
@@ -73,6 +75,8 @@ const sortOrder = useCookie<'ASC' | 'DESC'>('watched_books_sort_order', {
   default: () => 'DESC',
   sameSite: 'lax',
 })
+
+const searchQuery = ref('')
 
 // 3. Загрузка данных
 const error = ref<string>('')
@@ -102,6 +106,21 @@ const { data: books, pending: loading } = await useAsyncData<Book[]>(
 // 4. Вычисляемые свойства
 const breadcrumbItems = computed(() => [{ label: 'Главная', to: '/' }, { label: 'Книги' }])
 
+const filteredBooks = computed(() => {
+  const list = books.value || []
+  const query = searchQuery.value.trim().toLowerCase()
+
+  if (!query) {
+    return list
+  }
+
+  return list.filter((book) => {
+    const title = (book.title || '').toLowerCase()
+    const author = (book.author?.fullName || '').toLowerCase()
+    return title.includes(query) || author.includes(query)
+  })
+})
+
 const sortOptions = [
   { value: 'title', label: 'Название' },
   { value: 'publishedYear', label: 'Год издания' },
@@ -119,6 +138,10 @@ const updateSorting = (newSortBy: string): void => {
   }
 }
 
+const updateSearchQuery = (value: string): void => {
+  searchQuery.value = value
+}
+
 // 6. Валидация
 watchEffect(() => {
   if (viewMode.value !== 'cards' && viewMode.value !== 'table') {
@@ -129,15 +152,3 @@ watchEffect(() => {
 // 7. Обработчики событий
 // При использовании useAsyncData с watch данные обновляются автоматически
 </script>
-
-<style>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 150ms ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>

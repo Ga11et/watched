@@ -1,0 +1,27 @@
+.cards-list-move,
+.cards-list-enter-active,
+.cards-list-leave-active {
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease;
+}
+
+.cards-list-enter-from,
+.cards-list-leave-to {
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+}
+
+.cards-list-leave-active {
+  position: absolute;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 150ms ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}

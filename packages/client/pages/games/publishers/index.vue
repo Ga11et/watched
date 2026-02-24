@@ -38,15 +38,17 @@
 
     <Transition name="fade" mode="out-in">
       <EntitiesPublishersCardsView
-        v-if="viewMode === 'cards' && publishers?.length"
-        :publishers="publishers"
+        v-if="viewMode === 'cards'"
+        :publishers="filteredPublishers"
         :sort-by="sortBy"
         :sort-order="sortOrder"
+        :search-query="searchQuery"
         @update-sorting="updateSorting"
+        @update:searchQuery="updateSearchQuery"
       />
       <EntitiesPublishersTableView
-        v-else-if="publishers?.length"
-        :publishers="publishers"
+        v-else
+        :publishers="filteredPublishers"
         :sort-by="sortBy"
         :sort-order="sortOrder"
         @update-sorting="updateSorting"
@@ -72,6 +74,8 @@ const sortOrder = useCookie<'ASC' | 'DESC'>('watched_publishers_sort_order', {
   default: () => 'ASC',
   sameSite: 'lax',
 })
+
+const searchQuery = ref('')
 
 const error = ref<string>('')
 const config = useRuntimeConfig()
@@ -103,6 +107,17 @@ const breadcrumbItems = computed(() => [
   { label: 'Издатели' },
 ])
 
+const filteredPublishers = computed(() => {
+  const list = publishers.value || []
+  const query = searchQuery.value.trim().toLowerCase()
+
+  if (!query) {
+    return list
+  }
+
+  return list.filter((publisher) => (publisher.fullName || '').toLowerCase().includes(query))
+})
+
 const updateSorting = (newSortBy: string): void => {
   if (sortBy.value === newSortBy) {
     sortOrder.value = sortOrder.value === 'ASC' ? 'DESC' : 'ASC'
@@ -112,21 +127,13 @@ const updateSorting = (newSortBy: string): void => {
   }
 }
 
+const updateSearchQuery = (value: string): void => {
+  searchQuery.value = value
+}
+
 watchEffect(() => {
   if (viewMode.value !== 'cards' && viewMode.value !== 'table') {
     viewMode.value = 'cards'
   }
 })
 </script>
-
-<style>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 150ms ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>

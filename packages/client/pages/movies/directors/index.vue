@@ -32,15 +32,17 @@
 
     <Transition name="fade" mode="out-in">
       <EntitiesDirectorsCardsView
-        v-if="directors?.length && viewMode === 'cards'"
-        :directors="directors"
+        v-if="viewMode === 'cards'"
+        :directors="filteredDirectors"
         :sort-by="sortBy"
         :sort-order="sortOrder"
+        :search-query="searchQuery"
         @update-sorting="updateSorting"
+        @update:searchQuery="updateSearchQuery"
       />
       <EntitiesDirectorsTableView
-        v-else-if="directors?.length"
-        :directors="directors"
+        v-else
+        :directors="filteredDirectors"
         :sort-by="sortBy"
         :sort-order="sortOrder"
         @update-sorting="updateSorting"
@@ -78,6 +80,8 @@ const sortOrder = useCookie<'ASC' | 'DESC'>('watched_directors_sort_order', {
   sameSite: 'lax',
 })
 
+const searchQuery = ref('')
+
 const updateSorting = (newSortBy: string): void => {
   if (sortBy.value === newSortBy) {
     sortOrder.value = sortOrder.value === 'ASC' ? 'DESC' : 'ASC'
@@ -107,16 +111,19 @@ const { data: directors } = await useAsyncData<Director[]>(
     watch: [sortBy, sortOrder],
   },
 )
+
+const filteredDirectors = computed(() => {
+  const list = directors.value || []
+  const query = searchQuery.value.trim().toLowerCase()
+
+  if (!query) {
+    return list
+  }
+
+  return list.filter((director) => (director.fullName || '').toLowerCase().includes(query))
+})
+
+const updateSearchQuery = (value: string): void => {
+  searchQuery.value = value
+}
 </script>
-
-<style>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 150ms ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>

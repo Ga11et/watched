@@ -136,7 +136,8 @@ export class DevelopersController {
   @Get(':id')
   @ApiOperation({
     summary: 'Получить разработчика по ID',
-    description: 'Возвращает конкретного разработчика из справочника',
+    description:
+      'Возвращает конкретного разработчика из справочника вместе со связанными играми',
   })
   @ApiParam({
     name: 'id',
@@ -145,7 +146,7 @@ export class DevelopersController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Информация о разработчике',
+    description: 'Информация о разработчике со списком связанных игр',
     type: Developer,
   })
   @ApiResponse({

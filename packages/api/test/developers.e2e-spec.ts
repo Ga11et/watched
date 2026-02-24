@@ -106,6 +106,36 @@ describe('DevelopersController (e2e)', () => {
       .expect(404);
   });
 
+  it('GET /developers/:id returns linked games', async () => {
+    const publisher = await request(app.getHttpServer())
+      .post('/publishers')
+      .send({ fullName: 'Linked Publisher' })
+      .expect(201);
+
+    const developer = await request(app.getHttpServer())
+      .post('/developers')
+      .send({ fullName: 'Linked Developer' })
+      .expect(201);
+
+    const game = await request(app.getHttpServer())
+      .post('/games')
+      .send({
+        title: 'Linked Game',
+        publisherIds: [publisher.body.id],
+        developerIds: [developer.body.id],
+      })
+      .expect(201);
+
+    const response = await request(app.getHttpServer())
+      .get(`/developers/${developer.body.id}`)
+      .expect(200);
+
+    expect(Array.isArray(response.body.games)).toBe(true);
+    expect(response.body.games).toHaveLength(1);
+    expect(response.body.games[0].id).toBe(game.body.id);
+    expect(response.body.games[0].title).toBe('Linked Game');
+  });
+
   it('PUT /developers/:id updates developer', async () => {
     const created = await request(app.getHttpServer())
       .post('/developers')
