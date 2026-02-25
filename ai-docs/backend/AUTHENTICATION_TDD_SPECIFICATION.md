@@ -29,7 +29,7 @@
 ### Требования
 
 - Создать entity `User` со следующими полями:
-  - `id` (string, primary key)
+  - `id` (guid, primary key)
   - `username` (string, optional, unique)
   - `email` (string, optional, unique)
   - `passwordHash` (string)
@@ -429,6 +429,7 @@ describe('AuthMiddleware', () => {
 - [ ] Токены содержат необходимые данные пользователя
 - [ ] AuthMiddleware проверяет токены
 - [ ] Middleware добавляет пользователя в request
+- [ ] Нет проблем связанных с утечкой секретных ключей и безопасностью
 - [ ] Все тесты проходят
 
 ---
@@ -441,27 +442,40 @@ describe('AuthMiddleware', () => {
 
 ### Требования
 
-- Защитить следующие эндпоинты AuthMiddleware:
-  - **Пользовательские списки (требуют авторизации):**
-    - `POST /user-books` - добавление книги в список пользователя
-    - `PUT /user-books/:id` - обновление записи о книге пользователя
-    - `DELETE /user-books/:id` - удаление книги из списка пользователя
-    - `POST /user-movies` - добавление фильма в список пользователя
-    - `PUT /user-movies/:id` - обновление записи о фильме пользователя
-    - `DELETE /user-movies/:id` - удаление фильма из списка пользователя
-    - `POST /user-series` - добавление сериала в список пользователя
-    - `PUT /user-series/:id` - обновление записи о сериале пользователя
-    - `DELETE /user-series/:id` - удаление сериала из списка пользователя
-    - `POST /user-games` - добавление игры в список пользователя
-    - `PUT /user-games/:id` - обновление записи об игре пользователя
-    - `DELETE /user-games/:id` - удаление игры из списка пользователя
-    - `POST /user-authors` - добавление автора в список пользователя
-    - `PUT /user-authors/:id` - обновление записи об авторе пользователя
-    - `DELETE /user-authors/:id` - удаление автора из списка пользователя
-    - `POST /user-directors` - добавление режиссера в список пользователя
-    - `PUT /user-directors/:id` - обновление записи о режиссере пользователя
-    - `DELETE /user-directors/:id` - удаление режиссера из списка пользователя
-  - **Административные эндпоинты (только для ADMIN):**
+- Матрица доступа к эндпоинтам:
+  - **Пути, защищенные авторизацией (JWT): `user-*`**
+    - `GET /user-books` - получение книг текущего пользователя
+    - `GET /user-movies` - получение фильмов текущего пользователя
+    - `GET /user-series` - получение сериалов текущего пользователя
+    - `GET /user-games` - получение игр текущего пользователя
+    - `GET /user-authors` - получение авторов текущего пользователя
+    - `GET /user-directors` - получение режиссеров текущего пользователя
+    - `POST /user-books` - добавление книги в список текущего пользователя
+    - `PUT /user-books/:id` - обновление записи о книге текущего пользователя
+    - `DELETE /user-books/:id` - удаление книги из списка текущего пользователя
+    - `POST /user-movies` - добавление фильма в список текущего пользователя
+    - `PUT /user-movies/:id` - обновление записи о фильме текущего пользователя
+    - `DELETE /user-movies/:id` - удаление фильма из списка текущего пользователя
+    - `POST /user-series` - добавление сериала в список текущего пользователя
+    - `PUT /user-series/:id` - обновление записи о сериале текущего пользователя
+    - `DELETE /user-series/:id` - удаление сериала из списка текущего пользователя
+    - `POST /user-games` - добавление игры в список текущего пользователя
+    - `PUT /user-games/:id` - обновление записи об игре текущего пользователя
+    - `DELETE /user-games/:id` - удаление игры из списка текущего пользователя
+    - `POST /user-authors` - добавление автора в список текущего пользователя
+    - `PUT /user-authors/:id` - обновление записи об авторе текущего пользователя
+    - `DELETE /user-authors/:id` - удаление автора из списка текущего пользователя
+    - `POST /user-directors` - добавление режиссера в список текущего пользователя
+    - `PUT /user-directors/:id` - обновление записи о режиссере текущего пользователя
+    - `DELETE /user-directors/:id` - удаление режиссера из списка текущего пользователя
+  - **Пути без авторизации (публичные): `user/:guid/*`**
+    - `GET /user/:guid/books` - получение книг указанного пользователя
+    - `GET /user/:guid/movies` - получение фильмов указанного пользователя
+    - `GET /user/:guid/series` - получение сериалов указанного пользователя
+    - `GET /user/:guid/games` - получение игр указанного пользователя
+    - `GET /user/:guid/authors` - получение авторов указанного пользователя
+    - `GET /user/:guid/directors` - получение режиссеров указанного пользователя
+  - **Пути, защищенные админским доступом: `/entity` (только для ADMIN)**
     - `POST /books` - создание книги в справочнике
     - `PUT /books/:id` - обновление книги в справочнике
     - `DELETE /books/:id` - удаление книги из справочника
@@ -496,248 +510,188 @@ describe('AuthMiddleware', () => {
 
 ### Тесты (TDD)
 
-```typescript
-describe('Protected Endpoints', () => {
-  describe('Books endpoints', () => {
-    it('should reject POST /books without token', async () => {
-      const response = await request(app).post('/books').send(createBookData()).expect(401)
+- Проверки для путей `user-*` (JWT-защищенные):
+  - Запрос без токена к `GET /user-*` возвращает `401`.
+  - Запрос без токена к `POST /user-*` возвращает `401`.
+  - Запрос без токена к `PUT /user-*/:id` возвращает `401`.
+  - Запрос без токена к `DELETE /user-*/:id` возвращает `401`.
+  - Запрос с пустым заголовком `Authorization: Bearer` к `user-*` возвращает `401`.
+  - Запрос с некорректной схемой (`Authorization: Basic ...`) к `user-*` возвращает `401`.
+  - Запрос с валидным JWT к `GET /user-*` возвращает `200` и только списки текущего пользователя.
+  - Запрос с валидным JWT к `POST /user-*` возвращает `201` и создаёт запись в списке текущего пользователя.
+  - Запрос с валидным JWT к `PUT /user-*/:id` возвращает `200` и обновляет запись текущего пользователя.
+  - Запрос с валидным JWT к `DELETE /user-*/:id` возвращает `200/204` и удаляет запись текущего пользователя.
+  - Повторный `DELETE /user-*/:id` уже удаленной записи возвращает `404`.
+  - `PUT /user-*/:id` с несуществующим `id` возвращает `404`.
+  - `PUT /user-*/:id` с невалидным форматом `id` возвращает `400`.
+  - `POST /user-*` c невалидным телом запроса возвращает `400`.
+  - `POST /user-*` c дублирующей записью для текущего пользователя возвращает `409`.
+  - Запрос с невалидным JWT к `user-*` возвращает `403`.
+  - Запрос с просроченным JWT к `user-*` возвращает `403`.
+  - JWT одного пользователя не дает доступа к данным другого пользователя в `PUT/DELETE` и возвращает `403`.
 
-      expect(response.body.message).toBe('Authorization token required')
-    })
+- Проверки для публичных путей `user/:guid/*`:
+  - Запрос без токена к `GET /user/:guid/*` возвращает `200`.
+  - Запрос с токеном к `GET /user/:guid/*` также возвращает `200`.
+  - `GET /user/:guid/*` возвращает данные именно пользователя из `:guid`.
+  - `GET /user/:guid/*` с несуществующим `guid` возвращает `404`.
+  - `GET /user/:guid/*` с невалидным форматом `guid` возвращает `400`.
+  - `GET /user/:guid/*` не должен возвращать приватные поля (`passwordHash`, email, служебные токены).
+  - `GET /user/:guid/*` для пользователя без записей возвращает `200` и пустой массив.
 
-    it('should reject PUT /books/:id without token', async () => {
-      const book = await createTestBook()
+- Проверки для admin-only путей `/entity`:
+  - Запрос без токена к `POST /books|movies|series|games|authors|directors` возвращает `401`.
+  - Запрос без токена к `PUT /entity/:id` возвращает `401`.
+  - Запрос без токена к `DELETE /entity/:id` возвращает `401`.
+  - Запрос с валидным JWT обычного пользователя к `/entity` возвращает `403`.
+  - Запрос с невалидным JWT к `/entity` возвращает `403`.
+  - Запрос с просроченным JWT к `/entity` возвращает `403`.
+  - Запрос с валидным JWT администратора к `POST /entity` возвращает `201`.
+  - Запрос с валидным JWT администратора к `PUT /entity/:id` возвращает `200`.
+  - Запрос с валидным JWT администратора к `DELETE /entity/:id` возвращает `200/204`.
+  - `POST /entity` с невалидным телом запроса возвращает `400`.
+  - `POST /entity` с нарушением уникальности возвращает `409`.
+  - `PUT /entity/:id` с несуществующим `id` возвращает `404`.
+  - `DELETE /entity/:id` с несуществующим `id` возвращает `404`.
 
-      const response = await request(app)
-        .put(`/books/${book.id}`)
-        .send(updateBookData())
-        .expect(401)
+- Проверки открытых справочных GET-путей (`/books`, `/movies`, `/series`, `/games`, `/authors`, `/directors`):
+  - `GET /entity` доступен без токена и возвращает `200`.
+  - `GET /entity/:id` доступен без токена и возвращает `200` или `404` для несуществующей сущности.
+  - Наличие невалидного/просроченного токена не влияет на доступ к открытым `GET /entity`.
+  - `GET /entity/:id` с невалидным форматом `id` возвращает `400`.
+  - Открытые `GET /entity` не возвращают служебные/приватные поля.
+  - Параметры фильтрации/сортировки/пагинации валидируются; некорректные параметры возвращают `400`.
 
-      expect(response.body.message).toBe('Authorization token required')
-    })
-
-    it('should reject DELETE /books/:id without token', async () => {
-      const book = await createTestBook()
-
-      const response = await request(app).delete(`/books/${book.id}`).expect(401)
-
-      expect(response.body.message).toBe('Authorization token required')
-    })
-
-    it('should allow POST /books with valid token', async () => {
-      const user = await createTestUser()
-      const token = jwtService.generateToken(user)
-
-      const response = await request(app)
-        .post('/books')
-        .set('Authorization', `Bearer ${token}`)
-        .send(createBookData())
-        .expect(201)
-
-      expect(response.body.title).toBe(createBookData().title)
-    })
-  })
-
-  // Аналогичные тесты для movies, series, games, authors, directors
-})
-```
+- Параметризация тестов:
+  - Все проверки выполняются одинаково для `books`, `movies`, `series`, `games`, `authors`, `directors`.
 
 ### Критерии завершения
 
-- [ ] Все изменяющие эндпоинты защищены
-- [ ] Запросы без токена возвращают 401
-- [ ] Запросы с валидным токеном проходят
-- [ ] Все тесты проходят
+- [x] Все эндпоинты защищены
+- [x] Запросы без токена возвращают 401
+- [x] Запросы с валидным токеном проходят
+- [x] Запросы с невалидным токеном возвращают 403
+- [x] Все тесты проходят
 
 ---
 
 ## Шаг 5: Реализация прав доступа на основе ролей
 
+## Сделать дамп до реализации этого шага!!
+
 ### Описание шага
 
-Реализовать проверку прав доступа в зависимости от роли пользователя.
+Создать новые таблицы, с учетом ролей пользователей.
 
 ### Требования
 
-- Создать `RolesGuard` для проверки ролей:
-  - Администратор может изменять любые списки
-  - Обычный пользователь может изменять только свои списки
-  - Гость не может изменять никакие списки
+- На базе уже реализованной и проверенной в шаге 4 матрицы доступа внедрить `RolesGuard`, который централизует проверки ролей и ownership для новых таблиц:
+  - Для `POST|PUT|DELETE /books|movies|series|games|authors|directors` доступ только у `ADMIN`.
+  - Для `GET /books|movies|series|games|authors|directors` и `GET /:entity/:id` доступ открыт для всех.
+  - Для `GET|POST|PUT|DELETE /user-*` требуется валидный JWT (`USER` или `ADMIN`).
+  - Для `GET /user/:guid/*` доступ открыт для всех (без JWT).
+  - Для операций изменения `/user/:guid/*`:
+    - `ADMIN` может изменять записи любого пользователя;
+    - `USER` может изменять только собственные записи (`resource.userId === request.user.id`);
+    - `GUEST` не может изменять записи.
 
-- Реализовать гибридную структуру списков:
-  - **Основные таблицы-справочники** (доступны всем для чтения):
-    - `books` (id, title, author, genre, publishedYear, pages, createdAt, updatedAt)
-    - `movies` (id, title, genre, releaseYear, duration, createdAt, updatedAt)
-    - `series` (id, title, genre, releaseYear, seasons, createdAt, updatedAt)
-    - `games` (id, title, genre, releaseYear, platform, createdAt, updatedAt)
-    - `authors` (id, fullName, birthYear, country, photo, bio, createdAt, updatedAt)
-    - `directors` (id, fullName, birthYear, country, photo, bio, createdAt, updatedAt)
-  - **Пользовательские таблицы** (заищенные по userId):
-    - `user_books` (id, userId, bookId, rating, readAt, notes, poster, createdAt, updatedAt)
-    - `user_movies` (id, userId, movieId, rating, watchedAt, notes, poster, createdAt, updatedAt)
-    - `user_series` (id, userId, seriesId, rating, watchedAt, seasonsWatched, notes, poster, createdAt, updatedAt)
-    - `user_games` (id, userId, gameId, rating, playedHours, playedAt, notes, poster, createdAt, updatedAt)
-    - `user_authors` (id, userId, authorId, notes, createdAt, updatedAt)
-    - `user_directors` (id, userId, directorId, notes, createdAt, updatedAt)
+- Реализовать гибридную структуру списков (актуальные сущности) (все таблицы новые, старые таблицы не трогать!):
+  - **Основные таблицы-справочники** (каталог, доступ на чтение открыт):
+    - `books` (id, title, cover, genres, publishYear, pageCount, authors[], createdAt, updatedAt)
+    - `movies` (id, title, cover, genres, releaseYear, directors[], createdAt, updatedAt)
+    - `series` (id, title, cover, genres, country, totalSeasons, createdAt, updatedAt)
+    - `games` (id, title, cover, publishers[], developers[], createdAt, updatedAt)
+    - `authors` (id, fullName, photo, createdAt, updatedAt)
+    - `directors` (id, fullName, photo, createdAt, updatedAt)
+    - `publishers` (id, fullName, photo, createdAt, updatedAt)
+    - `developers` (id, fullName, photo, createdAt, updatedAt)
+  - **Пользовательские таблицы** (защищены по `userId` и проверяются `RolesGuard`):
+    - `user_books` (id, userId, bookId, rating, readAt, comment, createdAt, updatedAt)
+    - `user_movies` (id, userId, movieId, rating, watchedAt, comment, createdAt, updatedAt)
+    - `user_series` (id, userId, seriesId, rating, watchedAt, seasonsWatched, comment, createdAt, updatedAt)
+    - `user_games` (id, userId, gameId, rating, playedHours, playedAt, comment, createdAt, updatedAt)
+  - **Системные/связующие сущности**:
+    - `users` (id, username, email, passwordHash, name, role, isActive, createdAt, updatedAt)
+    - `game_publishers` (gameId, publisherId)
+    - `game_developers` (gameId, developerId)
+    - `movie_directors` (movieId, directorId)
+    - `book_authors` (bookId, authorId)
 
-### Примеры запросов:
+### Тесты
 
-#### **Получение всех книг пользователя:**
+> Ниже перечислены тесты только для новой логики шага 5 (RolesGuard, ownership, новые таблицы и связи).  
+> Сценарии из шага 4 (401/403 для отсутствующего/невалидного токена, базовая защита эндпоинтов, публичность GET) повторно не покрывать.
 
-```sql
-SELECT b.*, ub.rating, ub.readAt, ub.notes, ub.poster
-FROM books b
-JOIN user_books ub ON b.id = ub.bookId
-WHERE ub.userId = :userId
-ORDER BY ub.readAt DESC
-```
+1. **Миграции и структура БД (новые таблицы, старые не изменены)**
+   - Проверить, что перед миграцией сохраняется дамп БД (файл создан, не пустой, содержит схему/данные).
+   - Проверить, что после миграции существуют все новые таблицы: `user_books`, `user_movies`, `user_series`, `user_games`, `game_publishers`, `game_developers`, `movie_directors`, `book_authors`.
+   - Проверить, что старые таблицы не изменили структуру (набор колонок и типы остались прежними).
+   - Проверить наличие ожидаемых индексов и уникальных ограничений в связующих таблицах (нельзя создать дублирующую пару связей).
+   - Проверить корректные foreign key constraints для всех новых таблиц и связь с `users`/каталогом.
 
-#### **Поиск по всем книгам (с проверкой доступа):**
+2. **Применение RolesGuard (интеграция, без повтора auth-проверок шага 4)**
+   - Проверить, что `RolesGuard` реально подключен к маршрутам изменения пользовательских таблиц.
+   - Проверить, что guard вызывается до слоя сервиса и блокирует неразрешенные операции до изменения БД.
+   - Проверить, что решение guard основано на роли + ownership, а не только на роли.
 
-```sql
-SELECT b.*, ub.rating, ub.readAt, ub.poster
-FROM books b
-LEFT JOIN user_books ub ON b.id = ub.bookId AND ub.userId = :userId
-WHERE b.title LIKE :searchQuery
-ORDER BY b.title
-```
+3. **RBAC + ownership: позитивные сценарии**
+   - `ADMIN` успешно изменяет/удаляет запись любого пользователя в каждой таблице `user_*`.
+   - `USER` успешно изменяет/удаляет только свою запись в каждой таблице `user_*`.
+   - Проверить, что после успешного изменения обновляются только разрешенные поля и `updatedAt`.
 
-#### **Добавление книги в список пользователя:**
+4. **RBAC + ownership: негативные сценарии**
+   - `USER` получает `403` при попытке изменить/удалить чужую запись (для каждой таблицы `user_*`).
+   - `GUEST` получает `403` при любой попытке изменения/удаления записей `user_*`.
+   - Проверить, что при `403` данные в БД не меняются (включая `updatedAt`).
+   - Проверить, что ошибка отказа доступа единообразна по формату/коду для всех `user_*` таблиц.
 
-```sql
-INSERT INTO user_books (userId, bookId, rating, readAt, notes, poster)
-VALUES (:userId, :bookId, :rating, :readAt, :notes, :poster)
-```
+5. **Edge-cases ownership и идентификаторов**
+   - Запись существует, но принадлежит другому пользователю с тем же role-level (USER→USER): строго `403`.
+   - Запись удалена между чтением и обновлением (race): ожидаем корректный ответ (`404` или доменно-оговоренный), без утечки чужих данных.
+   - Попытка работать с несуществующим `id` записи в `user_*`: корректный отказ без побочных эффектов.
+   - Попытка подмены `userId` в payload при update: `userId` игнорируется/блокируется, ownership не ломается.
+   - Проверить, что нельзя «перевесить» запись на другого пользователя через update.
 
-#### **Получение сериалов пользователя с прогрессом:**
+6. **Валидация и целостность данных пользовательских таблиц**
+   - Граничные значения `rating` (минимум/максимум) проходят, выход за диапазон — ошибка валидации.
+   - Поля даты (`readAt`, `watchedAt`, `playedAt`) принимают валидный формат, невалидный формат отклоняется.
+   - Поле `comment`: пустая строка, `null`, очень длинная строка, спецсимволы/emoji — поведение фиксируется и валидируется.
+   - Частичный update не затирает не переданные поля.
+   - Создание записи с несуществующим `bookId/movieId/seriesId/gameId` отклоняется FK-ошибкой/доменной ошибкой.
 
-```sql
-SELECT s.*, us.rating, us.watchedAt, us.seasonsWatched, us.notes, us.poster,
-       (us.seasonsWatched / s.seasons * 100) as progressPercent
-FROM series s
-JOIN user_series us ON s.id = us.seriesId
-WHERE us.userId = :userId
-ORDER BY us.watchedAt DESC
-```
+7. **Связующие таблицы (many-to-many) и edge-cases**
+   - Добавление валидной связи в `game_publishers`, `game_developers`, `movie_director`, `book_author` успешно.
+   - Повторное добавление той же пары (`gameId+publisherId` и т.д.) отклоняется как дубликат.
+   - Добавление связи с несуществующей сущностью (невалидный FK) отклоняется.
+   - Удаление родительской сущности корректно обрабатывает связующие записи согласно выбранной стратегии (`RESTRICT`/`CASCADE`).
+   - Проверить отсутствие «висячих» связей после удаления/rollback операций.
 
-#### **Получение всех игр пользователя с временем игры:**
+8. **Кросс-табличная консистентность RBAC**
+   - Один и тот же сценарий ownership даёт одинаковый результат в `user_books`, `user_movies`, `user_series`, `user_games`.
+   - Ошибки и успешные ответы унифицированы между таблицами (коды, структура ответа, сообщения).
+   - Проверить, что изменения в одной таблице не дают несанкционированного эффекта в других таблицах.
 
-```sql
-SELECT g.*, ug.rating, ug.playedAt, ug.playedHours, ug.notes, ug.poster
-FROM games g
-JOIN user_games ug ON g.id = ug.gameId
-WHERE ug.userId = :userId
-ORDER BY ug.playedAt DESC
-```
+9. **Конкурентные сценарии**
+   - Два одновременных update одной и той же user-записи разными пользователями: разрешенный проходит, запрещенный блокируется.
+   - Одновременные update одной записи от `ADMIN` и владельца: поведение детерминировано (last-write-wins/optimistic lock — по принятому правилу).
+   - Повторный запрос (retry) не создает дубликатов связей и не нарушает целостность.
 
-#### **Получение игр с наибольшим временем игры:**
+10. **Регрессионные тесты на конфликт со шагом 4**
 
-```sql
-SELECT g.title, ug.playedHours, ug.rating, ug.notes
-FROM games g
-JOIN user_games ug ON g.id = ug.gameId
-WHERE ug.userId = :userId
-ORDER BY ug.playedHours DESC
-```
-
-#### **Добавление игры в список пользователя:**
-
-```sql
-INSERT INTO user_games (userId, gameId, rating, playedHours, playedAt, notes, poster)
-VALUES (:userId, :gameId, :rating, :playedHours, :playedAt, :notes, :poster)
-```
-
-#### **Обновление времени игры:**
-
-```sql
-UPDATE user_games
-SET playedHours = playedHours + :additionalHours,
-    playedAt = CURRENT_TIMESTAMP
-WHERE userId = :userId AND gameId = :gameId
-```
-
-### Тесты (TDD)
-
-```typescript
-describe('Role-based Access Control', () => {
-  describe('Admin role', () => {
-    it("should allow admin to modify any user's items", async () => {
-      const admin = await createTestUser({ role: UserRole.ADMIN })
-      const user = await createTestUser({ role: UserRole.USER })
-      const book = await createTestBook()
-      const userBook = await createUserBook(user.id, book.id)
-      const adminToken = jwtService.generateToken(admin)
-
-      const response = await request(app)
-        .put(`/user-books/${userBook.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({ rating: 10 })
-        .expect(200)
-
-      expect(response.body.rating).toBe(10)
-    })
-  })
-
-  describe('User role', () => {
-    it('should allow user to modify own items', async () => {
-      const user = await createTestUser({ role: UserRole.USER })
-      const book = await createTestBook()
-      const userBook = await createUserBook(user.id, book.id)
-      const token = jwtService.generateToken(user)
-
-      const response = await request(app)
-        .put(`/user-books/${userBook.id}`)
-        .set('Authorization', `Bearer ${token}`)
-        .send({ rating: 8 })
-        .expect(200)
-
-      expect(response.body.rating).toBe(8)
-    })
-
-    it("should reject user modifying other user's items", async () => {
-      const user1 = await createTestUser({ role: UserRole.USER })
-      const user2 = await createTestUser({ role: UserRole.USER })
-      const book = await createTestBook()
-      const user2Book = await createUserBook(user2.id, book.id)
-      const user1Token = jwtService.generateToken(user1)
-
-      const response = await request(app)
-        .put(`/user-books/${user2Book.id}`)
-        .set('Authorization', `Bearer ${user1Token}`)
-        .send({ rating: 9 })
-        .expect(403)
-
-      expect(response.body.message).toBe('Access denied')
-    })
-  })
-
-  describe('Guest role', () => {
-    it('should reject guest modifying any items', async () => {
-      const guest = await createTestUser({ role: UserRole.GUEST })
-      const book = await createTestBook()
-      const guestBook = await createUserBook(guest.id, book.id)
-      const guestToken = jwtService.generateToken(guest)
-
-      const response = await request(app)
-        .put(`/user-books/${guestBook.id}`)
-        .set('Authorization', `Bearer ${guestToken}`)
-        .send({ rating: 7 })
-        .expect(403)
-
-      expect(response.body.message).toBe('Access denied')
-    })
-  })
-})
-```
+- Проверить, что внедрение `RolesGuard` не меняет уже зафиксированное в шаге 4 поведение маршрутов.
+- Проверить, что публичные read-сценарии и базовые auth-статусы продолжают работать как раньше (минимальный smoke, без дублирования полного набора шага 4).
 
 ### Критерии завершения
 
-- [ ] RolesGuard реализован
-- [ ] Гибридная структура таблиц создана (справочники + пользовательские таблицы), обновлены
-- [ ] Администратор может изменять любые элементы в пользовательских таблицах
-- [ ] Обычный пользователь может изменять только свои элементы в пользовательских таблицах
-- [ ] Гость не может изменять никакие элементы в пользовательских таблицах
-- [ ] Все тесты проходят
+- [ ] До начала реализации шага создан и сохранен дамп БД
+- [ ] Старые таблицы не изменены; создан только новый набор таблиц по спецификации шага 5
+- [ ] Созданы новые справочники и пользовательские таблицы с актуальными полями
+- [ ] Созданы связующие таблицы `game_publishers`, `game_developers`, `movie_director`, `book_author`
+- [ ] `RolesGuard` централизованно применяет матрицу доступа шага 4 к новым таблицам
+- [ ] `ADMIN` может изменять любые элементы в пользовательских таблицах
+- [ ] `USER` может изменять только свои элементы (`resource.userId === request.user.id`)
+- [ ] `GUEST` не может изменять элементы в пользовательских таблицах
+- [ ] Тесты шага 5 (RBAC + ownership для новых таблиц) проходят
 
 ---
 

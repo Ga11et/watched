@@ -1,4 +1,9 @@
-import { Module } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
@@ -12,6 +17,10 @@ import { BooksModule } from './books/books.module';
 import { AuthorsModule } from './authors/authors.module';
 import { PublishersModule } from './publishers/publishers.module';
 import { DevelopersModule } from './developers/developers.module';
+import { UserListsModule } from './user-lists/user-lists.module';
+import { AuthMiddleware } from './auth/auth.middleware';
+import { AdminMiddleware } from './auth/admin.middleware';
+import { JwtService } from './auth/jwt.service';
 
 @Module({
   imports: [
@@ -37,8 +46,51 @@ import { DevelopersModule } from './developers/developers.module';
     AuthorsModule,
     PublishersModule,
     DevelopersModule,
+    UserListsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, JwtService, AuthMiddleware, AdminMiddleware],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer
+      .apply(AuthMiddleware)
+      .forRoutes(
+        { path: 'user-books', method: RequestMethod.ALL },
+        { path: 'user-books/(.*)', method: RequestMethod.ALL },
+        { path: 'user-movies', method: RequestMethod.ALL },
+        { path: 'user-movies/(.*)', method: RequestMethod.ALL },
+        { path: 'user-series', method: RequestMethod.ALL },
+        { path: 'user-series/(.*)', method: RequestMethod.ALL },
+        { path: 'user-games', method: RequestMethod.ALL },
+        { path: 'user-games/(.*)', method: RequestMethod.ALL },
+        { path: 'user-authors', method: RequestMethod.ALL },
+        { path: 'user-authors/(.*)', method: RequestMethod.ALL },
+        { path: 'user-directors', method: RequestMethod.ALL },
+        { path: 'user-directors/(.*)', method: RequestMethod.ALL },
+      );
+
+    consumer
+      .apply(AuthMiddleware, AdminMiddleware)
+      .forRoutes(
+        { path: 'books', method: RequestMethod.POST },
+        { path: 'books/:id', method: RequestMethod.PUT },
+        { path: 'books/:id', method: RequestMethod.DELETE },
+        { path: 'movies', method: RequestMethod.POST },
+        { path: 'movies/:id', method: RequestMethod.PUT },
+        { path: 'movies/:id', method: RequestMethod.DELETE },
+        { path: 'series', method: RequestMethod.POST },
+        { path: 'series/:id', method: RequestMethod.PUT },
+        { path: 'series/:id', method: RequestMethod.DELETE },
+        { path: 'games', method: RequestMethod.POST },
+        { path: 'games/:id', method: RequestMethod.PUT },
+        { path: 'games/:id', method: RequestMethod.DELETE },
+        { path: 'authors', method: RequestMethod.POST },
+        { path: 'authors/:id', method: RequestMethod.PUT },
+        { path: 'authors/:id', method: RequestMethod.DELETE },
+        { path: 'directors', method: RequestMethod.POST },
+        { path: 'directors/:id', method: RequestMethod.PUT },
+        { path: 'directors/:id', method: RequestMethod.DELETE },
+      );
+  }
+}

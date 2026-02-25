@@ -27,6 +27,14 @@ async function bootstrap() {
     .setTitle('Watched API')
     .setDescription('API для управления списками контента')
     .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+      },
+      'JWT-auth',
+    )
     .addTag('books')
     .addTag('movies')
     .addTag('series')
