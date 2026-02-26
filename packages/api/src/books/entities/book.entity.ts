@@ -3,7 +3,9 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
+  ManyToMany,
   JoinColumn,
+  JoinTable,
 } from 'typeorm';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Author } from '../../authors/entities/author.entity';
@@ -87,6 +89,24 @@ export class Book {
   })
   @Column({ nullable: true, type: 'uuid' })
   authorId: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Авторы книги',
+    type: () => [Author],
+  })
+  @ManyToMany(() => Author, (author: Author) => author.booksManyToMany)
+  @JoinTable({
+    name: 'book_authors',
+    joinColumn: {
+      name: 'bookId',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'authorId',
+      referencedColumnName: 'id',
+    },
+  })
+  authors?: Author[];
 
   @ApiProperty({
     description: 'Дата создания записи',

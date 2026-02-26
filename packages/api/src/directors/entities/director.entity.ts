@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany } from 'typeorm';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Movie } from '../../movies/entities/movie.entity';
 
 @Entity()
 export class Director {
@@ -44,4 +45,11 @@ export class Director {
   })
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
+
+  @ApiPropertyOptional({
+    description: 'Фильмы режиссера (many-to-many)',
+    type: () => [Movie],
+  })
+  @ManyToMany(() => Movie, (movie) => movie.directors)
+  moviesManyToMany: Movie[];
 }

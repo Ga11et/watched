@@ -1,5 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  JoinTable,
+  ManyToMany,
+} from 'typeorm';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Director } from '../../directors/entities/director.entity';
 
 @Entity()
 export class Movie {
@@ -65,6 +72,24 @@ export class Movie {
   })
   @Column({ nullable: true, type: 'text' })
   poster: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Режиссеры фильма',
+    type: () => [Director],
+  })
+  @ManyToMany(() => Director, (director: Director) => director.moviesManyToMany)
+  @JoinTable({
+    name: 'movie_directors',
+    joinColumn: {
+      name: 'movieId',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'directorId',
+      referencedColumnName: 'id',
+    },
+  })
+  directors?: Director[];
 
   @ApiProperty({
     description: 'Дата создания записи',

@@ -9,7 +9,9 @@
     "build:api": "pnpm --filter api build",
     "build:client": "pnpm --filter client build",
     "build": "pnpm run build:api && pnpm run build:client",
-    "test:api": "pnpm --filter api test"
+    "test": "pnpm test:api && pnpm test:api:e2e",
+    "test:api": "pnpm --filter api test",
+    "test:api:e2e": "pnpm --filter api test:e2e"
   },
   "engines": {
     "node": ">=18.0.0"

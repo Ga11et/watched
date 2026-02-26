@@ -29,6 +29,9 @@ pnpm-debug.log*
 *.sln
 *.sw?
 
+# dumps
+/backups/*
+
 # OS generated files
 .DS_Store
 .DS_Store?
