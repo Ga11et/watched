@@ -4,6 +4,7 @@ import {
   NestModule,
   RequestMethod,
 } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
@@ -18,9 +19,10 @@ import { AuthorsModule } from './authors/authors.module';
 import { PublishersModule } from './publishers/publishers.module';
 import { DevelopersModule } from './developers/developers.module';
 import { UserListsModule } from './user-lists/user-lists.module';
+import { AuthModule } from './auth/auth.module';
 import { AuthMiddleware } from './auth/auth.middleware';
 import { AdminMiddleware } from './auth/admin.middleware';
-import { JwtService } from './auth/jwt.service';
+import { ApiExceptionFilter } from './auth/api-exception.filter';
 
 @Module({
   imports: [
@@ -46,16 +48,26 @@ import { JwtService } from './auth/jwt.service';
     AuthorsModule,
     PublishersModule,
     DevelopersModule,
+    AuthModule,
     UserListsModule,
   ],
   controllers: [AppController],
-  providers: [AppService, JwtService, AuthMiddleware, AdminMiddleware],
+  providers: [
+    AppService,
+    AuthMiddleware,
+    AdminMiddleware,
+    {
+      provide: APP_FILTER,
+      useClass: ApiExceptionFilter,
+    },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
     consumer
       .apply(AuthMiddleware)
       .forRoutes(
+        { path: 'auth/me', method: RequestMethod.GET },
         { path: 'user-books', method: RequestMethod.ALL },
         { path: 'user-books/(.*)', method: RequestMethod.ALL },
         { path: 'user-movies', method: RequestMethod.ALL },

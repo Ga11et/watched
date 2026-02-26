@@ -1,7 +1,5 @@
 import {
-  ConflictException,
   Injectable,
-  NotFoundException,
   UnprocessableEntityException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -30,11 +28,19 @@ export class AuthService {
     const email = data.email?.trim() || null;
 
     if (!name) {
-      throw new UnprocessableEntityException('Name is required');
+      throw new UnprocessableEntityException({
+        status: 422,
+        message: 'Name is required',
+        violations: [{ property: 'name', error: 'Name is required' }],
+      });
     }
 
     if (!data.password?.trim()) {
-      throw new UnprocessableEntityException('Password is required');
+      throw new UnprocessableEntityException({
+        status: 422,
+        message: 'Password is required',
+        violations: [{ property: 'password', error: 'Password is required' }],
+      });
     }
 
     if (username) {
@@ -42,7 +48,13 @@ export class AuthService {
         where: { username },
       });
       if (existingByUsername) {
-        throw new ConflictException('Username already exists');
+        throw new UnprocessableEntityException({
+          status: 422,
+          message: 'Username already exists',
+          violations: [
+            { property: 'username', error: 'Username already exists' },
+          ],
+        });
       }
     }
 
@@ -51,7 +63,11 @@ export class AuthService {
         where: { email },
       });
       if (existingByEmail) {
-        throw new ConflictException('Email already exists');
+        throw new UnprocessableEntityException({
+          status: 422,
+          message: 'Email already exists',
+          violations: [{ property: 'email', error: 'Email already exists' }],
+        });
       }
     }
 
@@ -80,7 +96,7 @@ export class AuthService {
       .getOne();
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new UnauthorizedException('User not found');
     }
 
     const isValidPassword = await this.verifyPassword(
@@ -104,6 +120,17 @@ export class AuthService {
 
   async verifyPassword(password: string, hash: string): Promise<boolean> {
     return bcrypt.compare(password, hash);
+  }
+
+  async getActiveUsers(): Promise<User[]> {
+    return this.usersRepository.find({
+      where: { isActive: true },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async findUserById(id: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { id } });
   }
 
   private generateLoginToken(): string {

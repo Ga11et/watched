@@ -84,7 +84,7 @@ describe('JwtService', () => {
       delete process.env.JWT_SECRET;
 
       expect(() => jwtService.generateToken(user)).toThrow(
-        'JWT secret is not configured',
+        'JWT_SECRET not configured',
       );
     });
 

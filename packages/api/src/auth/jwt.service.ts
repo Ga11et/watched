@@ -21,7 +21,7 @@ export class JwtService {
     const secret = process.env.JWT_SECRET;
 
     if (!secret) {
-      throw new Error('JWT secret is not configured');
+      throw new Error('JWT_SECRET not configured');
     }
 
     return secret;

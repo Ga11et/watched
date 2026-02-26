@@ -3,6 +3,8 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
+import 'dotenv/config';
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
@@ -27,14 +29,11 @@ async function bootstrap() {
     .setTitle('Watched API')
     .setDescription('API для управления списками контента')
     .setVersion('1.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-      },
-      'JWT-auth',
-    )
+    .addBearerAuth({
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+    })
     .addTag('books')
     .addTag('movies')
     .addTag('series')
