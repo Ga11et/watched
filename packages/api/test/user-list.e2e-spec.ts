@@ -453,8 +453,6 @@ const ADMIN_ID = '22222222-2222-4222-8222-222222222222';
 const VALID_ITEM_ID = '33333333-3333-4333-8333-333333333333';
 const PUBLIC_GUID = '44444444-4444-4444-8444-444444444444';
 
-jest.setTimeout(30000);
-
 describe('Step 4 auth protection (e2e)', () => {
   let app: INestApplication<App>;
   let originalJwtSecret: string | undefined;

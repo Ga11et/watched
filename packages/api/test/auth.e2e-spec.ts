@@ -20,6 +20,7 @@ import { randomUUID } from 'crypto';
 import { DataSource } from 'typeorm';
 import { AuthModule } from '../src/auth/auth.module';
 import { UserListsModule } from '../src/user-lists/user-lists.module';
+import { UsersModule } from '../src/users/users.module';
 import { AuthMiddleware } from '../src/auth/auth.middleware';
 import { AdminMiddleware } from '../src/auth/admin.middleware';
 import { JwtService } from '../src/auth/jwt.service';
@@ -86,6 +87,7 @@ const INACTIVE_USER_ID = '55555555-5555-4555-8555-555555555555';
       autoLoadEntities: true,
     }),
     AuthModule,
+    UsersModule,
     UserListsModule,
   ],
   controllers: [CatalogStubController],
@@ -97,6 +99,8 @@ class Step7FinalTestModule implements NestModule {
       .apply(AuthMiddleware)
       .forRoutes(
         { path: 'auth/me', method: RequestMethod.GET },
+        { path: 'users', method: RequestMethod.ALL },
+        { path: 'users/(.*)', method: RequestMethod.ALL },
         { path: 'user-books', method: RequestMethod.ALL },
         { path: 'user-books/(.*)', method: RequestMethod.ALL },
         { path: 'user-games', method: RequestMethod.ALL },
@@ -559,7 +563,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
       })
       .expect(201);
 
-    await request(app.getHttpServer())
+    const loginResponse = await request(app.getHttpServer())
       .post('/auth/login')
       .send({
         identifier: `   trim-${suffix}   `,
@@ -569,9 +573,10 @@ describe('Step 7 final authorization integration (e2e)', () => {
 
     const usersResponse = await request(app.getHttpServer())
       .get('/users')
+      .set('Authorization', `Bearer ${loginResponse.body.token as string}`)
       .expect(200);
 
-    const users = usersResponse.body.users as Array<{
+    const users = usersResponse.body as Array<{
       id: string;
       passwordHash?: string;
     }>;

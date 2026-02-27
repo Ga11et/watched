@@ -20,6 +20,7 @@ import { PublishersModule } from './publishers/publishers.module';
 import { DevelopersModule } from './developers/developers.module';
 import { UserListsModule } from './user-lists/user-lists.module';
 import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
 import { AuthMiddleware } from './auth/auth.middleware';
 import { AdminMiddleware } from './auth/admin.middleware';
 import { ApiExceptionFilter } from './auth/api-exception.filter';
@@ -49,6 +50,7 @@ import { ApiExceptionFilter } from './auth/api-exception.filter';
     PublishersModule,
     DevelopersModule,
     AuthModule,
+    UsersModule,
     UserListsModule,
   ],
   controllers: [AppController],
@@ -68,6 +70,8 @@ export class AppModule implements NestModule {
       .apply(AuthMiddleware)
       .forRoutes(
         { path: 'auth/me', method: RequestMethod.GET },
+        { path: 'users', method: RequestMethod.ALL },
+        { path: 'users/(.*)', method: RequestMethod.ALL },
         { path: 'user-books', method: RequestMethod.ALL },
         { path: 'user-books/(.*)', method: RequestMethod.ALL },
         { path: 'user-movies', method: RequestMethod.ALL },

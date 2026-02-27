@@ -6,6 +6,9 @@ export default defineNuxtConfig({
   devServer: {
     port: 33000,
   },
+  imports: {
+    dirs: ['utils/fetch/*'],
+  },
   modules: ['@nuxtjs/tailwindcss', '@vueuse/nuxt'],
   runtimeConfig: {
     public: {

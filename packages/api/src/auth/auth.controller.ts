@@ -20,7 +20,6 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { AuthUserDto } from './dto/auth-user.dto';
-import { UsersResponseDto } from './dto/users-response.dto';
 import { User } from '../users/entities/user.entity';
 
 interface AuthenticatedRequest {
@@ -29,7 +28,7 @@ interface AuthenticatedRequest {
   };
 }
 
-@ApiTags('auth', 'users')
+@ApiTags('auth')
 @Controller()
 export class AuthController {
   constructor(
@@ -59,16 +58,6 @@ export class AuthController {
     return {
       user: this.toAuthUserDto(result.user),
       token: this.jwtService.generateToken(result.user),
-    };
-  }
-
-  @Get('users')
-  @ApiOperation({ summary: 'Получение списка активных пользователей' })
-  @ApiResponse({ status: 200, type: UsersResponseDto })
-  async getActiveUsers(): Promise<UsersResponseDto> {
-    const users = await this.authService.getActiveUsers();
-    return {
-      users: users.map((user) => this.toAuthUserDto(user)),
     };
   }
 

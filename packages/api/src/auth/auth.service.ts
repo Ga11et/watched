@@ -122,13 +122,6 @@ export class AuthService {
     return bcrypt.compare(password, hash);
   }
 
-  async getActiveUsers(): Promise<User[]> {
-    return this.usersRepository.find({
-      where: { isActive: true },
-      order: { createdAt: 'DESC' },
-    });
-  }
-
   async findUserById(id: string): Promise<User | null> {
     return this.usersRepository.findOne({ where: { id } });
   }

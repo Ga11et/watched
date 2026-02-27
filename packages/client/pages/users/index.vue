@@ -10,26 +10,15 @@ interface User {
   updatedAt: string
 }
 
-interface UsersResponse {
-  users: User[]
-}
-
 const config = useRuntimeConfig()
-const error = ref('')
 
-const { data: users, pending } = await useAsyncData<User[]>(
-  'users-list',
-  async () => {
-    try {
-      error.value = ''
-      const response = await $fetch<UsersResponse>(`${config.public.apiBase}/users`)
-      return response.users ?? []
-    } catch {
-      error.value = 'Не удалось загрузить пользователей'
-      return []
-    }
-  },
-)
+const {
+  data: users,
+  pending,
+  error,
+} = await useAsyncData<User[]>('users-list', () => {
+  return _fetch<User[]>(`${config.public.apiBase}/users`)
+})
 
 const formatDate = (value: string): string => {
   return new Date(value).toLocaleDateString('ru-RU', {
@@ -64,7 +53,12 @@ const formatDate = (value: string): string => {
       Пользователей пока нет
     </div>
 
-    <TransitionGroup v-else name="cards-list" tag="div" class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+    <TransitionGroup
+      v-else
+      name="cards-list"
+      tag="div"
+      class="grid gap-5 md:grid-cols-2 xl:grid-cols-3"
+    >
       <article
         v-for="user in users"
         :key="user.id"
@@ -72,7 +66,11 @@ const formatDate = (value: string): string => {
       >
         <div class="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h3 class="text-lg font-semibold text-gray-900">{{ user.name }}</h3>
+            <h3 class="text-lg font-semibold text-gray-900">
+              <NuxtLink :to="`/users/${user.username || user.id}`" class="hover:text-indigo-700">
+                {{ user.name }}
+              </NuxtLink>
+            </h3>
             <p class="text-sm text-gray-500">@{{ user.username || 'no-username' }}</p>
           </div>
           <span
