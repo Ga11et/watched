@@ -203,7 +203,7 @@ const onSubmit = async () => {
       formData.append('cover', coverFile.value)
     }
 
-    await $fetch(`${config.public.apiBase}/games`, {
+    await _fetch(`${config.public.apiBase}/games`, {
       method: 'POST',
       body: formData,
     })

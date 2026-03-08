@@ -211,7 +211,7 @@ const loadGame = async () => {
   loading.value = true
   error.value = ''
   try {
-    const data = await $fetch<GameApiResponse>(`${config.public.apiBase}/games/${props.gameId}`)
+    const data = await _fetch<GameApiResponse>(`${config.public.apiBase}/games/${props.gameId}`)
     form.title = data.title || ''
     form.completionDate = data.completionDate ? String(data.completionDate).slice(0, 10) : ''
     form.playTimeHours = typeof data.playTimeHours === 'number' ? data.playTimeHours : undefined
@@ -293,7 +293,7 @@ const onSubmit = async () => {
       formData.append('removeCover', 'true')
     }
 
-    await $fetch(`${config.public.apiBase}/games/${props.gameId}`, {
+    await _fetch(`${config.public.apiBase}/games/${props.gameId}`, {
       method: 'PUT',
       body: formData,
     })
