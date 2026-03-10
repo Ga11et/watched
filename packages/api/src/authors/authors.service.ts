@@ -10,6 +10,7 @@ import { CreateAuthorDto } from './dto/create-author.dto';
 import { UpdateAuthorDto } from './dto/update-author.dto';
 import * as fs from 'fs';
 import * as path from 'path';
+import { isUuid } from '../common/utils/uuid.util';
 
 @Injectable()
 export class AuthorsService {
@@ -79,6 +80,10 @@ export class AuthorsService {
   }
 
   async findOne(id: string): Promise<Author> {
+    if (!isUuid(id)) {
+      throw new NotFoundException(`Автор с ID ${id} не найден`);
+    }
+
     const author = await this.authorsRepository.findOne({
       where: { id },
     });

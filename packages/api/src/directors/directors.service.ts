@@ -11,6 +11,7 @@ import { CreateDirectorDto } from './dto/create-director.dto';
 import { UpdateDirectorDto } from './dto/update-director.dto';
 import * as fs from 'fs';
 import * as path from 'path';
+import { isUuid } from '../common/utils/uuid.util';
 
 @Injectable()
 export class DirectorsService {
@@ -87,6 +88,10 @@ export class DirectorsService {
   }
 
   async findOne(id: string): Promise<Director> {
+    if (!isUuid(id)) {
+      throw new NotFoundException(`Режиссёр с ID ${id} не найден`);
+    }
+
     const director = await this.directorsRepository.findOne({ where: { id } });
     if (!director) {
       throw new NotFoundException(`Режиссёр с ID ${id} не найден`);

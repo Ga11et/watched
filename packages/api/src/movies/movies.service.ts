@@ -10,6 +10,7 @@ import { CreateMovieDto } from './dto/create-movie.dto';
 import { UpdateMovieDto } from './dto/update-movie.dto';
 import * as fs from 'fs';
 import * as path from 'path';
+import { isUuid } from '../common/utils/uuid.util';
 
 @Injectable()
 export class MoviesService {
@@ -108,6 +109,10 @@ export class MoviesService {
   }
 
   async findOne(id: string): Promise<Movie> {
+    if (!isUuid(id)) {
+      throw new NotFoundException(`Фильм с ID ${id} не найден`);
+    }
+
     const movie = await this.moviesRepository.findOne({ where: { id } });
     if (!movie) {
       throw new NotFoundException(`Фильм с ID ${id} не найден`);

@@ -12,6 +12,7 @@ import { Publisher } from '../publishers/entities/publisher.entity';
 import { Developer } from '../developers/entities/developer.entity';
 import * as fs from 'fs';
 import * as path from 'path';
+import { isUuid } from '../common/utils/uuid.util';
 
 @Injectable()
 export class GamesService {
@@ -107,6 +108,10 @@ export class GamesService {
   }
 
   async findOne(id: string): Promise<Game> {
+    if (!isUuid(id)) {
+      throw new NotFoundException(`Игра с ID ${id} не найдена`);
+    }
+
     const game = await this.gamesRepository.findOne({
       where: { id },
       relations: {

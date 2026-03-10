@@ -10,6 +10,7 @@ import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
 import * as fs from 'fs';
 import * as path from 'path';
+import { isUuid } from '../common/utils/uuid.util';
 
 @Injectable()
 export class BooksService {
@@ -109,6 +110,9 @@ export class BooksService {
   }
 
   async findOne(id: string): Promise<Book> {
+    if (!isUuid(id)) {
+      throw new NotFoundException(`Книга с ID ${id} не найдена`);
+    }
     const book = await this.booksRepository
       .createQueryBuilder('book')
       .leftJoinAndSelect('book.author', 'author')

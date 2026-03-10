@@ -11,6 +11,7 @@ import { Developer } from './entities/developer.entity';
 import { CreateDeveloperDto } from './dto/create-developer.dto';
 import { UpdateDeveloperDto } from './dto/update-developer.dto';
 import { Game } from '../games/entities/game.entity';
+import { isUuid } from '../common/utils/uuid.util';
 
 @Injectable()
 export class DevelopersService {
@@ -89,6 +90,10 @@ export class DevelopersService {
   }
 
   async findOne(id: string): Promise<Developer> {
+    if (!isUuid(id)) {
+      throw new NotFoundException(`Разработчик с ID ${id} не найден`);
+    }
+
     const developer = await this.developersRepository.findOne({
       where: { id },
       relations: {

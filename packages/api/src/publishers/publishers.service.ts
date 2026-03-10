@@ -11,6 +11,7 @@ import { Publisher } from './entities/publisher.entity';
 import { CreatePublisherDto } from './dto/create-publisher.dto';
 import { UpdatePublisherDto } from './dto/update-publisher.dto';
 import { Game } from '../games/entities/game.entity';
+import { isUuid } from '../common/utils/uuid.util';
 
 @Injectable()
 export class PublishersService {
@@ -92,6 +93,10 @@ export class PublishersService {
   }
 
   async findOne(id: string): Promise<Publisher> {
+    if (!isUuid(id)) {
+      throw new NotFoundException(`Издатель с ID ${id} не найден`);
+    }
+
     const publisher = await this.publishersRepository.findOne({
       where: { id },
       relations: {

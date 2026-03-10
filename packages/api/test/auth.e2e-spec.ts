@@ -101,6 +101,22 @@ class Step7FinalTestModule implements NestModule {
         { path: 'auth/me', method: RequestMethod.GET },
         { path: 'users', method: RequestMethod.ALL },
         { path: 'users/(.*)', method: RequestMethod.ALL },
+        { path: 'books', method: RequestMethod.GET },
+        { path: 'books/(.*)', method: RequestMethod.GET },
+        { path: 'movies', method: RequestMethod.GET },
+        { path: 'movies/(.*)', method: RequestMethod.GET },
+        { path: 'series', method: RequestMethod.GET },
+        { path: 'series/(.*)', method: RequestMethod.GET },
+        { path: 'games', method: RequestMethod.GET },
+        { path: 'games/(.*)', method: RequestMethod.GET },
+        { path: 'authors', method: RequestMethod.GET },
+        { path: 'authors/(.*)', method: RequestMethod.GET },
+        { path: 'directors', method: RequestMethod.GET },
+        { path: 'directors/(.*)', method: RequestMethod.GET },
+        { path: 'publishers', method: RequestMethod.GET },
+        { path: 'publishers/(.*)', method: RequestMethod.GET },
+        { path: 'developers', method: RequestMethod.GET },
+        { path: 'developers/(.*)', method: RequestMethod.GET },
         { path: 'user-books', method: RequestMethod.ALL },
         { path: 'user-books/(.*)', method: RequestMethod.ALL },
         { path: 'user-games', method: RequestMethod.ALL },
@@ -448,22 +464,19 @@ describe('Step 7 final authorization integration (e2e)', () => {
       });
   });
 
-  it('keeps catalog GET endpoints public, with and without invalid Authorization header', async () => {
-    const publicCatalogRoutes = [
+  it('catalog GET endpoints require auth (no public catalog)', async () => {
+    const catalogRoutes = [
       '/books',
       '/movies',
       '/series',
       '/games',
       '/authors',
       '/directors',
+      '/publishers',
+      '/developers',
     ];
-
-    for (const route of publicCatalogRoutes) {
-      await request(app.getHttpServer()).get(route).expect(200);
-      await request(app.getHttpServer())
-        .get(route)
-        .set('Authorization', 'Bearer invalid-token')
-        .expect(200);
+    for (const route of catalogRoutes) {
+      await request(app.getHttpServer()).get(route).expect(401);
     }
   });
 

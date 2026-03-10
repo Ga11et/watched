@@ -12,5 +12,19 @@ services:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+
+  test-db:
+    image: postgres:16-alpine
+    container_name: watched_postgres_test
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: watched
+      POSTGRES_PASSWORD: watched
+      POSTGRES_DB: watched_test
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata_test:/var/lib/postgresql/data
 volumes:
   pgdata:
+  pgdata_test:

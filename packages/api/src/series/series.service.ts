@@ -10,6 +10,7 @@ import { CreateSeriesDto } from './dto/create-series.dto';
 import { UpdateSeriesDto } from './dto/update-series.dto';
 import * as fs from 'fs';
 import * as path from 'path';
+import { isUuid } from '../common/utils/uuid.util';
 
 @Injectable()
 export class SeriesService {
@@ -114,6 +115,10 @@ export class SeriesService {
   }
 
   async findOne(id: string): Promise<Series> {
+    if (!isUuid(id)) {
+      throw new NotFoundException(`Сериал с ID ${id} не найден`);
+    }
+
     const series = await this.seriesRepository.findOne({ where: { id } });
     if (!series) {
       throw new NotFoundException(`Сериал с ID ${id} не найден`);

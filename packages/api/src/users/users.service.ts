@@ -13,6 +13,7 @@ import {
   AdminUpdateUserDto,
   ChangeUserRoleDto,
 } from './dto/update-user.dto';
+import { isUuid } from '../common/utils/uuid.util';
 
 @Injectable()
 export class UsersService {
@@ -34,14 +35,8 @@ export class UsersService {
     };
   }
 
-  private isUuid(value: string): boolean {
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(value);
-  }
-
   async getUserByIdentifier(identifier: string): Promise<User | null> {
-    if (this.isUuid(identifier)) {
+    if (isUuid(identifier)) {
       return this.usersRepository.findOne({
         where: { id: identifier },
       });
