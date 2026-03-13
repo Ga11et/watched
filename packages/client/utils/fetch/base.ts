@@ -2,7 +2,7 @@ export interface RequestOptions {
   headers?: RequestOptionsHeaders
   method?: 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'GET'
   body?: string | object | FormData
-  query?: RequestOptionsQuery
+  params?: RequestOptionsQuery
 }
 export type RequestOptionsQuery = Record<string, unknown> | undefined
 export type RequestOptionsHeaders = Record<string, string>

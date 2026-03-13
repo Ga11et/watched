@@ -129,7 +129,7 @@ const { data: movies } = await useAsyncData<Movie[]>(
   async () => {
     try {
       error.value = ''
-      return await $fetch<Movie[]>(`${config.public.apiBase}/movies`, {
+      return await _fetch<Movie[]>(`${config.public.apiBase}/movies`, {
         params: {
           sortBy: sortBy.value,
           sortOrder: sortOrder.value,

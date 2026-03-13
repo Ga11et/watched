@@ -87,7 +87,7 @@ const { data: books, pending: loading } = await useAsyncData<Book[]>(
   async () => {
     try {
       error.value = ''
-      return await $fetch<Book[]>(`${config.public.apiBase}/books`, {
+      return await _fetch<Book[]>(`${config.public.apiBase}/books`, {
         params: {
           sortBy: sortBy.value,
           sortOrder: sortOrder.value,
@@ -120,13 +120,6 @@ const filteredBooks = computed(() => {
     return title.includes(query) || author.includes(query)
   })
 })
-
-const sortOptions = [
-  { value: 'title', label: 'Название' },
-  { value: 'publishedYear', label: 'Год издания' },
-  { value: 'pages', label: 'Страниц' },
-  { value: 'createdAt', label: 'Дата добавления' },
-]
 
 // 5. Методы
 const updateSorting = (newSortBy: string): void => {

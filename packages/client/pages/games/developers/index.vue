@@ -85,7 +85,7 @@ const { data: developers, pending: loading } = await useAsyncData<Developer[]>(
   async () => {
     try {
       error.value = ''
-      return await $fetch<Developer[]>(`${config.public.apiBase}/developers`, {
+      return await _fetch<Developer[]>(`${config.public.apiBase}/developers`, {
         params: {
           sortBy: sortBy.value,
           sortOrder: sortOrder.value,

@@ -164,7 +164,7 @@ const onSubmit = async () => {
 
     const payload = preparePayload()
 
-    await $fetch(`${config.public.apiBase}/developers`, {
+    await _fetch(`${config.public.apiBase}/developers`, {
       method: 'POST',
       body: payload,
     })

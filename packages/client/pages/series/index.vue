@@ -107,7 +107,7 @@ const { data: series } = await useAsyncData(
   async () => {
     try {
       error.value = ''
-      return await $fetch(`${config.public.apiBase}/series`, {
+      return await _fetch(`${config.public.apiBase}/series`, {
         params: {
           sortBy: sortBy.value,
           sortOrder: sortOrder.value,

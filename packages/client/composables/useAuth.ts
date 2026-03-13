@@ -79,7 +79,7 @@ export const useAuth = () => {
     }
 
     try {
-      const me = await $fetch<AuthUser>(`${config.public.apiBase}/auth/me`, {
+      const me = await _fetch<AuthUser>(`${config.public.apiBase}/auth/me`, {
         headers: {
           Authorization: `Bearer ${token.value}`,
         },
@@ -103,7 +103,7 @@ export const useAuth = () => {
   }
 
   const login = async (payload: LoginPayload) => {
-    const response = await $fetch<AuthResponse>(`${config.public.apiBase}/auth/login`, {
+    const response = await _fetch<AuthResponse>(`${config.public.apiBase}/auth/login`, {
       method: 'POST',
       body: payload,
     })
@@ -113,7 +113,7 @@ export const useAuth = () => {
   }
 
   const register = async (payload: RegisterPayload) => {
-    const response = await $fetch<AuthResponse>(`${config.public.apiBase}/auth/register`, {
+    const response = await _fetch<AuthResponse>(`${config.public.apiBase}/auth/register`, {
       method: 'POST',
       body: payload,
     })

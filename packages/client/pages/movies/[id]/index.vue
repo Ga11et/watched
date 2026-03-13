@@ -181,14 +181,14 @@ interface Director {
 }
 
 const { data: movie, pending } = await useAsyncData(`movie-${route.params.id}`, async () => {
-  return await $fetch<Movie>(`${config.public.apiBase}/movies/${route.params.id}`)
+  return await _fetch<Movie>(`${config.public.apiBase}/movies/${route.params.id}`)
 })
 
 const { data: director } = await useAsyncData(
   `movie-director-${route.params.id}`,
   async () => {
     if (!movie.value?.directorId) return
-    return $fetch<Director>(`${config.public.apiBase}/directors/${movie.value.directorId}`)
+    return _fetch<Director>(`${config.public.apiBase}/directors/${movie.value.directorId}`)
   },
   { watch: [movie] },
 )
@@ -198,7 +198,7 @@ const onDelete = async () => {
   if (!confirm('Удалить этот фильм? Это действие нельзя отменить.')) return
   deleting.value = true
   try {
-    await $fetch(`${config.public.apiBase}/movies/${route.params.id}`, { method: 'DELETE' })
+    await _fetch(`${config.public.apiBase}/movies/${route.params.id}`, { method: 'DELETE' })
     router.push('/movies')
   } catch (e: any) {
     error.value = e?.data?.message || 'Не удалось удалить фильм'

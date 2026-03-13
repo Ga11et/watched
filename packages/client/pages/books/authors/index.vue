@@ -88,7 +88,7 @@ const { data: authors, pending: loading } = await useAsyncData<Author[]>(
   async () => {
     try {
       error.value = ''
-      return await $fetch<Author[]>(`${config.public.apiBase}/authors`, {
+      return await _fetch<Author[]>(`${config.public.apiBase}/authors`, {
         params: {
           sortBy: sortBy.value,
           sortOrder: sortOrder.value,

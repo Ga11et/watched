@@ -171,7 +171,7 @@ const onSubmit = async () => {
       formData.append('photo', photoFile.value)
     }
 
-    await $fetch(`${config.public.apiBase}/directors`, {
+    await _fetch(`${config.public.apiBase}/directors`, {
       method: 'POST',
       body: formData,
     })

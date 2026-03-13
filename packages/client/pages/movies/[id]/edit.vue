@@ -292,7 +292,7 @@ const { data: directors } = await useAsyncData<{ id: string; fullName: string }[
   'directors-list-edit',
   async () => {
     try {
-      return await $fetch(`${config.public.apiBase}/directors`)
+      return await _fetch(`${config.public.apiBase}/directors`)
     } catch {
       return []
     }
@@ -304,7 +304,7 @@ const { data: movie, pending } = await useAsyncData(
   async () => {
     try {
       loadError.value = ''
-      const data = await $fetch<{
+      const data = await _fetch<{
         id: string
         title: string
         genre?: string | null
@@ -364,7 +364,7 @@ const loadFromTmdb = async () => {
   tmdbError.value = ''
 
   try {
-    const response = await $fetch<TmdbSearchResponse>(`https://api.themoviedb.org/3/search/movie`, {
+    const response = await _fetch<TmdbSearchResponse>(`https://api.themoviedb.org/3/search/movie`, {
       params: {
         api_key: config.public.tmdbApiKey,
         query: form.value.title.trim(),
@@ -382,7 +382,7 @@ const loadFromTmdb = async () => {
       }
       if (movie.genre_ids && movie.genre_ids.length > 0) {
         try {
-          const genresResponse = await $fetch<TmdbGenresResponse>(
+          const genresResponse = await _fetch<TmdbGenresResponse>(
             `https://api.themoviedb.org/3/genre/movie/list`,
             {
               params: {
@@ -462,7 +462,7 @@ const onSubmit = async () => {
       formData.append('removePoster', 'true')
     }
 
-    await $fetch(`${config.public.apiBase}/movies/${route.params.id}`, {
+    await _fetch(`${config.public.apiBase}/movies/${route.params.id}`, {
       method: 'PUT',
       body: formData,
     })

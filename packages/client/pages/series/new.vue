@@ -304,7 +304,7 @@ watch(tmdbSeries, async (newSeries) => {
     // Fetch genres from TMDB
     if (newSeries.genre_ids && newSeries.genre_ids.length > 0) {
       try {
-        const response = await $fetch<{ genres: { id: number; name: string }[] }>(
+        const response = await _fetch<{ genres: { id: number; name: string }[] }>(
           `https://api.themoviedb.org/3/genre/tv/list`,
           {
             params: {
@@ -398,7 +398,7 @@ const onSubmit = async () => {
       formData.append('poster', posterFile.value)
     }
 
-    await $fetch(`${config.public.apiBase}/series`, {
+    await _fetch(`${config.public.apiBase}/series`, {
       method: 'POST',
       body: formData,
     })

@@ -84,7 +84,7 @@ const syncSelectedOptions = async (ids?: string[]) => {
     resolvingSelected.value = true
     try {
       const loadedItems = await Promise.all(
-        missingIds.map((id) => $fetch<Developer>(`${config.public.apiBase}/developers/${id}`)),
+        missingIds.map((id) => _fetch<Developer>(`${config.public.apiBase}/developers/${id}`)),
       )
 
       loadedItems.forEach((developer) => {
@@ -128,7 +128,7 @@ watch(searchQuery, (query) => {
 
   searchTimeout = setTimeout(async () => {
     try {
-      const results = await $fetch<Developer[]>(`${config.public.apiBase}/developers/search`, {
+      const results = await _fetch<Developer[]>(`${config.public.apiBase}/developers/search`, {
         params: { q: query.trim() },
       })
 

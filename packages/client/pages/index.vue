@@ -9,18 +9,18 @@ const {
 } = await useAsyncData('dashboard', async () => {
   try {
     const [moviesResponse, gamesResponse, booksResponse, seriesResponse] = await Promise.all([
-      $fetch(`${config.public.apiBase}/movies?limit=5`),
-      $fetch(`${config.public.apiBase}/games?limit=5`),
-      $fetch(`${config.public.apiBase}/books?limit=5`),
-      $fetch(`${config.public.apiBase}/series?limit=5`),
+      _fetch(`${config.public.apiBase}/movies?limit=5`),
+      _fetch(`${config.public.apiBase}/games?limit=5`),
+      _fetch(`${config.public.apiBase}/books?limit=5`),
+      _fetch(`${config.public.apiBase}/series?limit=5`),
     ])
 
     // Calculate statistics
     const [allMovies, allGames, allBooks, allSeries] = await Promise.all([
-      $fetch(`${config.public.apiBase}/movies/stats`),
-      $fetch(`${config.public.apiBase}/games/stats`),
-      $fetch(`${config.public.apiBase}/books/stats`),
-      $fetch(`${config.public.apiBase}/series/stats`),
+      _fetch(`${config.public.apiBase}/movies/stats`),
+      _fetch(`${config.public.apiBase}/games/stats`),
+      _fetch(`${config.public.apiBase}/books/stats`),
+      _fetch(`${config.public.apiBase}/series/stats`),
     ])
 
     return {

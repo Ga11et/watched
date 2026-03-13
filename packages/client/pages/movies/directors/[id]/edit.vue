@@ -146,7 +146,7 @@ const { data: director, pending } = await useAsyncData(
   async () => {
     try {
       loadError.value = ''
-      const data = await $fetch<{
+      const data = await _fetch<{
         id: string
         fullName: string
         comment?: string | null
@@ -194,7 +194,7 @@ const onSubmit = async () => {
       formData.append('removePhoto', 'true')
     }
 
-    await $fetch(`${config.public.apiBase}/directors/${route.params.id}`, {
+    await _fetch(`${config.public.apiBase}/directors/${route.params.id}`, {
       method: 'PUT',
       body: formData,
     })

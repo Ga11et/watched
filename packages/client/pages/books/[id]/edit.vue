@@ -259,7 +259,7 @@ const authorOptions = computed(() => [
 
 const { data: authors } = await useAsyncData<Author[]>('authors-list-edit', async () => {
   try {
-    return await $fetch(`${config.public.apiBase}/authors`)
+    return await _fetch(`${config.public.apiBase}/authors`)
   } catch {
     return []
   }
@@ -270,7 +270,7 @@ const { data: book, pending } = await useAsyncData(
   async () => {
     try {
       loadError.value = ''
-      const data = await $fetch<Book>(`${config.public.apiBase}/books/${route.params.id}`)
+      const data = await _fetch<Book>(`${config.public.apiBase}/books/${route.params.id}`)
 
       form.value.title = data.title || ''
       form.value.authorId = data.author?.id || ''
@@ -338,7 +338,7 @@ const onSubmit = async () => {
       formData.append('removeCover', 'true')
     }
 
-    await $fetch(`${config.public.apiBase}/books/${route.params.id}`, {
+    await _fetch(`${config.public.apiBase}/books/${route.params.id}`, {
       method: 'PUT',
       body: formData,
     })

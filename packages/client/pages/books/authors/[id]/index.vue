@@ -140,7 +140,7 @@ interface Author {
 }
 
 const { data: author, pending } = await useAsyncData(`author-${route.params.id}`, async () => {
-  return await $fetch<Author>(`${config.public.apiBase}/authors/${route.params.id}`)
+  return await _fetch<Author>(`${config.public.apiBase}/authors/${route.params.id}`)
 })
 
 const onDelete = async () => {
@@ -148,7 +148,7 @@ const onDelete = async () => {
   if (!confirm('Удалить этого автора? Это действие нельзя отменить.')) return
   deleting.value = true
   try {
-    await $fetch(`${config.public.apiBase}/authors/${route.params.id}`, { method: 'DELETE' })
+    await _fetch(`${config.public.apiBase}/authors/${route.params.id}`, { method: 'DELETE' })
     router.push('/books/authors')
   } catch (e: any) {
     error.value = e?.data?.message || 'Не удалось удалить автора'

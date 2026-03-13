@@ -114,7 +114,7 @@ interface Publisher {
 const { data: publisher, pending } = await useAsyncData(
   `publisher-${route.params.id}`,
   async () => {
-    return await $fetch<Publisher>(
+    return await _fetch<Publisher>(
       `${useRuntimeConfig().public.apiBase}/publishers/${route.params.id}`,
     )
   },
@@ -125,7 +125,7 @@ const onDelete = async () => {
   if (!confirm('Удалить этого издателя? Это действие нельзя отменить.')) return
   deleting.value = true
   try {
-    await $fetch(`${useRuntimeConfig().public.apiBase}/publishers/${route.params.id}`, {
+    await _fetch(`${useRuntimeConfig().public.apiBase}/publishers/${route.params.id}`, {
       method: 'DELETE',
     })
     router.push('/games/publishers')

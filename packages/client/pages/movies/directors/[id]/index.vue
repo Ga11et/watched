@@ -145,7 +145,7 @@ const deleting = ref(false)
 const { data: director, pending } = await useAsyncData(`director-${route.params.id}`, async () => {
   try {
     error.value = ''
-    return await $fetch(`${config.public.apiBase}/directors/${route.params.id}`)
+    return await _fetch(`${config.public.apiBase}/directors/${route.params.id}`)
   } catch (e) {
     error.value = e?.data?.message || 'Не удалось загрузить режиссёра'
     return null
@@ -156,7 +156,7 @@ const { data: directorMovies } = await useAsyncData(
   `director-movies-${route.params.id}`,
   async () => {
     try {
-      return await $fetch(`${config.public.apiBase}/movies`, {
+      return await _fetch(`${config.public.apiBase}/movies`, {
         params: { directorId: route.params.id },
       })
     } catch {
@@ -170,7 +170,7 @@ const onDelete = async () => {
   if (!confirm('Удалить этого режиссёра? Это действие нельзя отменить.')) return
   deleting.value = true
   try {
-    await $fetch(`${config.public.apiBase}/directors/${route.params.id}`, { method: 'DELETE' })
+    await _fetch(`${config.public.apiBase}/directors/${route.params.id}`, { method: 'DELETE' })
     router.push('/movies/directors')
   } catch (e) {
     error.value = e?.data?.message || 'Не удалось удалить режиссёра'

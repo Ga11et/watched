@@ -85,7 +85,7 @@ const { data: publishers, pending: loading } = await useAsyncData<Publisher[]>(
   async () => {
     try {
       error.value = ''
-      return await $fetch<Publisher[]>(`${config.public.apiBase}/publishers`, {
+      return await _fetch<Publisher[]>(`${config.public.apiBase}/publishers`, {
         params: {
           sortBy: sortBy.value,
           sortOrder: sortOrder.value,

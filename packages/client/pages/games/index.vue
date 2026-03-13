@@ -58,9 +58,13 @@
       </div>
     </div>
 
-    <div v-if="!games?.length" class="text-center py-12 text-gray-500">
-      Игр пока нет. Добавьте свою первую игру, чтобы начать!
+    <div v-if="loading" class="text-center py-8">
+      <div
+        class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"
+      ></div>
     </div>
+
+    <UiEmpty v-else-if="!games?.length" entity-name="игра" />
 
     <Transition name="fade" mode="out-in">
       <EntitiesGamesCardsView
@@ -83,7 +87,11 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { Game } from '~/types/api'
+
+const config = useRuntimeConfig()
+
 const error = ref('')
 
 const viewMode = useCookie('watched_view_mode', {
@@ -96,16 +104,33 @@ const sortBy = useCookie('watched_sort_by', {
   sameSite: 'lax',
 })
 
-const sortOrder = useCookie('watched_sort_order', {
+const sortOrder = useCookie<'DESC' | 'ASC'>('watched_sort_order', {
   default: () => 'DESC',
   sameSite: 'lax',
 })
 
 const searchQuery = ref('')
 
-const { data: games, refresh } = await useFetch(`${useRuntimeConfig().public.apiBase}/games`, {
-  query: { sortBy, sortOrder },
-})
+const { data: games, pending: loading } = await useAsyncData<Game[]>(
+  'books',
+  async () => {
+    try {
+      error.value = ''
+      return await _fetch<Game[]>(`${config.public.apiBase}/games`, {
+        params: {
+          sortBy: sortBy.value,
+          sortOrder: sortOrder.value,
+        },
+      })
+    } catch {
+      error.value = 'Не удалось загрузить книги'
+      return []
+    }
+  },
+  {
+    watch: [sortBy, sortOrder],
+  },
+)
 
 const filteredGames = computed(() => {
   const list = games.value || []
@@ -118,17 +143,16 @@ const filteredGames = computed(() => {
   return list.filter((game) => game.title?.toLowerCase().includes(query))
 })
 
-const updateSorting = (newSortBy) => {
+const updateSorting = (newSortBy: string) => {
   if (sortBy.value === newSortBy) {
     sortOrder.value = sortOrder.value === 'ASC' ? 'DESC' : 'ASC'
   } else {
     sortBy.value = newSortBy
     sortOrder.value = 'ASC'
   }
-  refresh()
 }
 
-const updateSearchQuery = (value) => {
+const updateSearchQuery = (value: string) => {
   searchQuery.value = value
 }
 

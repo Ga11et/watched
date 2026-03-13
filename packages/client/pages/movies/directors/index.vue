@@ -96,7 +96,7 @@ const { data: directors } = await useAsyncData<Director[]>(
   async () => {
     try {
       error.value = ''
-      return await $fetch<Director[]>(`${useRuntimeConfig().public.apiBase}/directors`, {
+      return await _fetch<Director[]>(`${useRuntimeConfig().public.apiBase}/directors`, {
         params: {
           sortBy: sortBy.value,
           sortOrder: sortOrder.value,

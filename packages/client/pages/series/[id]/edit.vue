@@ -325,7 +325,7 @@ const { data: series, pending } = await useAsyncData(
   async () => {
     try {
       loadError.value = ''
-      const data = await $fetch<{
+      const data = await _fetch<{
         id: string
         title: string
         genres?: string | null
@@ -409,7 +409,7 @@ const onSubmit = async () => {
       formData.append('removePoster', 'true')
     }
 
-    await $fetch(`${config.public.apiBase}/series/${route.params.id}`, {
+    await _fetch(`${config.public.apiBase}/series/${route.params.id}`, {
       method: 'PUT',
       body: formData,
     })
@@ -462,7 +462,7 @@ const loadFromTmdb = async () => {
   tmdbError.value = ''
 
   try {
-    const response = await $fetch<TmdbSearchResponse>(`https://api.themoviedb.org/3/search/tv`, {
+    const response = await _fetch<TmdbSearchResponse>(`https://api.themoviedb.org/3/search/tv`, {
       params: {
         api_key: config.public.tmdbApiKey,
         query: form.value.title.trim(),
@@ -481,7 +481,7 @@ const loadFromTmdb = async () => {
       // Fetch genres from TMDB
       if (series.genre_ids && series.genre_ids.length > 0) {
         try {
-          const genresResponse = await $fetch<TmdbGenresResponse>(
+          const genresResponse = await _fetch<TmdbGenresResponse>(
             `https://api.themoviedb.org/3/genre/tv/list`,
             {
               params: {

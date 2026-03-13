@@ -83,7 +83,7 @@ const error = ref('')
 const { data, pending, refresh } = await useAsyncData('game-show', async () => {
   error.value = ''
   try {
-    const res = await $fetch(`${config.public.apiBase}/games/${route.params.id}`)
+    const res = await _fetch(`${config.public.apiBase}/games/${route.params.id}`)
     return res as any
   } catch (e: any) {
     error.value = e?.data?.message || e?.message || 'Не удалось загрузить игру'
@@ -98,7 +98,7 @@ const onDelete = async () => {
   if (!confirm('Удалить эту игру? Это действие нельзя отменить.')) return
   deleting.value = true
   try {
-    await $fetch(`${config.public.apiBase}/games/${route.params.id}`, { method: 'DELETE' })
+    await _fetch(`${config.public.apiBase}/games/${route.params.id}`, { method: 'DELETE' })
     router.push('/')
   } catch (e: any) {
     error.value = e?.data?.message || e?.message || 'Не удалось удалить игру'
