@@ -64,7 +64,7 @@
       ></div>
     </div>
 
-    <UiEmpty v-else-if="!games?.length" entity-name="игра" />
+    <UiEmpty v-else-if="!games?.length" message="Игр пока нет. Добавьте свою первую игру!" />
 
     <Transition name="fade" mode="out-in">
       <EntitiesGamesCardsView
@@ -112,7 +112,7 @@ const sortOrder = useCookie<'DESC' | 'ASC'>('watched_sort_order', {
 const searchQuery = ref('')
 
 const { data: games, pending: loading } = await useAsyncData<Game[]>(
-  'books',
+  'games',
   async () => {
     try {
       error.value = ''

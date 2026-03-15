@@ -7,10 +7,11 @@ import { UserBook } from './entities/user-book.entity';
 import { UserMovie } from './entities/user-movie.entity';
 import { UserSeries } from './entities/user-series.entity';
 import { UserGame } from './entities/user-game.entity';
+import { Book } from '../books/entities/book.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserBook, UserMovie, UserSeries, UserGame]),
+    TypeOrmModule.forFeature([UserBook, UserMovie, UserSeries, UserGame, Book]),
   ],
   controllers: [UserListsController],
   providers: [UserListsService, RolesGuard],

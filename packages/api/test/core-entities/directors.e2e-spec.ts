@@ -1,5 +1,5 @@
 /**
- * E2E тесты модуля series.
+ * E2E тесты модуля directors.
  * Публичных эндпоинтов нет: все GET защищены как минимум ролью GUEST.
  */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
@@ -17,14 +17,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import request from 'supertest';
 import { Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { User, UserRole } from '../src/users/entities/user.entity';
-import { Series } from '../src/series/entities/series.entity';
-import { JwtService } from '../src/auth/jwt.service';
-import { AuthMiddleware } from '../src/auth/auth.middleware';
-import { AdminMiddleware } from '../src/auth/admin.middleware';
-import { AuthModule } from '../src/auth/auth.module';
-import { UsersModule } from '../src/users/users.module';
-import { SeriesModule } from '../src/series/series.module';
+import { User, UserRole } from '../../src/users/entities/user.entity';
+import { Director } from '../../src/directors/entities/director.entity';
+import { JwtService } from '../../src/auth/jwt.service';
+import { AuthMiddleware } from '../../src/auth/auth.middleware';
+import { AdminMiddleware } from '../../src/auth/admin.middleware';
+import { AuthModule } from '../../src/auth/auth.module';
+import { UsersModule } from '../../src/users/users.module';
+import { DirectorsModule } from '../../src/directors/directors.module';
 import { DataSource } from 'typeorm';
 
 const TEST_DB_NAME = 'watched_test';
@@ -46,41 +46,41 @@ const e2eDbConfig = {
     TypeOrmModule.forRoot(e2eDbConfig),
     AuthModule,
     UsersModule,
-    SeriesModule,
+    DirectorsModule,
   ],
   providers: [AuthMiddleware, AdminMiddleware],
 })
-class SeriesE2ETestModule implements NestModule {
+class DirectorsE2ETestModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
     consumer
       .apply(AuthMiddleware)
       .forRoutes(
-        { path: 'series', method: RequestMethod.GET },
-        { path: 'series/(.*)', method: RequestMethod.GET },
+        { path: 'directors', method: RequestMethod.GET },
+        { path: 'directors/(.*)', method: RequestMethod.GET },
       );
     consumer
       .apply(AuthMiddleware, AdminMiddleware)
       .forRoutes(
-        { path: 'series', method: RequestMethod.POST },
-        { path: 'series/:id', method: RequestMethod.PUT },
-        { path: 'series/:id', method: RequestMethod.DELETE },
+        { path: 'directors', method: RequestMethod.POST },
+        { path: 'directors/:id', method: RequestMethod.PUT },
+        { path: 'directors/:id', method: RequestMethod.DELETE },
       );
   }
 }
 
-describe('Series Module E2E Tests', () => {
+describe('Directors Module E2E Tests', () => {
   let app: INestApplication;
   let usersRepository: Repository<User>;
-  let seriesRepository: Repository<Series>;
+  let directorsRepository: Repository<Director>;
   let jwtService: JwtService;
 
   let adminToken: string;
   let userToken: string;
   let guestToken: string;
-  let testSeries: Series;
+  let testDirector: Director;
 
   beforeAll(async () => {
-    process.env.JWT_SECRET = 'test-secret-series-e2e';
+    process.env.JWT_SECRET = 'test-secret-directors-e2e';
     jest.setTimeout(20000);
 
     if (e2eDbConfig.database !== TEST_DB_NAME) {
@@ -90,7 +90,7 @@ describe('Series Module E2E Tests', () => {
     }
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [SeriesE2ETestModule],
+      imports: [DirectorsE2ETestModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
@@ -115,7 +115,7 @@ describe('Series Module E2E Tests', () => {
     }
 
     usersRepository = moduleFixture.get(getRepositoryToken(User));
-    seriesRepository = moduleFixture.get(getRepositoryToken(Series));
+    directorsRepository = moduleFixture.get(getRepositoryToken(Director));
     jwtService = moduleFixture.get(JwtService);
 
     const [adminUser, plainUser, guestUser] = [
@@ -153,17 +153,13 @@ describe('Series Module E2E Tests', () => {
     userToken = jwtService.generateToken(plainUser);
     guestToken = jwtService.generateToken(guestUser);
 
-    testSeries = seriesRepository.create({
-      id: '770e8400-e29b-41d4-a716-446655440001',
-      title: 'Во все тяжкие',
-      genres: 'Драма',
-      rating: 9.5,
-      totalSeasons: 5,
-      watchedSeasons: 5,
-      comment: 'Классика',
-      poster: null,
+    testDirector = directorsRepository.create({
+      id: '660e8400-e29b-41d4-a716-446655440001',
+      fullName: 'Квентин Тарантино',
+      comment: null,
+      photo: null,
     });
-    await seriesRepository.save(testSeries);
+    await directorsRepository.save(testDirector);
   });
 
   afterAll(async () => {
@@ -171,98 +167,92 @@ describe('Series Module E2E Tests', () => {
   });
 
   describe('Доступ по ролям: GET (только для авторизованных)', () => {
-    it('GET /series без токена возвращает 401', () => {
-      return request(app.getHttpServer()).get('/series').expect(401);
+    it('GET /directors без токена возвращает 401', () => {
+      return request(app.getHttpServer()).get('/directors').expect(401);
     });
 
-    it('GET /series/stats без токена возвращает 401', () => {
-      return request(app.getHttpServer()).get('/series/stats').expect(401);
+    it('GET /directors/stats без токена возвращает 401', () => {
+      return request(app.getHttpServer()).get('/directors/stats').expect(401);
     });
 
-    it('GET /series/:id без токена возвращает 401', () => {
+    it('GET /directors/:id без токена возвращает 401', () => {
       return request(app.getHttpServer())
-        .get(`/series/${testSeries.id}`)
+        .get(`/directors/${testDirector.id}`)
         .expect(401);
     });
 
-    it('GET /series с токеном GUEST возвращает 200 и массив', () => {
+    it('GET /directors с токеном GUEST возвращает 200 и массив', () => {
       return request(app.getHttpServer())
-        .get('/series')
+        .get('/directors')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => expect(Array.isArray(res.body)).toBe(true));
     });
 
-    it('GET /series/stats с токеном GUEST возвращает 200', () => {
+    it('GET /directors/stats с токеном GUEST возвращает 200 и total', () => {
       return request(app.getHttpServer())
-        .get('/series/stats')
+        .get('/directors/stats')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => {
           expect(res.body).toHaveProperty('total');
-          expect(res.body).toHaveProperty('thisMonth');
-          expect(res.body).toHaveProperty('avgRating');
+          expect(typeof res.body.total).toBe('number');
         });
     });
 
-    it('GET /series/:id с токеном GUEST возвращает 200', () => {
+    it('GET /directors/:id с токеном GUEST возвращает 200', () => {
       return request(app.getHttpServer())
-        .get(`/series/${testSeries.id}`)
+        .get(`/directors/${testDirector.id}`)
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => {
-          expect(res.body.id).toBe(testSeries.id);
-          expect(res.body.title).toBe(testSeries.title);
+          expect(res.body.id).toBe(testDirector.id);
+          expect(res.body.fullName).toBe(testDirector.fullName);
         });
     });
 
-    it('GET /series с USER и ADMIN возвращает 200', async () => {
+    it('GET /directors с USER и ADMIN возвращает 200', async () => {
       await request(app.getHttpServer())
-        .get('/series')
+        .get('/directors')
         .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
       await request(app.getHttpServer())
-        .get('/series')
+        .get('/directors')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
     });
   });
 
-  describe('Доступ по ролям: POST /series', () => {
+  describe('Доступ по ролям: POST /directors', () => {
     it('POST без токена возвращает 401', () => {
       return request(app.getHttpServer())
-        .post('/series')
-        .send({ title: 'Сериал' })
+        .post('/directors')
+        .send({ fullName: 'Новый режиссёр' })
         .expect(401);
     });
 
     it('POST с USER/GUEST возвращает 403', async () => {
       await request(app.getHttpServer())
-        .post('/series')
+        .post('/directors')
         .set('Authorization', `Bearer ${userToken}`)
-        .send({ title: 'Сериал' })
+        .send({ fullName: 'Режиссёр' })
         .expect(403);
       await request(app.getHttpServer())
-        .post('/series')
+        .post('/directors')
         .set('Authorization', `Bearer ${guestToken}`)
-        .send({ title: 'Сериал' })
+        .send({ fullName: 'Режиссёр' })
         .expect(403);
     });
 
     it('POST с ADMIN возвращает 201', () => {
       return request(app.getHttpServer())
-        .post('/series')
+        .post('/directors')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({
-          title: 'Игра престолов',
-          genres: 'Фэнтези',
-          totalSeasons: 8,
-          rating: 9,
-        })
+        .send({ fullName: 'Кристофер Нолан', comment: 'Режиссёр' })
         .expect(201)
         .expect((res) => {
           expect(res.body.id).toBeDefined();
-          expect(res.body.title).toBe('Игра престолов');
+          expect(res.body.fullName).toBe('Кристофер Нолан');
         });
     });
   });
@@ -270,143 +260,156 @@ describe('Series Module E2E Tests', () => {
   describe('Доступ по ролям: PUT и DELETE', () => {
     it('PUT без токена возвращает 401', () => {
       return request(app.getHttpServer())
-        .put(`/series/${testSeries.id}`)
-        .send({ title: 'Обновлено' })
+        .put(`/directors/${testDirector.id}`)
+        .send({ fullName: 'Обновлено' })
         .expect(401);
     });
 
     it('PUT с USER/GUEST возвращает 403', async () => {
       await request(app.getHttpServer())
-        .put(`/series/${testSeries.id}`)
+        .put(`/directors/${testDirector.id}`)
         .set('Authorization', `Bearer ${userToken}`)
-        .send({ title: 'Обновлено' })
+        .send({ fullName: 'Обновлено' })
         .expect(403);
       await request(app.getHttpServer())
-        .put(`/series/${testSeries.id}`)
+        .put(`/directors/${testDirector.id}`)
         .set('Authorization', `Bearer ${guestToken}`)
-        .send({ title: 'Обновлено' })
+        .send({ fullName: 'Обновлено' })
         .expect(403);
     });
 
     it('PUT с ADMIN возвращает 200', async () => {
       await request(app.getHttpServer())
-        .put(`/series/${testSeries.id}`)
+        .put(`/directors/${testDirector.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ title: 'Во все тяжкие (обновлено)' })
+        .send({ fullName: 'Квентин Тарантино (обновлено)' })
         .expect(200);
-      await seriesRepository.update(testSeries.id, { title: testSeries.title });
+      await directorsRepository.update(testDirector.id, {
+        fullName: testDirector.fullName,
+      });
     });
 
-    let seriesToDelete: Series;
+    let directorToDelete: Director;
     beforeAll(async () => {
-      seriesToDelete = seriesRepository.create({ title: 'На удаление' });
-      await seriesRepository.save(seriesToDelete);
+      directorToDelete = directorsRepository.create({
+        fullName: 'На удаление',
+      });
+      await directorsRepository.save(directorToDelete);
     });
 
     it('DELETE без токена возвращает 401', () => {
       return request(app.getHttpServer())
-        .delete(`/series/${seriesToDelete.id}`)
+        .delete(`/directors/${directorToDelete.id}`)
         .expect(401);
     });
 
     it('DELETE с USER/GUEST возвращает 403', async () => {
       await request(app.getHttpServer())
-        .delete(`/series/${seriesToDelete.id}`)
+        .delete(`/directors/${directorToDelete.id}`)
         .set('Authorization', `Bearer ${userToken}`)
         .expect(403);
       await request(app.getHttpServer())
-        .delete(`/series/${seriesToDelete.id}`)
+        .delete(`/directors/${directorToDelete.id}`)
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(403);
     });
 
     it('DELETE с ADMIN возвращает 200', async () => {
       await request(app.getHttpServer())
-        .delete(`/series/${seriesToDelete.id}`)
+        .delete(`/directors/${directorToDelete.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
-      const found = await seriesRepository.findOne({
-        where: { id: seriesToDelete.id },
+      const found = await directorsRepository.findOne({
+        where: { id: directorToDelete.id },
       });
       expect(found).toBeNull();
     });
   });
 
   describe('Крайние сценарии: создание', () => {
-    it('POST с пустым title возвращает 422', () => {
+    it('POST с пустым fullName возвращает 422', () => {
       return request(app.getHttpServer())
-        .post('/series')
+        .post('/directors')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ title: '   ' })
+        .send({ fullName: '   ' })
         .expect(422)
         .expect((res) => expect(res.body.violations).toBeDefined());
     });
   });
 
-  describe('Крайние сценарии: получение', () => {
-    it('GET /series/:id с несуществующим UUID возвращает 404', () => {
+  describe('Крайние сценарии: получение и обновление', () => {
+    it('GET /directors/:id с несуществующим UUID возвращает 404', () => {
       return request(app.getHttpServer())
-        .get('/series/550e8400-e29b-41d4-a716-446655440099')
+        .get('/directors/550e8400-e29b-41d4-a716-446655440099')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(404);
     });
 
-    it('GET /series/:id с невалидным UUID возвращает 404 или 400', async () => {
+    it('GET /directors/:id с невалидным UUID возвращает 404 или 400', async () => {
       const res = await request(app.getHttpServer())
-        .get('/series/not-a-uuid')
+        .get('/directors/not-a-uuid')
         .set('Authorization', `Bearer ${guestToken}`);
       expect([400, 404]).toContain(res.status);
     });
-  });
 
-  describe('Крайние сценарии: обновление и удаление', () => {
-    it('PUT с пустым title возвращает 422', () => {
+    it('PUT с пустым fullName возвращает 422', () => {
       return request(app.getHttpServer())
-        .put(`/series/${testSeries.id}`)
+        .put(`/directors/${testDirector.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ title: '   ' })
+        .send({ fullName: '   ' })
         .expect(422);
     });
 
     it('PUT с несуществующим id возвращает 404', () => {
       return request(app.getHttpServer())
-        .put('/series/550e8400-e29b-41d4-a716-446655440099')
+        .put('/directors/550e8400-e29b-41d4-a716-446655440099')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ title: 'Название' })
+        .send({ fullName: 'Имя' })
         .expect(404);
     });
 
     it('DELETE с несуществующим id возвращает 404', () => {
       return request(app.getHttpServer())
-        .delete('/series/550e8400-e29b-41d4-a716-446655440099')
+        .delete('/directors/550e8400-e29b-41d4-a716-446655440099')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(404);
     });
   });
 
   describe('Крайние сценарии: список и фильтры', () => {
-    it('GET /series?sortBy=title&sortOrder=ASC возвращает 200', () => {
+    it('GET /directors?sortBy=fullName&sortOrder=ASC возвращает 200', () => {
       return request(app.getHttpServer())
-        .get('/series?sortBy=title&sortOrder=ASC')
+        .get('/directors?sortBy=fullName&sortOrder=ASC')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => expect(Array.isArray(res.body)).toBe(true));
     });
+
+    it('GET /directors?limit=1 возвращает не более 1', () => {
+      return request(app.getHttpServer())
+        .get('/directors?limit=1')
+        .set('Authorization', `Bearer ${guestToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+          expect(res.body.length).toBeLessThanOrEqual(1);
+        });
+    });
   });
 
   describe('Невалидный токен', () => {
-    it('GET /series с невалидным токеном возвращает 403', () => {
+    it('GET /directors с невалидным токеном возвращает 403', () => {
       return request(app.getHttpServer())
-        .get('/series')
+        .get('/directors')
         .set('Authorization', 'Bearer invalid-token')
         .expect(403);
     });
 
-    it('POST /series с невалидным токеном возвращает 403', () => {
+    it('POST /directors с невалидным токеном возвращает 403', () => {
       return request(app.getHttpServer())
-        .post('/series')
+        .post('/directors')
         .set('Authorization', 'Bearer invalid-token')
-        .send({ title: 'Сериал' })
+        .send({ fullName: 'Имя' })
         .expect(403);
     });
   });

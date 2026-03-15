@@ -1,14 +1,11 @@
 <template>
-  <div class="text-center py-12 text-gray-500">
-    {{ entityName.charAt(0).toUpperCase() + entityName.slice(1) }} пока нет. Добавьте свой первый
-    {{ entityName }}!
-  </div>
+  <div class="text-center py-12 text-gray-500">{{ message }}</div>
 </template>
 
 <script setup lang="ts">
 interface Props {
-  entityName: string
+  message: string
 }
 
-defineProps<Props>()
+const { message = 'Пусто' } = defineProps<Props>()
 </script>

@@ -20,6 +20,9 @@ import {
   UpdateUserMovieDto,
   UpdateUserSeriesDto,
 } from './dto/user-list.dto';
+import { Book } from '../books/entities/book.entity';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export interface Actor {
   id: string;
@@ -28,6 +31,12 @@ export interface Actor {
 
 @Injectable()
 export class UserListsService {
+  private readonly booksUploadPath = path.join(
+    process.cwd(),
+    'uploads',
+    'books',
+  );
+
   constructor(
     @InjectRepository(UserBook)
     private readonly userBooksRepository: Repository<UserBook>,
@@ -37,26 +46,67 @@ export class UserListsService {
     private readonly userSeriesRepository: Repository<UserSeries>,
     @InjectRepository(UserGame)
     private readonly userGamesRepository: Repository<UserGame>,
-  ) {}
+    @InjectRepository(Book)
+    private readonly booksRepository: Repository<Book>,
+  ) {
+    if (!fs.existsSync(this.booksUploadPath)) {
+      fs.mkdirSync(this.booksUploadPath, { recursive: true });
+    }
+  }
 
   getCurrentUserBooks(userId: string): Promise<UserBook[]> {
     return this.userBooksRepository.find({
       where: { userId },
+      relations: { book: true },
       order: { createdAt: 'DESC' },
     });
+  }
+
+  async getCurrentUserBook(userId: string, id: string): Promise<UserBook> {
+    const book = await this.userBooksRepository.findOne({
+      where: { userId, id },
+      relations: { book: true },
+    });
+
+    if (!book) {
+      throw new NotFoundException('UserBook not found');
+    }
+    return book;
   }
 
   async createCurrentUserBook(
     actor: Actor,
     dto: CreateUserBookDto,
+    cover?: Express.Multer.File,
   ): Promise<UserBook> {
     this.ensureCanMutate(actor);
 
+    let book = await this.booksRepository.findOne({
+      where: { title: dto.title },
+    });
+    if (!book) {
+      let coverPath: string | null = null;
+
+      if (cover) {
+        const fileName = `${Date.now()}-${cover.originalname}`;
+        const filePath = path.join(this.booksUploadPath, fileName);
+        fs.writeFileSync(filePath, cover.buffer);
+        coverPath = `/uploads/books/${fileName}`;
+      }
+
+      book = this.booksRepository.create({
+        title: dto.title,
+        cover: coverPath,
+      });
+
+      book = await this.booksRepository.save(book);
+    }
+
     const entity = this.userBooksRepository.create({
       userId: actor.id,
-      bookId: dto.bookId,
+      bookId: book.id,
       rating: dto.rating ?? null,
-      readAt: dto.readAt ? `${Date.parse(dto.readAt)}` : null,
+      readAt: dto.readAt ? new Date(dto.readAt) : null,
       comment: dto.comment ?? null,
     });
 
@@ -81,7 +131,7 @@ export class UserListsService {
       entity.rating = dto.rating;
     }
     if (dto.readAt !== undefined) {
-      entity.readAt = dto.readAt ? `${Date.parse(dto.readAt)}` : null;
+      entity.readAt = dto.readAt ? new Date(dto.readAt) : null;
     }
     if (dto.comment !== undefined) {
       entity.comment = dto.comment;
@@ -123,7 +173,6 @@ export class UserListsService {
 
     const entity = this.userMoviesRepository.create({
       userId: actor.id,
-      movieId: dto.movieId,
       rating: dto.rating ?? null,
       watchedAt: dto.watchedAt ? `${Date.parse(dto.watchedAt)}` : null,
       comment: dto.comment ?? null,
@@ -192,7 +241,6 @@ export class UserListsService {
 
     const entity = this.userSeriesRepository.create({
       userId: actor.id,
-      seriesId: dto.seriesId,
       rating: dto.rating ?? null,
       watchedAt: dto.watchedAt ? `${Date.parse(dto.watchedAt)}` : null,
       seasonsWatched: dto.seasonsWatched ?? null,
@@ -265,7 +313,6 @@ export class UserListsService {
 
     const entity = this.userGamesRepository.create({
       userId: actor.id,
-      gameId: dto.gameId,
       rating: dto.rating ?? null,
       playedHours: dto.playedHours ?? null,
       playedAt: dto.playedAt ? `${Date.parse(dto.playedAt)}` : null,
@@ -324,7 +371,10 @@ export class UserListsService {
   }
 
   getUserBooksByGuid(guid: string): Promise<UserBook[]> {
-    return this.userBooksRepository.find({ where: { userId: guid } });
+    return this.userBooksRepository.find({
+      where: { userId: guid },
+      relations: { book: true },
+    });
   }
 
   getUserMoviesByGuid(guid: string): Promise<UserMovie[]> {

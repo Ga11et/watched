@@ -1,7 +1,6 @@
 /**
- * E2E тесты модуля authors.
+ * E2E тесты модуля movies.
  * Публичных эндпоинтов нет: все GET защищены как минимум ролью GUEST.
- * Запуск: DB_NAME_TEST=watched_test DB_PORT=5434 npm run test:e2e -- test/authors.e2e-spec.ts
  */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
@@ -16,27 +15,29 @@ import {
 import { Test, TestingModule } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import request from 'supertest';
-import { Repository, DataSource } from 'typeorm';
+import { Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { User, UserRole } from '../src/users/entities/user.entity';
-import { Author } from '../src/authors/entities/author.entity';
-import { Book } from '../src/books/entities/book.entity';
-import { JwtService } from '../src/auth/jwt.service';
-import { AuthMiddleware } from '../src/auth/auth.middleware';
-import { AdminMiddleware } from '../src/auth/admin.middleware';
-import { AuthModule } from '../src/auth/auth.module';
-import { UsersModule } from '../src/users/users.module';
-import { AuthorsModule } from '../src/authors/authors.module';
+import { User, UserRole } from '../../src/users/entities/user.entity';
+import { Movie } from '../../src/movies/entities/movie.entity';
+import { Director } from '../../src/directors/entities/director.entity';
+import { JwtService } from '../../src/auth/jwt.service';
+import { AuthMiddleware } from '../../src/auth/auth.middleware';
+import { AdminMiddleware } from '../../src/auth/admin.middleware';
+import { AuthModule } from '../../src/auth/auth.module';
+import { UsersModule } from '../../src/users/users.module';
+import { MoviesModule } from '../../src/movies/movies.module';
+import { DirectorsModule } from '../../src/directors/directors.module';
+import { DataSource } from 'typeorm';
 
 const TEST_DB_NAME = 'watched_test';
 
 const e2eDbConfig = {
   type: 'postgres' as const,
-  host: '127.0.0.1',
-  port: 5434,
-  username: 'watched',
-  password: 'watched',
-  database: TEST_DB_NAME,
+  host: process.env.DB_HOST || '127.0.0.1',
+  port: +(process.env.DB_PORT || 5434),
+  username: process.env.DB_USER || 'watched',
+  password: process.env.DB_PASSWORD || 'watched',
+  database: process.env.DB_NAME_TEST || TEST_DB_NAME,
   dropSchema: true,
   synchronize: true,
   autoLoadEntities: true,
@@ -45,44 +46,47 @@ const e2eDbConfig = {
 @Module({
   imports: [
     TypeOrmModule.forRoot(e2eDbConfig),
-    TypeOrmModule.forFeature([Book]),
     AuthModule,
     UsersModule,
-    AuthorsModule,
+    MoviesModule,
+    DirectorsModule,
   ],
   providers: [AuthMiddleware, AdminMiddleware],
 })
-class AuthorsE2ETestModule implements NestModule {
+class MoviesE2ETestModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
     consumer
       .apply(AuthMiddleware)
       .forRoutes(
-        { path: 'authors', method: RequestMethod.GET },
-        { path: 'authors/(.*)', method: RequestMethod.GET },
+        { path: 'movies', method: RequestMethod.GET },
+        { path: 'movies/(.*)', method: RequestMethod.GET },
       );
     consumer
       .apply(AuthMiddleware, AdminMiddleware)
       .forRoutes(
-        { path: 'authors', method: RequestMethod.POST },
-        { path: 'authors/:id', method: RequestMethod.PUT },
-        { path: 'authors/:id', method: RequestMethod.DELETE },
+        { path: 'movies', method: RequestMethod.POST },
+        { path: 'movies/:id', method: RequestMethod.PUT },
+        { path: 'movies/:id', method: RequestMethod.DELETE },
       );
   }
 }
 
-describe('Authors Module E2E Tests', () => {
+describe('Movies Module E2E Tests', () => {
   let app: INestApplication;
   let usersRepository: Repository<User>;
-  let authorsRepository: Repository<Author>;
+  let moviesRepository: Repository<Movie>;
+  let directorsRepository: Repository<Director>;
   let jwtService: JwtService;
 
   let adminToken: string;
   let userToken: string;
   let guestToken: string;
-  let testAuthor: Author;
+  let testDirector: Director;
+  let testMovie: Movie;
 
   beforeAll(async () => {
-    process.env.JWT_SECRET = 'test-secret-authors-e2e';
+    process.env.JWT_SECRET = 'test-secret-movies-e2e';
+    jest.setTimeout(20000);
 
     if (e2eDbConfig.database !== TEST_DB_NAME) {
       throw new Error(
@@ -91,7 +95,7 @@ describe('Authors Module E2E Tests', () => {
     }
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AuthorsE2ETestModule],
+      imports: [MoviesE2ETestModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
@@ -116,7 +120,8 @@ describe('Authors Module E2E Tests', () => {
     }
 
     usersRepository = moduleFixture.get(getRepositoryToken(User));
-    authorsRepository = moduleFixture.get(getRepositoryToken(Author));
+    moviesRepository = moduleFixture.get(getRepositoryToken(Movie));
+    directorsRepository = moduleFixture.get(getRepositoryToken(Director));
     jwtService = moduleFixture.get(JwtService);
 
     const [adminUser, plainUser, guestUser] = [
@@ -154,287 +159,283 @@ describe('Authors Module E2E Tests', () => {
     userToken = jwtService.generateToken(plainUser);
     guestToken = jwtService.generateToken(guestUser);
 
-    testAuthor = authorsRepository.create({
+    testDirector = directorsRepository.create({
       id: '660e8400-e29b-41d4-a716-446655440001',
-      fullName: 'Лев Толстой',
+      fullName: 'Кристофер Нолан',
       comment: null,
       photo: null,
     });
-    await authorsRepository.save(testAuthor);
+    await directorsRepository.save(testDirector);
+
+    testMovie = moviesRepository.create({
+      id: '770e8400-e29b-41d4-a716-446655440001',
+      title: 'Интерстеллар',
+      genre: 'Фантастика',
+      rating: 85,
+      directorId: testDirector.id,
+      comment: 'Отличный фильм',
+      releaseYear: 2014,
+      poster: null,
+    });
+    await moviesRepository.save(testMovie);
   });
 
   afterAll(async () => {
     if (app) await app.close();
   });
 
-  describe('Доступ по ролям: GET (только для авторизованных, в т.ч. GUEST)', () => {
-    it('GET /authors без токена возвращает 401', () => {
-      return request(app.getHttpServer()).get('/authors').expect(401);
+  describe('Доступ по ролям: GET (только для авторизованных)', () => {
+    it('GET /movies без токена возвращает 401', () => {
+      return request(app.getHttpServer()).get('/movies').expect(401);
     });
 
-    it('GET /authors/stats без токена возвращает 401', () => {
-      return request(app.getHttpServer()).get('/authors/stats').expect(401);
+    it('GET /movies/stats без токена возвращает 401', () => {
+      return request(app.getHttpServer()).get('/movies/stats').expect(401);
     });
 
-    it('GET /authors/search без токена возвращает 401', () => {
+    it('GET /movies/:id без токена возвращает 401', () => {
       return request(app.getHttpServer())
-        .get('/authors/search?q=Толстой')
+        .get(`/movies/${testMovie.id}`)
         .expect(401);
     });
 
-    it('GET /authors/:id без токена возвращает 401', () => {
+    it('GET /movies с токеном GUEST возвращает 200 и массив', () => {
       return request(app.getHttpServer())
-        .get(`/authors/${testAuthor.id}`)
-        .expect(401);
-    });
-
-    it('GET /authors с токеном GUEST возвращает 200 и массив', () => {
-      return request(app.getHttpServer())
-        .get('/authors')
+        .get('/movies')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => expect(Array.isArray(res.body)).toBe(true));
     });
 
-    it('GET /authors/stats с токеном GUEST возвращает 200 и total', () => {
+    it('GET /movies/stats с токеном GUEST возвращает 200 и структуру', () => {
       return request(app.getHttpServer())
-        .get('/authors/stats')
+        .get('/movies/stats')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => {
           expect(res.body).toHaveProperty('total');
-          expect(typeof res.body.total).toBe('number');
+          expect(res.body).toHaveProperty('thisMonth');
+          expect(res.body).toHaveProperty('avgRating');
         });
     });
 
-    it('GET /authors/search?q= с токеном GUEST возвращает 200', () => {
+    it('GET /movies/:id с токеном GUEST возвращает 200', () => {
       return request(app.getHttpServer())
-        .get('/authors/search?q=Толстой')
-        .set('Authorization', `Bearer ${guestToken}`)
-        .expect(200)
-        .expect((res) => expect(Array.isArray(res.body)).toBe(true));
-    });
-
-    it('GET /authors/:id с токеном GUEST возвращает 200', () => {
-      return request(app.getHttpServer())
-        .get(`/authors/${testAuthor.id}`)
+        .get(`/movies/${testMovie.id}`)
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => {
-          expect(res.body.id).toBe(testAuthor.id);
-          expect(res.body.fullName).toBe(testAuthor.fullName);
+          expect(res.body.id).toBe(testMovie.id);
+          expect(res.body.title).toBe(testMovie.title);
         });
     });
 
-    it('GET /authors с токеном USER и ADMIN возвращает 200', async () => {
+    it('GET /movies с USER и ADMIN возвращает 200', async () => {
       await request(app.getHttpServer())
-        .get('/authors')
+        .get('/movies')
         .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
       await request(app.getHttpServer())
-        .get('/authors')
+        .get('/movies')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
     });
   });
 
-  describe('Доступ по ролям: POST /authors', () => {
-    it('POST /authors без токена возвращает 401', () => {
+  describe('Доступ по ролям: POST /movies', () => {
+    it('POST без токена возвращает 401', () => {
       return request(app.getHttpServer())
-        .post('/authors')
-        .send({ fullName: 'Новый автор' })
+        .post('/movies')
+        .send({ title: 'Фильм' })
         .expect(401);
     });
 
-    it('POST /authors с ролью USER возвращает 403', () => {
-      return request(app.getHttpServer())
-        .post('/authors')
+    it('POST с USER/GUEST возвращает 403', async () => {
+      await request(app.getHttpServer())
+        .post('/movies')
         .set('Authorization', `Bearer ${userToken}`)
-        .send({ fullName: 'Автор от юзера' })
+        .send({ title: 'Фильм' })
         .expect(403);
-    });
-
-    it('POST /authors с ролью GUEST возвращает 403', () => {
-      return request(app.getHttpServer())
-        .post('/authors')
+      await request(app.getHttpServer())
+        .post('/movies')
         .set('Authorization', `Bearer ${guestToken}`)
-        .send({ fullName: 'Автор от гостя' })
+        .send({ title: 'Фильм' })
         .expect(403);
     });
 
-    it('POST /authors с ролью ADMIN возвращает 201', () => {
+    it('POST с ADMIN возвращает 201', () => {
       return request(app.getHttpServer())
-        .post('/authors')
+        .post('/movies')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ fullName: 'Фёдор Достоевский', comment: 'Классик' })
+        .send({
+          title: 'Начало',
+          genre: 'Фантастика',
+          directorId: testDirector.id,
+          rating: 90,
+        })
         .expect(201)
         .expect((res) => {
           expect(res.body.id).toBeDefined();
-          expect(res.body.fullName).toBe('Фёдор Достоевский');
-          expect(res.body.comment).toBe('Классик');
+          expect(res.body.title).toBe('Начало');
+          expect(res.body.directorId).toBe(testDirector.id);
         });
     });
   });
 
-  describe('Доступ по ролям: PUT /authors/:id', () => {
+  describe('Доступ по ролям: PUT и DELETE', () => {
     it('PUT без токена возвращает 401', () => {
       return request(app.getHttpServer())
-        .put(`/authors/${testAuthor.id}`)
-        .send({ fullName: 'Обновлено' })
+        .put(`/movies/${testMovie.id}`)
+        .send({ title: 'Обновлено' })
         .expect(401);
     });
 
-    it('PUT с ролью USER возвращает 403', () => {
-      return request(app.getHttpServer())
-        .put(`/authors/${testAuthor.id}`)
-        .set('Authorization', `Bearer ${userToken}`)
-        .send({ fullName: 'Обновлено' })
-        .expect(403);
-    });
-
-    it('PUT с ролью GUEST возвращает 403', () => {
-      return request(app.getHttpServer())
-        .put(`/authors/${testAuthor.id}`)
-        .set('Authorization', `Bearer ${guestToken}`)
-        .send({ fullName: 'Обновлено' })
-        .expect(403);
-    });
-
-    it('PUT с ролью ADMIN возвращает 200', async () => {
+    it('PUT с USER/GUEST возвращает 403', async () => {
       await request(app.getHttpServer())
-        .put(`/authors/${testAuthor.id}`)
+        .put(`/movies/${testMovie.id}`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ title: 'Обновлено' })
+        .expect(403);
+      await request(app.getHttpServer())
+        .put(`/movies/${testMovie.id}`)
+        .set('Authorization', `Bearer ${guestToken}`)
+        .send({ title: 'Обновлено' })
+        .expect(403);
+    });
+
+    it('PUT с ADMIN возвращает 200', async () => {
+      await request(app.getHttpServer())
+        .put(`/movies/${testMovie.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ fullName: 'Лев Николаевич Толстой', comment: 'Обновлённый комментарий' })
-        .expect(200)
-        .expect((res) => {
-          expect(res.body.fullName).toBe('Лев Николаевич Толстой');
-        });
-      await authorsRepository.update(testAuthor.id, {
-        fullName: testAuthor.fullName,
-        comment: testAuthor.comment,
+        .send({
+          title: 'Интерстеллар (обновлено)',
+          comment: 'Новый комментарий',
+        })
+        .expect(200);
+      await moviesRepository.update(testMovie.id, {
+        title: testMovie.title,
+        comment: testMovie.comment,
       });
     });
-  });
 
-  describe('Доступ по ролям: DELETE /authors/:id', () => {
-    let authorToDelete: Author;
-
+    let movieToDelete: Movie;
     beforeAll(async () => {
-      authorToDelete = authorsRepository.create({
-        fullName: 'Автор на удаление',
-      });
-      await authorsRepository.save(authorToDelete);
+      movieToDelete = moviesRepository.create({ title: 'На удаление' });
+      await moviesRepository.save(movieToDelete);
     });
 
     it('DELETE без токена возвращает 401', () => {
       return request(app.getHttpServer())
-        .delete(`/authors/${authorToDelete.id}`)
+        .delete(`/movies/${movieToDelete.id}`)
         .expect(401);
     });
 
     it('DELETE с USER/GUEST возвращает 403', async () => {
       await request(app.getHttpServer())
-        .delete(`/authors/${authorToDelete.id}`)
+        .delete(`/movies/${movieToDelete.id}`)
         .set('Authorization', `Bearer ${userToken}`)
         .expect(403);
       await request(app.getHttpServer())
-        .delete(`/authors/${authorToDelete.id}`)
+        .delete(`/movies/${movieToDelete.id}`)
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(403);
     });
 
-    it('DELETE с ADMIN возвращает 200 и удаляет', async () => {
+    it('DELETE с ADMIN возвращает 200', async () => {
       await request(app.getHttpServer())
-        .delete(`/authors/${authorToDelete.id}`)
+        .delete(`/movies/${movieToDelete.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
-      const found = await authorsRepository.findOne({
-        where: { id: authorToDelete.id },
+      const found = await moviesRepository.findOne({
+        where: { id: movieToDelete.id },
       });
       expect(found).toBeNull();
     });
   });
 
   describe('Крайние сценарии: создание', () => {
-    it('POST с пустым fullName возвращает 422 и violations', () => {
+    it('POST с пустым title возвращает 422', () => {
       return request(app.getHttpServer())
-        .post('/authors')
+        .post('/movies')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ fullName: '   ' })
+        .send({ title: '   ' })
         .expect(422)
         .expect((res) => {
           expect(res.body.violations).toBeDefined();
           const v = (res.body.violations as Array<{ field: string }>).find(
-            (x: { field: string }) => x.field === 'fullName',
+            (x: { field: string }) => x.field === 'title',
           );
           expect(v).toBeDefined();
         });
     });
-
-    it('POST без fullName (пустое тело) может вернуть 400/422', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/authors')
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({});
-      expect([400, 422]).toContain(res.status);
-    });
   });
 
   describe('Крайние сценарии: получение', () => {
-    it('GET /authors/:id с несуществующим UUID возвращает 404', () => {
+    it('GET /movies/:id с несуществующим UUID возвращает 404', () => {
       return request(app.getHttpServer())
-        .get('/authors/550e8400-e29b-41d4-a716-446655440099')
+        .get('/movies/550e8400-e29b-41d4-a716-446655440099')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(404);
     });
 
-    it('GET /authors/:id с невалидным UUID возвращает 404 или 400', async () => {
+    it('GET /movies/:id с невалидным UUID возвращает 404 или 400', async () => {
       const res = await request(app.getHttpServer())
-        .get('/authors/not-a-uuid')
+        .get('/movies/not-a-uuid')
         .set('Authorization', `Bearer ${guestToken}`);
       expect([400, 404]).toContain(res.status);
     });
   });
 
-  describe('Крайние сценарии: обновление', () => {
-    it('PUT с пустым fullName возвращает 422', () => {
+  describe('Крайние сценарии: обновление и удаление', () => {
+    it('PUT с пустым title возвращает 422', () => {
       return request(app.getHttpServer())
-        .put(`/authors/${testAuthor.id}`)
+        .put(`/movies/${testMovie.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ fullName: '   ' })
+        .send({ title: '   ' })
         .expect(422);
     });
 
     it('PUT с несуществующим id возвращает 404', () => {
       return request(app.getHttpServer())
-        .put('/authors/550e8400-e29b-41d4-a716-446655440099')
+        .put('/movies/550e8400-e29b-41d4-a716-446655440099')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ fullName: 'Имя' })
+        .send({ title: 'Название' })
         .expect(404);
     });
-  });
 
-  describe('Крайние сценарии: удаление', () => {
     it('DELETE с несуществующим id возвращает 404', () => {
       return request(app.getHttpServer())
-        .delete('/authors/550e8400-e29b-41d4-a716-446655440099')
+        .delete('/movies/550e8400-e29b-41d4-a716-446655440099')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(404);
     });
   });
 
   describe('Крайние сценарии: список и фильтры', () => {
-    it('GET /authors?sortBy=fullName&sortOrder=ASC возвращает 200', () => {
+    it('GET /movies?sortBy=title&sortOrder=ASC возвращает 200', () => {
       return request(app.getHttpServer())
-        .get('/authors?sortBy=fullName&sortOrder=ASC')
+        .get('/movies?sortBy=title&sortOrder=ASC')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => expect(Array.isArray(res.body)).toBe(true));
     });
 
-    it('GET /authors?limit=1 возвращает не более 1', () => {
+    it('GET /movies?directorId= возвращает только фильмы режиссёра', () => {
       return request(app.getHttpServer())
-        .get('/authors?limit=1')
+        .get(`/movies?directorId=${testDirector.id}`)
+        .set('Authorization', `Bearer ${guestToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+          res.body.forEach((m: { directorId: string | null }) => {
+            expect(m.directorId).toBe(testDirector.id);
+          });
+        });
+    });
+
+    it('GET /movies?limit=1 возвращает не более 1', () => {
+      return request(app.getHttpServer())
+        .get('/movies?limit=1')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => {
@@ -442,29 +443,21 @@ describe('Authors Module E2E Tests', () => {
           expect(res.body.length).toBeLessThanOrEqual(1);
         });
     });
-
-    it('GET /authors/search?q=пустой поиск возвращает массив', () => {
-      return request(app.getHttpServer())
-        .get('/authors/search?q=неттакого')
-        .set('Authorization', `Bearer ${guestToken}`)
-        .expect(200)
-        .expect((res) => expect(Array.isArray(res.body)).toBe(true));
-    });
   });
 
   describe('Невалидный токен', () => {
-    it('POST /authors с невалидным токеном возвращает 403', () => {
+    it('GET /movies с невалидным токеном возвращает 403', () => {
       return request(app.getHttpServer())
-        .post('/authors')
+        .get('/movies')
         .set('Authorization', 'Bearer invalid-token')
-        .send({ fullName: 'Имя' })
         .expect(403);
     });
 
-    it('GET /authors с невалидным токеном возвращает 403', () => {
+    it('POST /movies с невалидным токеном возвращает 403', () => {
       return request(app.getHttpServer())
-        .get('/authors')
+        .post('/movies')
         .set('Authorization', 'Bearer invalid-token')
+        .send({ title: 'Фильм' })
         .expect(403);
     });
   });

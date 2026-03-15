@@ -1,5 +1,5 @@
 /**
- * E2E тесты модуля movies.
+ * E2E тесты модуля series.
  * Публичных эндпоинтов нет: все GET защищены как минимум ролью GUEST.
  */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
@@ -17,16 +17,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import request from 'supertest';
 import { Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { User, UserRole } from '../src/users/entities/user.entity';
-import { Movie } from '../src/movies/entities/movie.entity';
-import { Director } from '../src/directors/entities/director.entity';
-import { JwtService } from '../src/auth/jwt.service';
-import { AuthMiddleware } from '../src/auth/auth.middleware';
-import { AdminMiddleware } from '../src/auth/admin.middleware';
-import { AuthModule } from '../src/auth/auth.module';
-import { UsersModule } from '../src/users/users.module';
-import { MoviesModule } from '../src/movies/movies.module';
-import { DirectorsModule } from '../src/directors/directors.module';
+import { User, UserRole } from '../../src/users/entities/user.entity';
+import { Series } from '../../src/series/entities/series.entity';
+import { JwtService } from '../../src/auth/jwt.service';
+import { AuthMiddleware } from '../../src/auth/auth.middleware';
+import { AdminMiddleware } from '../../src/auth/admin.middleware';
+import { AuthModule } from '../../src/auth/auth.module';
+import { UsersModule } from '../../src/users/users.module';
+import { SeriesModule } from '../../src/series/series.module';
 import { DataSource } from 'typeorm';
 
 const TEST_DB_NAME = 'watched_test';
@@ -48,44 +46,41 @@ const e2eDbConfig = {
     TypeOrmModule.forRoot(e2eDbConfig),
     AuthModule,
     UsersModule,
-    MoviesModule,
-    DirectorsModule,
+    SeriesModule,
   ],
   providers: [AuthMiddleware, AdminMiddleware],
 })
-class MoviesE2ETestModule implements NestModule {
+class SeriesE2ETestModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
     consumer
       .apply(AuthMiddleware)
       .forRoutes(
-        { path: 'movies', method: RequestMethod.GET },
-        { path: 'movies/(.*)', method: RequestMethod.GET },
+        { path: 'series', method: RequestMethod.GET },
+        { path: 'series/(.*)', method: RequestMethod.GET },
       );
     consumer
       .apply(AuthMiddleware, AdminMiddleware)
       .forRoutes(
-        { path: 'movies', method: RequestMethod.POST },
-        { path: 'movies/:id', method: RequestMethod.PUT },
-        { path: 'movies/:id', method: RequestMethod.DELETE },
+        { path: 'series', method: RequestMethod.POST },
+        { path: 'series/:id', method: RequestMethod.PUT },
+        { path: 'series/:id', method: RequestMethod.DELETE },
       );
   }
 }
 
-describe('Movies Module E2E Tests', () => {
+describe('Series Module E2E Tests', () => {
   let app: INestApplication;
   let usersRepository: Repository<User>;
-  let moviesRepository: Repository<Movie>;
-  let directorsRepository: Repository<Director>;
+  let seriesRepository: Repository<Series>;
   let jwtService: JwtService;
 
   let adminToken: string;
   let userToken: string;
   let guestToken: string;
-  let testDirector: Director;
-  let testMovie: Movie;
+  let testSeries: Series;
 
   beforeAll(async () => {
-    process.env.JWT_SECRET = 'test-secret-movies-e2e';
+    process.env.JWT_SECRET = 'test-secret-series-e2e';
     jest.setTimeout(20000);
 
     if (e2eDbConfig.database !== TEST_DB_NAME) {
@@ -95,7 +90,7 @@ describe('Movies Module E2E Tests', () => {
     }
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [MoviesE2ETestModule],
+      imports: [SeriesE2ETestModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
@@ -120,8 +115,7 @@ describe('Movies Module E2E Tests', () => {
     }
 
     usersRepository = moduleFixture.get(getRepositoryToken(User));
-    moviesRepository = moduleFixture.get(getRepositoryToken(Movie));
-    directorsRepository = moduleFixture.get(getRepositoryToken(Director));
+    seriesRepository = moduleFixture.get(getRepositoryToken(Series));
     jwtService = moduleFixture.get(JwtService);
 
     const [adminUser, plainUser, guestUser] = [
@@ -159,25 +153,17 @@ describe('Movies Module E2E Tests', () => {
     userToken = jwtService.generateToken(plainUser);
     guestToken = jwtService.generateToken(guestUser);
 
-    testDirector = directorsRepository.create({
-      id: '660e8400-e29b-41d4-a716-446655440001',
-      fullName: 'Кристофер Нолан',
-      comment: null,
-      photo: null,
-    });
-    await directorsRepository.save(testDirector);
-
-    testMovie = moviesRepository.create({
+    testSeries = seriesRepository.create({
       id: '770e8400-e29b-41d4-a716-446655440001',
-      title: 'Интерстеллар',
-      genre: 'Фантастика',
-      rating: 85,
-      directorId: testDirector.id,
-      comment: 'Отличный фильм',
-      releaseYear: 2014,
+      title: 'Во все тяжкие',
+      genres: 'Драма',
+      rating: 9.5,
+      totalSeasons: 5,
+      watchedSeasons: 5,
+      comment: 'Классика',
       poster: null,
     });
-    await moviesRepository.save(testMovie);
+    await seriesRepository.save(testSeries);
   });
 
   afterAll(async () => {
@@ -185,31 +171,31 @@ describe('Movies Module E2E Tests', () => {
   });
 
   describe('Доступ по ролям: GET (только для авторизованных)', () => {
-    it('GET /movies без токена возвращает 401', () => {
-      return request(app.getHttpServer()).get('/movies').expect(401);
+    it('GET /series без токена возвращает 401', () => {
+      return request(app.getHttpServer()).get('/series').expect(401);
     });
 
-    it('GET /movies/stats без токена возвращает 401', () => {
-      return request(app.getHttpServer()).get('/movies/stats').expect(401);
+    it('GET /series/stats без токена возвращает 401', () => {
+      return request(app.getHttpServer()).get('/series/stats').expect(401);
     });
 
-    it('GET /movies/:id без токена возвращает 401', () => {
+    it('GET /series/:id без токена возвращает 401', () => {
       return request(app.getHttpServer())
-        .get(`/movies/${testMovie.id}`)
+        .get(`/series/${testSeries.id}`)
         .expect(401);
     });
 
-    it('GET /movies с токеном GUEST возвращает 200 и массив', () => {
+    it('GET /series с токеном GUEST возвращает 200 и массив', () => {
       return request(app.getHttpServer())
-        .get('/movies')
+        .get('/series')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => expect(Array.isArray(res.body)).toBe(true));
     });
 
-    it('GET /movies/stats с токеном GUEST возвращает 200 и структуру', () => {
+    it('GET /series/stats с токеном GUEST возвращает 200', () => {
       return request(app.getHttpServer())
-        .get('/movies/stats')
+        .get('/series/stats')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => {
@@ -219,65 +205,64 @@ describe('Movies Module E2E Tests', () => {
         });
     });
 
-    it('GET /movies/:id с токеном GUEST возвращает 200', () => {
+    it('GET /series/:id с токеном GUEST возвращает 200', () => {
       return request(app.getHttpServer())
-        .get(`/movies/${testMovie.id}`)
+        .get(`/series/${testSeries.id}`)
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => {
-          expect(res.body.id).toBe(testMovie.id);
-          expect(res.body.title).toBe(testMovie.title);
+          expect(res.body.id).toBe(testSeries.id);
+          expect(res.body.title).toBe(testSeries.title);
         });
     });
 
-    it('GET /movies с USER и ADMIN возвращает 200', async () => {
+    it('GET /series с USER и ADMIN возвращает 200', async () => {
       await request(app.getHttpServer())
-        .get('/movies')
+        .get('/series')
         .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
       await request(app.getHttpServer())
-        .get('/movies')
+        .get('/series')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
     });
   });
 
-  describe('Доступ по ролям: POST /movies', () => {
+  describe('Доступ по ролям: POST /series', () => {
     it('POST без токена возвращает 401', () => {
       return request(app.getHttpServer())
-        .post('/movies')
-        .send({ title: 'Фильм' })
+        .post('/series')
+        .send({ title: 'Сериал' })
         .expect(401);
     });
 
     it('POST с USER/GUEST возвращает 403', async () => {
       await request(app.getHttpServer())
-        .post('/movies')
+        .post('/series')
         .set('Authorization', `Bearer ${userToken}`)
-        .send({ title: 'Фильм' })
+        .send({ title: 'Сериал' })
         .expect(403);
       await request(app.getHttpServer())
-        .post('/movies')
+        .post('/series')
         .set('Authorization', `Bearer ${guestToken}`)
-        .send({ title: 'Фильм' })
+        .send({ title: 'Сериал' })
         .expect(403);
     });
 
     it('POST с ADMIN возвращает 201', () => {
       return request(app.getHttpServer())
-        .post('/movies')
+        .post('/series')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          title: 'Начало',
-          genre: 'Фантастика',
-          directorId: testDirector.id,
-          rating: 90,
+          title: 'Игра престолов',
+          genres: 'Фэнтези',
+          totalSeasons: 8,
+          rating: 9,
         })
         .expect(201)
         .expect((res) => {
           expect(res.body.id).toBeDefined();
-          expect(res.body.title).toBe('Начало');
-          expect(res.body.directorId).toBe(testDirector.id);
+          expect(res.body.title).toBe('Игра престолов');
         });
     });
   });
@@ -285,19 +270,19 @@ describe('Movies Module E2E Tests', () => {
   describe('Доступ по ролям: PUT и DELETE', () => {
     it('PUT без токена возвращает 401', () => {
       return request(app.getHttpServer())
-        .put(`/movies/${testMovie.id}`)
+        .put(`/series/${testSeries.id}`)
         .send({ title: 'Обновлено' })
         .expect(401);
     });
 
     it('PUT с USER/GUEST возвращает 403', async () => {
       await request(app.getHttpServer())
-        .put(`/movies/${testMovie.id}`)
+        .put(`/series/${testSeries.id}`)
         .set('Authorization', `Bearer ${userToken}`)
         .send({ title: 'Обновлено' })
         .expect(403);
       await request(app.getHttpServer())
-        .put(`/movies/${testMovie.id}`)
+        .put(`/series/${testSeries.id}`)
         .set('Authorization', `Bearer ${guestToken}`)
         .send({ title: 'Обновлено' })
         .expect(403);
@@ -305,46 +290,43 @@ describe('Movies Module E2E Tests', () => {
 
     it('PUT с ADMIN возвращает 200', async () => {
       await request(app.getHttpServer())
-        .put(`/movies/${testMovie.id}`)
+        .put(`/series/${testSeries.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ title: 'Интерстеллар (обновлено)', comment: 'Новый комментарий' })
+        .send({ title: 'Во все тяжкие (обновлено)' })
         .expect(200);
-      await moviesRepository.update(testMovie.id, {
-        title: testMovie.title,
-        comment: testMovie.comment,
-      });
+      await seriesRepository.update(testSeries.id, { title: testSeries.title });
     });
 
-    let movieToDelete: Movie;
+    let seriesToDelete: Series;
     beforeAll(async () => {
-      movieToDelete = moviesRepository.create({ title: 'На удаление' });
-      await moviesRepository.save(movieToDelete);
+      seriesToDelete = seriesRepository.create({ title: 'На удаление' });
+      await seriesRepository.save(seriesToDelete);
     });
 
     it('DELETE без токена возвращает 401', () => {
       return request(app.getHttpServer())
-        .delete(`/movies/${movieToDelete.id}`)
+        .delete(`/series/${seriesToDelete.id}`)
         .expect(401);
     });
 
     it('DELETE с USER/GUEST возвращает 403', async () => {
       await request(app.getHttpServer())
-        .delete(`/movies/${movieToDelete.id}`)
+        .delete(`/series/${seriesToDelete.id}`)
         .set('Authorization', `Bearer ${userToken}`)
         .expect(403);
       await request(app.getHttpServer())
-        .delete(`/movies/${movieToDelete.id}`)
+        .delete(`/series/${seriesToDelete.id}`)
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(403);
     });
 
     it('DELETE с ADMIN возвращает 200', async () => {
       await request(app.getHttpServer())
-        .delete(`/movies/${movieToDelete.id}`)
+        .delete(`/series/${seriesToDelete.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
-      const found = await moviesRepository.findOne({
-        where: { id: movieToDelete.id },
+      const found = await seriesRepository.findOne({
+        where: { id: seriesToDelete.id },
       });
       expect(found).toBeNull();
     });
@@ -353,31 +335,25 @@ describe('Movies Module E2E Tests', () => {
   describe('Крайние сценарии: создание', () => {
     it('POST с пустым title возвращает 422', () => {
       return request(app.getHttpServer())
-        .post('/movies')
+        .post('/series')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ title: '   ' })
         .expect(422)
-        .expect((res) => {
-          expect(res.body.violations).toBeDefined();
-          const v = (res.body.violations as Array<{ field: string }>).find(
-            (x: { field: string }) => x.field === 'title',
-          );
-          expect(v).toBeDefined();
-        });
+        .expect((res) => expect(res.body.violations).toBeDefined());
     });
   });
 
   describe('Крайние сценарии: получение', () => {
-    it('GET /movies/:id с несуществующим UUID возвращает 404', () => {
+    it('GET /series/:id с несуществующим UUID возвращает 404', () => {
       return request(app.getHttpServer())
-        .get('/movies/550e8400-e29b-41d4-a716-446655440099')
+        .get('/series/550e8400-e29b-41d4-a716-446655440099')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(404);
     });
 
-    it('GET /movies/:id с невалидным UUID возвращает 404 или 400', async () => {
+    it('GET /series/:id с невалидным UUID возвращает 404 или 400', async () => {
       const res = await request(app.getHttpServer())
-        .get('/movies/not-a-uuid')
+        .get('/series/not-a-uuid')
         .set('Authorization', `Bearer ${guestToken}`);
       expect([400, 404]).toContain(res.status);
     });
@@ -386,7 +362,7 @@ describe('Movies Module E2E Tests', () => {
   describe('Крайние сценарии: обновление и удаление', () => {
     it('PUT с пустым title возвращает 422', () => {
       return request(app.getHttpServer())
-        .put(`/movies/${testMovie.id}`)
+        .put(`/series/${testSeries.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ title: '   ' })
         .expect(422);
@@ -394,7 +370,7 @@ describe('Movies Module E2E Tests', () => {
 
     it('PUT с несуществующим id возвращает 404', () => {
       return request(app.getHttpServer())
-        .put('/movies/550e8400-e29b-41d4-a716-446655440099')
+        .put('/series/550e8400-e29b-41d4-a716-446655440099')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ title: 'Название' })
         .expect(404);
@@ -402,59 +378,35 @@ describe('Movies Module E2E Tests', () => {
 
     it('DELETE с несуществующим id возвращает 404', () => {
       return request(app.getHttpServer())
-        .delete('/movies/550e8400-e29b-41d4-a716-446655440099')
+        .delete('/series/550e8400-e29b-41d4-a716-446655440099')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(404);
     });
   });
 
   describe('Крайние сценарии: список и фильтры', () => {
-    it('GET /movies?sortBy=title&sortOrder=ASC возвращает 200', () => {
+    it('GET /series?sortBy=title&sortOrder=ASC возвращает 200', () => {
       return request(app.getHttpServer())
-        .get('/movies?sortBy=title&sortOrder=ASC')
+        .get('/series?sortBy=title&sortOrder=ASC')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => expect(Array.isArray(res.body)).toBe(true));
     });
-
-    it('GET /movies?directorId= возвращает только фильмы режиссёра', () => {
-      return request(app.getHttpServer())
-        .get(`/movies?directorId=${testDirector.id}`)
-        .set('Authorization', `Bearer ${guestToken}`)
-        .expect(200)
-        .expect((res) => {
-          expect(Array.isArray(res.body)).toBe(true);
-          res.body.forEach((m: { directorId: string | null }) => {
-            expect(m.directorId).toBe(testDirector.id);
-          });
-        });
-    });
-
-    it('GET /movies?limit=1 возвращает не более 1', () => {
-      return request(app.getHttpServer())
-        .get('/movies?limit=1')
-        .set('Authorization', `Bearer ${guestToken}`)
-        .expect(200)
-        .expect((res) => {
-          expect(Array.isArray(res.body)).toBe(true);
-          expect(res.body.length).toBeLessThanOrEqual(1);
-        });
-    });
   });
 
   describe('Невалидный токен', () => {
-    it('GET /movies с невалидным токеном возвращает 403', () => {
+    it('GET /series с невалидным токеном возвращает 403', () => {
       return request(app.getHttpServer())
-        .get('/movies')
+        .get('/series')
         .set('Authorization', 'Bearer invalid-token')
         .expect(403);
     });
 
-    it('POST /movies с невалидным токеном возвращает 403', () => {
+    it('POST /series с невалидным токеном возвращает 403', () => {
       return request(app.getHttpServer())
-        .post('/movies')
+        .post('/series')
         .set('Authorization', 'Bearer invalid-token')
-        .send({ title: 'Фильм' })
+        .send({ title: 'Сериал' })
         .expect(403);
     });
   });

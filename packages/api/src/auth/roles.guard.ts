@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   CanActivate,
   ExecutionContext,
   ForbiddenException,
@@ -7,7 +8,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import { UserRole } from '../users/entities/user.entity';
 import { UserBook } from '../user-lists/entities/user-book.entity';
 import { UserMovie } from '../user-lists/entities/user-movie.entity';
@@ -84,10 +85,20 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    const resource = await repository.findOne({
-      where: { id: resourceId },
-      select: ['id', 'userId'],
-    });
+    let resource: OwnableEntity | null = null;
+
+    try {
+      resource = await repository.findOne({
+        where: { id: resourceId },
+        select: ['id', 'userId'],
+      });
+    } catch (error: unknown) {
+      if (this.isInvalidUuidQueryError(error)) {
+        throw new BadRequestException('Validation failed (uuid is expected)');
+      }
+
+      throw error;
+    }
 
     if (!resource) {
       throw new NotFoundException('Record not found');
@@ -118,5 +129,17 @@ export class RolesGuard implements CanActivate {
     }
 
     return null;
+  }
+
+  private isInvalidUuidQueryError(error: unknown): boolean {
+    if (!(error instanceof QueryFailedError)) {
+      return false;
+    }
+
+    const message = error.message.toLowerCase();
+    return (
+      message.includes('invalid input syntax for type uuid') ||
+      message.includes('uuid')
+    );
   }
 }

@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /**
- * E2E тесты модуля games.
+ * E2E тесты модуля developers.
  * Публичных эндпоинтов нет: все GET защищены как минимум ролью GUEST.
  */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
@@ -17,14 +18,16 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import request from 'supertest';
 import { Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { User, UserRole } from '../src/users/entities/user.entity';
-import { Game } from '../src/games/entities/game.entity';
-import { JwtService } from '../src/auth/jwt.service';
-import { AuthMiddleware } from '../src/auth/auth.middleware';
-import { AdminMiddleware } from '../src/auth/admin.middleware';
-import { AuthModule } from '../src/auth/auth.module';
-import { UsersModule } from '../src/users/users.module';
-import { GamesModule } from '../src/games/games.module';
+import { User, UserRole } from '../../src/users/entities/user.entity';
+import { Developer } from '../../src/developers/entities/developer.entity';
+import { Game } from '../../src/games/entities/game.entity';
+import { Publisher } from '../../src/publishers/entities/publisher.entity';
+import { JwtService } from '../../src/auth/jwt.service';
+import { AuthMiddleware } from '../../src/auth/auth.middleware';
+import { AdminMiddleware } from '../../src/auth/admin.middleware';
+import { AuthModule } from '../../src/auth/auth.module';
+import { UsersModule } from '../../src/users/users.module';
+import { DevelopersModule } from '../../src/developers/developers.module';
 import { DataSource } from 'typeorm';
 
 const TEST_DB_NAME = 'watched_test';
@@ -44,43 +47,44 @@ const e2eDbConfig = {
 @Module({
   imports: [
     TypeOrmModule.forRoot(e2eDbConfig),
+    TypeOrmModule.forFeature([Game, Publisher]),
     AuthModule,
     UsersModule,
-    GamesModule,
+    DevelopersModule,
   ],
   providers: [AuthMiddleware, AdminMiddleware],
 })
-class GamesE2ETestModule implements NestModule {
+class DevelopersE2ETestModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
     consumer
       .apply(AuthMiddleware)
       .forRoutes(
-        { path: 'games', method: RequestMethod.GET },
-        { path: 'games/(.*)', method: RequestMethod.GET },
+        { path: 'developers', method: RequestMethod.GET },
+        { path: 'developers/(.*)', method: RequestMethod.GET },
       );
     consumer
       .apply(AuthMiddleware, AdminMiddleware)
       .forRoutes(
-        { path: 'games', method: RequestMethod.POST },
-        { path: 'games/:id', method: RequestMethod.PUT },
-        { path: 'games/:id', method: RequestMethod.DELETE },
+        { path: 'developers', method: RequestMethod.POST },
+        { path: 'developers/:id', method: RequestMethod.PUT },
+        { path: 'developers/:id', method: RequestMethod.DELETE },
       );
   }
 }
 
-describe('Games Module E2E Tests', () => {
+describe('Developers Module E2E Tests', () => {
   let app: INestApplication;
   let usersRepository: Repository<User>;
-  let gamesRepository: Repository<Game>;
+  let developersRepository: Repository<Developer>;
   let jwtService: JwtService;
 
   let adminToken: string;
   let userToken: string;
   let guestToken: string;
-  let testGame: Game;
+  let testDeveloper: Developer;
 
   beforeAll(async () => {
-    process.env.JWT_SECRET = 'test-secret-games-e2e';
+    process.env.JWT_SECRET = 'test-secret-developers-e2e';
     jest.setTimeout(20000);
 
     if (e2eDbConfig.database !== TEST_DB_NAME) {
@@ -90,7 +94,7 @@ describe('Games Module E2E Tests', () => {
     }
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [GamesE2ETestModule],
+      imports: [DevelopersE2ETestModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
@@ -115,7 +119,7 @@ describe('Games Module E2E Tests', () => {
     }
 
     usersRepository = moduleFixture.get(getRepositoryToken(User));
-    gamesRepository = moduleFixture.get(getRepositoryToken(Game));
+    developersRepository = moduleFixture.get(getRepositoryToken(Developer));
     jwtService = moduleFixture.get(JwtService);
 
     const [adminUser, plainUser, guestUser] = [
@@ -153,15 +157,13 @@ describe('Games Module E2E Tests', () => {
     userToken = jwtService.generateToken(plainUser);
     guestToken = jwtService.generateToken(guestUser);
 
-    testGame = gamesRepository.create({
-      id: '770e8400-e29b-41d4-a716-446655440001',
-      title: 'The Witcher 3',
-      rating: 95,
-      playTimeHours: 100,
-      comment: 'Отличная RPG',
-      cover: null,
+    testDeveloper = developersRepository.create({
+      id: '660e8400-e29b-41d4-a716-446655440001',
+      fullName: 'CD Projekt Red',
+      comment: null,
+      photo: null,
     });
-    await gamesRepository.save(testGame);
+    await developersRepository.save(testDeveloper);
   });
 
   afterAll(async () => {
@@ -169,97 +171,106 @@ describe('Games Module E2E Tests', () => {
   });
 
   describe('Доступ по ролям: GET (только для авторизованных)', () => {
-    it('GET /games без токена возвращает 401', () => {
-      return request(app.getHttpServer()).get('/games').expect(401);
+    it('GET /developers без токена возвращает 401', () => {
+      return request(app.getHttpServer()).get('/developers').expect(401);
     });
 
-    it('GET /games/stats без токена возвращает 401', () => {
-      return request(app.getHttpServer()).get('/games/stats').expect(401);
+    it('GET /developers/stats без токена возвращает 401', () => {
+      return request(app.getHttpServer()).get('/developers/stats').expect(401);
     });
 
-    it('GET /games/:id без токена возвращает 401', () => {
+    it('GET /developers/search без токена возвращает 401', () => {
       return request(app.getHttpServer())
-        .get(`/games/${testGame.id}`)
+        .get('/developers/search?q=CD')
         .expect(401);
     });
 
-    it('GET /games с токеном GUEST возвращает 200 и массив', () => {
+    it('GET /developers/:id без токена возвращает 401', () => {
       return request(app.getHttpServer())
-        .get('/games')
+        .get(`/developers/${testDeveloper.id}`)
+        .expect(401);
+    });
+
+    it('GET /developers с токеном GUEST возвращает 200 и массив', () => {
+      return request(app.getHttpServer())
+        .get('/developers')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => expect(Array.isArray(res.body)).toBe(true));
     });
 
-    it('GET /games/stats с токеном GUEST возвращает 200', () => {
+    it('GET /developers/stats с токеном GUEST возвращает 200 и total', () => {
       return request(app.getHttpServer())
-        .get('/games/stats')
+        .get('/developers/stats')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => {
           expect(res.body).toHaveProperty('total');
-          expect(res.body).toHaveProperty('thisMonth');
-          expect(res.body).toHaveProperty('avgRating');
+          expect(typeof res.body.total).toBe('number');
         });
     });
 
-    it('GET /games/:id с токеном GUEST возвращает 200', () => {
+    it('GET /developers/search?q= с токеном GUEST возвращает 200', () => {
       return request(app.getHttpServer())
-        .get(`/games/${testGame.id}`)
+        .get('/developers/search?q=CD')
+        .set('Authorization', `Bearer ${guestToken}`)
+        .expect(200)
+        .expect((res) => expect(Array.isArray(res.body)).toBe(true));
+    });
+
+    it('GET /developers/:id с токеном GUEST возвращает 200', () => {
+      return request(app.getHttpServer())
+        .get(`/developers/${testDeveloper.id}`)
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => {
-          expect(res.body.id).toBe(testGame.id);
-          expect(res.body.title).toBe(testGame.title);
+          expect(res.body.id).toBe(testDeveloper.id);
+          expect(res.body.fullName).toBe(testDeveloper.fullName);
         });
     });
 
-    it('GET /games с USER и ADMIN возвращает 200', async () => {
+    it('GET /developers с USER и ADMIN возвращает 200', async () => {
       await request(app.getHttpServer())
-        .get('/games')
+        .get('/developers')
         .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
       await request(app.getHttpServer())
-        .get('/games')
+        .get('/developers')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
     });
   });
 
-  describe('Доступ по ролям: POST /games', () => {
+  describe('Доступ по ролям: POST /developers', () => {
     it('POST без токена возвращает 401', () => {
       return request(app.getHttpServer())
-        .post('/games')
-        .send({ title: 'Игра' })
+        .post('/developers')
+        .send({ fullName: 'Разработчик' })
         .expect(401);
     });
 
     it('POST с USER/GUEST возвращает 403', async () => {
       await request(app.getHttpServer())
-        .post('/games')
+        .post('/developers')
         .set('Authorization', `Bearer ${userToken}`)
-        .send({ title: 'Игра' })
+        .send({ fullName: 'Разработчик' })
         .expect(403);
       await request(app.getHttpServer())
-        .post('/games')
+        .post('/developers')
         .set('Authorization', `Bearer ${guestToken}`)
-        .send({ title: 'Игра' })
+        .send({ fullName: 'Разработчик' })
         .expect(403);
     });
 
     it('POST с ADMIN возвращает 201', () => {
       return request(app.getHttpServer())
-        .post('/games')
+        .post('/developers')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({
-          title: 'Cyberpunk 2077',
-          rating: 85,
-          playTimeHours: 50,
-        })
+        .send({ fullName: 'Larian Studios', comment: 'Разработчик' })
         .expect(201)
         .expect((res) => {
           expect(res.body.id).toBeDefined();
-          expect(res.body.title).toBe('Cyberpunk 2077');
+          expect(res.body.fullName).toBe('Larian Studios');
         });
     });
   });
@@ -267,138 +278,136 @@ describe('Games Module E2E Tests', () => {
   describe('Доступ по ролям: PUT и DELETE', () => {
     it('PUT без токена возвращает 401', () => {
       return request(app.getHttpServer())
-        .put(`/games/${testGame.id}`)
-        .send({ title: 'Обновлено' })
+        .put(`/developers/${testDeveloper.id}`)
+        .send({ fullName: 'Обновлено' })
         .expect(401);
     });
 
     it('PUT с USER/GUEST возвращает 403', async () => {
       await request(app.getHttpServer())
-        .put(`/games/${testGame.id}`)
+        .put(`/developers/${testDeveloper.id}`)
         .set('Authorization', `Bearer ${userToken}`)
-        .send({ title: 'Обновлено' })
+        .send({ fullName: 'Обновлено' })
         .expect(403);
       await request(app.getHttpServer())
-        .put(`/games/${testGame.id}`)
+        .put(`/developers/${testDeveloper.id}`)
         .set('Authorization', `Bearer ${guestToken}`)
-        .send({ title: 'Обновлено' })
+        .send({ fullName: 'Обновлено' })
         .expect(403);
     });
 
     it('PUT с ADMIN возвращает 200', async () => {
       await request(app.getHttpServer())
-        .put(`/games/${testGame.id}`)
+        .put(`/developers/${testDeveloper.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ title: 'The Witcher 3 (обновлено)' })
+        .send({ fullName: 'CD Projekt Red (обновлено)' })
         .expect(200);
-      await gamesRepository.update(testGame.id, { title: testGame.title });
+      await developersRepository.update(testDeveloper.id, {
+        fullName: testDeveloper.fullName,
+      });
     });
 
-    let gameToDelete: Game;
+    let developerToDelete: Developer;
     beforeAll(async () => {
-      gameToDelete = gamesRepository.create({ title: 'На удаление' });
-      await gamesRepository.save(gameToDelete);
+      developerToDelete = developersRepository.create({
+        fullName: 'На удаление',
+      });
+      await developersRepository.save(developerToDelete);
     });
 
     it('DELETE без токена возвращает 401', () => {
       return request(app.getHttpServer())
-        .delete(`/games/${gameToDelete.id}`)
+        .delete(`/developers/${developerToDelete.id}`)
         .expect(401);
     });
 
     it('DELETE с USER/GUEST возвращает 403', async () => {
       await request(app.getHttpServer())
-        .delete(`/games/${gameToDelete.id}`)
+        .delete(`/developers/${developerToDelete.id}`)
         .set('Authorization', `Bearer ${userToken}`)
         .expect(403);
       await request(app.getHttpServer())
-        .delete(`/games/${gameToDelete.id}`)
+        .delete(`/developers/${developerToDelete.id}`)
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(403);
     });
 
     it('DELETE с ADMIN возвращает 200', async () => {
       await request(app.getHttpServer())
-        .delete(`/games/${gameToDelete.id}`)
+        .delete(`/developers/${developerToDelete.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
-      const found = await gamesRepository.findOne({
-        where: { id: gameToDelete.id },
+      const found = await developersRepository.findOne({
+        where: { id: developerToDelete.id },
       });
       expect(found).toBeNull();
     });
   });
 
   describe('Крайние сценарии: создание', () => {
-    it('POST с пустым title возвращает 422', () => {
+    it('POST с пустым fullName возвращает 422', () => {
       return request(app.getHttpServer())
-        .post('/games')
+        .post('/developers')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ title: '   ' })
+        .send({ fullName: '   ' })
         .expect(422)
-        .expect((res) => {
-          expect(res.body.violations).toBeDefined();
-          const v = (res.body.violations as Array<{ field: string }>).find(
-            (x: { field: string }) => x.field === 'title',
-          );
-          expect(v).toBeDefined();
-        });
+        .expect((res) => expect(res.body.violations).toBeDefined());
     });
   });
 
   describe('Крайние сценарии: получение', () => {
-    it('GET /games/:id с несуществующим UUID возвращает 404', () => {
+    it('GET /developers/:id с несуществующим UUID возвращает 404', () => {
       return request(app.getHttpServer())
-        .get('/games/550e8400-e29b-41d4-a716-446655440099')
+        .get('/developers/550e8400-e29b-41d4-a716-446655440099')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(404);
     });
 
-    it('GET /games/:id с невалидным UUID возвращает 404 или 400', async () => {
+    it('GET /developers/:id с невалидным UUID возвращает 404 или 400', async () => {
       const res = await request(app.getHttpServer())
-        .get('/games/not-a-uuid')
+        .get('/developers/not-a-uuid')
         .set('Authorization', `Bearer ${guestToken}`);
       expect([400, 404]).toContain(res.status);
     });
   });
 
   describe('Крайние сценарии: обновление и удаление', () => {
-    it('PUT с пустым title возвращает 422', () => {
+    it('PUT с пустым fullName возвращает 422', () => {
       return request(app.getHttpServer())
-        .put(`/games/${testGame.id}`)
+        .put(`/developers/${testDeveloper.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ title: '   ' })
+        .send({ fullName: '   ' })
         .expect(422);
     });
 
     it('PUT с несуществующим id возвращает 404', () => {
       return request(app.getHttpServer())
-        .put('/games/550e8400-e29b-41d4-a716-446655440099')
+        .put('/developers/550e8400-e29b-41d4-a716-446655440099')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ title: 'Название' })
+        .send({ fullName: 'Имя' })
         .expect(404);
     });
 
     it('DELETE с несуществующим id возвращает 404', () => {
       return request(app.getHttpServer())
-        .delete('/games/550e8400-e29b-41d4-a716-446655440099')
+        .delete('/developers/550e8400-e29b-41d4-a716-446655440099')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(404);
     });
   });
 
   describe('Крайние сценарии: список и фильтры', () => {
-    it('GET /games?sortBy=title&sortOrder=ASC возвращает 200', () => {
+    it('GET /developers?sortBy=fullName&sortOrder=ASC возвращает 200', () => {
       return request(app.getHttpServer())
-        .get('/games?sortBy=title&sortOrder=ASC')
+        .get('/developers?sortBy=fullName&sortOrder=ASC')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => expect(Array.isArray(res.body)).toBe(true));
     });
 
-    it('GET /games?limit=1 возвращает не более 1', () => {
+    it('GET /developers?limit=1 возвращает не более 1', () => {
       return request(app.getHttpServer())
-        .get('/games?limit=1')
+        .get('/developers?limit=1')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => {
@@ -409,18 +418,18 @@ describe('Games Module E2E Tests', () => {
   });
 
   describe('Невалидный токен', () => {
-    it('GET /games с невалидным токеном возвращает 403', () => {
+    it('GET /developers с невалидным токеном возвращает 403', () => {
       return request(app.getHttpServer())
-        .get('/games')
+        .get('/developers')
         .set('Authorization', 'Bearer invalid-token')
         .expect(403);
     });
 
-    it('POST /games с невалидным токеном возвращает 403', () => {
+    it('POST /developers с невалидным токеном возвращает 403', () => {
       return request(app.getHttpServer())
-        .post('/games')
+        .post('/developers')
         .set('Authorization', 'Bearer invalid-token')
-        .send({ title: 'Игра' })
+        .send({ fullName: 'Имя' })
         .expect(403);
     });
   });

@@ -2,9 +2,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Book } from '../../books/entities/book.entity';
 
 @Entity({ name: 'user_books' })
 export class UserBook {
@@ -17,11 +20,15 @@ export class UserBook {
   @Column({ type: 'uuid' })
   bookId: string;
 
+  @ManyToOne(() => Book, { nullable: false })
+  @JoinColumn({ name: 'bookId' })
+  book: Book;
+
   @Column({ type: 'int', nullable: true })
   rating: number | null;
 
-  @Column({ type: 'bigint', nullable: true })
-  readAt: string | null;
+  @Column({ type: 'timestamp', nullable: true })
+  readAt: Date | null;
 
   @Column({ type: 'text', nullable: true })
   comment: string | null;

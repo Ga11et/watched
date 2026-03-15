@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /**
- * E2E тесты модуля publishers.
+ * E2E тесты модуля authors.
  * Публичных эндпоинтов нет: все GET защищены как минимум ролью GUEST.
+ * Запуск: DB_NAME_TEST=watched_test DB_PORT=5434 npm run test:e2e -- test/authors.e2e-spec.ts
  */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
@@ -15,29 +17,27 @@ import {
 import { Test, TestingModule } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import request from 'supertest';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { User, UserRole } from '../src/users/entities/user.entity';
-import { Publisher } from '../src/publishers/entities/publisher.entity';
-import { JwtService } from '../src/auth/jwt.service';
-import { AuthMiddleware } from '../src/auth/auth.middleware';
-import { AdminMiddleware } from '../src/auth/admin.middleware';
-import { AuthModule } from '../src/auth/auth.module';
-import { UsersModule } from '../src/users/users.module';
-import { PublishersModule } from '../src/publishers/publishers.module';
-import { DataSource } from 'typeorm';
-import { Game } from '../src/games/entities/game.entity';
-import { Developer } from '../src/developers/entities/developer.entity';
+import { User, UserRole } from '../../src/users/entities/user.entity';
+import { Author } from '../../src/authors/entities/author.entity';
+import { Book } from '../../src/books/entities/book.entity';
+import { JwtService } from '../../src/auth/jwt.service';
+import { AuthMiddleware } from '../../src/auth/auth.middleware';
+import { AdminMiddleware } from '../../src/auth/admin.middleware';
+import { AuthModule } from '../../src/auth/auth.module';
+import { UsersModule } from '../../src/users/users.module';
+import { AuthorsModule } from '../../src/authors/authors.module';
 
 const TEST_DB_NAME = 'watched_test';
 
 const e2eDbConfig = {
   type: 'postgres' as const,
-  host: process.env.DB_HOST || '127.0.0.1',
-  port: +(process.env.DB_PORT || 5434),
-  username: process.env.DB_USER || 'watched',
-  password: process.env.DB_PASSWORD || 'watched',
-  database: process.env.DB_NAME_TEST || TEST_DB_NAME,
+  host: '127.0.0.1',
+  port: 5434,
+  username: 'watched',
+  password: 'watched',
+  database: TEST_DB_NAME,
   dropSchema: true,
   synchronize: true,
   autoLoadEntities: true,
@@ -46,45 +46,44 @@ const e2eDbConfig = {
 @Module({
   imports: [
     TypeOrmModule.forRoot(e2eDbConfig),
-    TypeOrmModule.forFeature([Game, Developer]),
+    TypeOrmModule.forFeature([Book]),
     AuthModule,
     UsersModule,
-    PublishersModule,
+    AuthorsModule,
   ],
   providers: [AuthMiddleware, AdminMiddleware],
 })
-class PublishersE2ETestModule implements NestModule {
+class AuthorsE2ETestModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
     consumer
       .apply(AuthMiddleware)
       .forRoutes(
-        { path: 'publishers', method: RequestMethod.GET },
-        { path: 'publishers/(.*)', method: RequestMethod.GET },
+        { path: 'authors', method: RequestMethod.GET },
+        { path: 'authors/(.*)', method: RequestMethod.GET },
       );
     consumer
       .apply(AuthMiddleware, AdminMiddleware)
       .forRoutes(
-        { path: 'publishers', method: RequestMethod.POST },
-        { path: 'publishers/:id', method: RequestMethod.PUT },
-        { path: 'publishers/:id', method: RequestMethod.DELETE },
+        { path: 'authors', method: RequestMethod.POST },
+        { path: 'authors/:id', method: RequestMethod.PUT },
+        { path: 'authors/:id', method: RequestMethod.DELETE },
       );
   }
 }
 
-describe('Publishers Module E2E Tests', () => {
+describe('Authors Module E2E Tests', () => {
   let app: INestApplication;
   let usersRepository: Repository<User>;
-  let publishersRepository: Repository<Publisher>;
+  let authorsRepository: Repository<Author>;
   let jwtService: JwtService;
 
   let adminToken: string;
   let userToken: string;
   let guestToken: string;
-  let testPublisher: Publisher;
+  let testAuthor: Author;
 
   beforeAll(async () => {
-    process.env.JWT_SECRET = 'test-secret-publishers-e2e';
-    jest.setTimeout(20000);
+    process.env.JWT_SECRET = 'test-secret-authors-e2e';
 
     if (e2eDbConfig.database !== TEST_DB_NAME) {
       throw new Error(
@@ -93,7 +92,7 @@ describe('Publishers Module E2E Tests', () => {
     }
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [PublishersE2ETestModule],
+      imports: [AuthorsE2ETestModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
@@ -118,7 +117,7 @@ describe('Publishers Module E2E Tests', () => {
     }
 
     usersRepository = moduleFixture.get(getRepositoryToken(User));
-    publishersRepository = moduleFixture.get(getRepositoryToken(Publisher));
+    authorsRepository = moduleFixture.get(getRepositoryToken(Author));
     jwtService = moduleFixture.get(JwtService);
 
     const [adminUser, plainUser, guestUser] = [
@@ -156,51 +155,51 @@ describe('Publishers Module E2E Tests', () => {
     userToken = jwtService.generateToken(plainUser);
     guestToken = jwtService.generateToken(guestUser);
 
-    testPublisher = publishersRepository.create({
+    testAuthor = authorsRepository.create({
       id: '660e8400-e29b-41d4-a716-446655440001',
-      fullName: 'CD Projekt',
+      fullName: 'Лев Толстой',
       comment: null,
       photo: null,
     });
-    await publishersRepository.save(testPublisher);
+    await authorsRepository.save(testAuthor);
   });
 
   afterAll(async () => {
     if (app) await app.close();
   });
 
-  describe('Доступ по ролям: GET (только для авторизованных)', () => {
-    it('GET /publishers без токена возвращает 401', () => {
-      return request(app.getHttpServer()).get('/publishers').expect(401);
+  describe('Доступ по ролям: GET (только для авторизованных, в т.ч. GUEST)', () => {
+    it('GET /authors без токена возвращает 401', () => {
+      return request(app.getHttpServer()).get('/authors').expect(401);
     });
 
-    it('GET /publishers/stats без токена возвращает 401', () => {
-      return request(app.getHttpServer()).get('/publishers/stats').expect(401);
+    it('GET /authors/stats без токена возвращает 401', () => {
+      return request(app.getHttpServer()).get('/authors/stats').expect(401);
     });
 
-    it('GET /publishers/search без токена возвращает 401', () => {
+    it('GET /authors/search без токена возвращает 401', () => {
       return request(app.getHttpServer())
-        .get('/publishers/search?q=CD')
+        .get('/authors/search?q=Толстой')
         .expect(401);
     });
 
-    it('GET /publishers/:id без токена возвращает 401', () => {
+    it('GET /authors/:id без токена возвращает 401', () => {
       return request(app.getHttpServer())
-        .get(`/publishers/${testPublisher.id}`)
+        .get(`/authors/${testAuthor.id}`)
         .expect(401);
     });
 
-    it('GET /publishers с токеном GUEST возвращает 200 и массив', () => {
+    it('GET /authors с токеном GUEST возвращает 200 и массив', () => {
       return request(app.getHttpServer())
-        .get('/publishers')
+        .get('/authors')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => expect(Array.isArray(res.body)).toBe(true));
     });
 
-    it('GET /publishers/stats с токеном GUEST возвращает 200 и total', () => {
+    it('GET /authors/stats с токеном GUEST возвращает 200 и total', () => {
       return request(app.getHttpServer())
-        .get('/publishers/stats')
+        .get('/authors/stats')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => {
@@ -209,171 +208,202 @@ describe('Publishers Module E2E Tests', () => {
         });
     });
 
-    it('GET /publishers/search?q= с токеном GUEST возвращает 200', () => {
+    it('GET /authors/search?q= с токеном GUEST возвращает 200', () => {
       return request(app.getHttpServer())
-        .get('/publishers/search?q=CD')
+        .get('/authors/search?q=Толстой')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => expect(Array.isArray(res.body)).toBe(true));
     });
 
-    it('GET /publishers/:id с токеном GUEST возвращает 200', () => {
+    it('GET /authors/:id с токеном GUEST возвращает 200', () => {
       return request(app.getHttpServer())
-        .get(`/publishers/${testPublisher.id}`)
+        .get(`/authors/${testAuthor.id}`)
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => {
-          expect(res.body.id).toBe(testPublisher.id);
-          expect(res.body.fullName).toBe(testPublisher.fullName);
+          expect(res.body.id).toBe(testAuthor.id);
+          expect(res.body.fullName).toBe(testAuthor.fullName);
         });
     });
 
-    it('GET /publishers с USER и ADMIN возвращает 200', async () => {
+    it('GET /authors с токеном USER и ADMIN возвращает 200', async () => {
       await request(app.getHttpServer())
-        .get('/publishers')
+        .get('/authors')
         .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
       await request(app.getHttpServer())
-        .get('/publishers')
+        .get('/authors')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
     });
   });
 
-  describe('Доступ по ролям: POST /publishers', () => {
-    it('POST без токена возвращает 401', () => {
+  describe('Доступ по ролям: POST /authors', () => {
+    it('POST /authors без токена возвращает 401', () => {
       return request(app.getHttpServer())
-        .post('/publishers')
-        .send({ fullName: 'Издатель' })
+        .post('/authors')
+        .send({ fullName: 'Новый автор' })
         .expect(401);
     });
 
-    it('POST с USER/GUEST возвращает 403', async () => {
-      await request(app.getHttpServer())
-        .post('/publishers')
+    it('POST /authors с ролью USER возвращает 403', () => {
+      return request(app.getHttpServer())
+        .post('/authors')
         .set('Authorization', `Bearer ${userToken}`)
-        .send({ fullName: 'Издатель' })
-        .expect(403);
-      await request(app.getHttpServer())
-        .post('/publishers')
-        .set('Authorization', `Bearer ${guestToken}`)
-        .send({ fullName: 'Издатель' })
+        .send({ fullName: 'Автор от юзера' })
         .expect(403);
     });
 
-    it('POST с ADMIN возвращает 201', () => {
+    it('POST /authors с ролью GUEST возвращает 403', () => {
       return request(app.getHttpServer())
-        .post('/publishers')
+        .post('/authors')
+        .set('Authorization', `Bearer ${guestToken}`)
+        .send({ fullName: 'Автор от гостя' })
+        .expect(403);
+    });
+
+    it('POST /authors с ролью ADMIN возвращает 201', () => {
+      return request(app.getHttpServer())
+        .post('/authors')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ fullName: 'Larian Studios', comment: 'Издатель' })
+        .send({ fullName: 'Фёдор Достоевский', comment: 'Классик' })
         .expect(201)
         .expect((res) => {
           expect(res.body.id).toBeDefined();
-          expect(res.body.fullName).toBe('Larian Studios');
+          expect(res.body.fullName).toBe('Фёдор Достоевский');
+          expect(res.body.comment).toBe('Классик');
         });
     });
   });
 
-  describe('Доступ по ролям: PUT и DELETE', () => {
+  describe('Доступ по ролям: PUT /authors/:id', () => {
     it('PUT без токена возвращает 401', () => {
       return request(app.getHttpServer())
-        .put(`/publishers/${testPublisher.id}`)
+        .put(`/authors/${testAuthor.id}`)
         .send({ fullName: 'Обновлено' })
         .expect(401);
     });
 
-    it('PUT с USER/GUEST возвращает 403', async () => {
-      await request(app.getHttpServer())
-        .put(`/publishers/${testPublisher.id}`)
+    it('PUT с ролью USER возвращает 403', () => {
+      return request(app.getHttpServer())
+        .put(`/authors/${testAuthor.id}`)
         .set('Authorization', `Bearer ${userToken}`)
         .send({ fullName: 'Обновлено' })
         .expect(403);
-      await request(app.getHttpServer())
-        .put(`/publishers/${testPublisher.id}`)
+    });
+
+    it('PUT с ролью GUEST возвращает 403', () => {
+      return request(app.getHttpServer())
+        .put(`/authors/${testAuthor.id}`)
         .set('Authorization', `Bearer ${guestToken}`)
         .send({ fullName: 'Обновлено' })
         .expect(403);
     });
 
-    it('PUT с ADMIN возвращает 200', async () => {
+    it('PUT с ролью ADMIN возвращает 200', async () => {
       await request(app.getHttpServer())
-        .put(`/publishers/${testPublisher.id}`)
+        .put(`/authors/${testAuthor.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ fullName: 'CD Projekt (обновлено)' })
-        .expect(200);
-      await publishersRepository.update(testPublisher.id, {
-        fullName: testPublisher.fullName,
+        .send({
+          fullName: 'Лев Николаевич Толстой',
+          comment: 'Обновлённый комментарий',
+        })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.fullName).toBe('Лев Николаевич Толстой');
+        });
+      await authorsRepository.update(testAuthor.id, {
+        fullName: testAuthor.fullName,
+        comment: testAuthor.comment,
       });
     });
+  });
 
-    let publisherToDelete: Publisher;
+  describe('Доступ по ролям: DELETE /authors/:id', () => {
+    let authorToDelete: Author;
+
     beforeAll(async () => {
-      publisherToDelete = publishersRepository.create({
-        fullName: 'На удаление',
+      authorToDelete = authorsRepository.create({
+        fullName: 'Автор на удаление',
       });
-      await publishersRepository.save(publisherToDelete);
+      await authorsRepository.save(authorToDelete);
     });
 
     it('DELETE без токена возвращает 401', () => {
       return request(app.getHttpServer())
-        .delete(`/publishers/${publisherToDelete.id}`)
+        .delete(`/authors/${authorToDelete.id}`)
         .expect(401);
     });
 
     it('DELETE с USER/GUEST возвращает 403', async () => {
       await request(app.getHttpServer())
-        .delete(`/publishers/${publisherToDelete.id}`)
+        .delete(`/authors/${authorToDelete.id}`)
         .set('Authorization', `Bearer ${userToken}`)
         .expect(403);
       await request(app.getHttpServer())
-        .delete(`/publishers/${publisherToDelete.id}`)
+        .delete(`/authors/${authorToDelete.id}`)
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(403);
     });
 
-    it('DELETE с ADMIN возвращает 200', async () => {
+    it('DELETE с ADMIN возвращает 200 и удаляет', async () => {
       await request(app.getHttpServer())
-        .delete(`/publishers/${publisherToDelete.id}`)
+        .delete(`/authors/${authorToDelete.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
-      const found = await publishersRepository.findOne({
-        where: { id: publisherToDelete.id },
+      const found = await authorsRepository.findOne({
+        where: { id: authorToDelete.id },
       });
       expect(found).toBeNull();
     });
   });
 
   describe('Крайние сценарии: создание', () => {
-    it('POST с пустым fullName возвращает 422', () => {
+    it('POST с пустым fullName возвращает 422 и violations', () => {
       return request(app.getHttpServer())
-        .post('/publishers')
+        .post('/authors')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ fullName: '   ' })
         .expect(422)
-        .expect((res) => expect(res.body.violations).toBeDefined());
+        .expect((res) => {
+          expect(res.body.violations).toBeDefined();
+          const v = (res.body.violations as Array<{ field: string }>).find(
+            (x: { field: string }) => x.field === 'fullName',
+          );
+          expect(v).toBeDefined();
+        });
+    });
+
+    it('POST без fullName (пустое тело) может вернуть 400/422', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/authors')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({});
+      expect([400, 422]).toContain(res.status);
     });
   });
 
   describe('Крайние сценарии: получение', () => {
-    it('GET /publishers/:id с несуществующим UUID возвращает 404', () => {
+    it('GET /authors/:id с несуществующим UUID возвращает 404', () => {
       return request(app.getHttpServer())
-        .get('/publishers/550e8400-e29b-41d4-a716-446655440099')
+        .get('/authors/550e8400-e29b-41d4-a716-446655440099')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(404);
     });
 
-    it('GET /publishers/:id с невалидным UUID возвращает 404 или 400', async () => {
+    it('GET /authors/:id с невалидным UUID возвращает 404 или 400', async () => {
       const res = await request(app.getHttpServer())
-        .get('/publishers/not-a-uuid')
+        .get('/authors/not-a-uuid')
         .set('Authorization', `Bearer ${guestToken}`);
       expect([400, 404]).toContain(res.status);
     });
   });
 
-  describe('Крайние сценарии: обновление и удаление', () => {
+  describe('Крайние сценарии: обновление', () => {
     it('PUT с пустым fullName возвращает 422', () => {
       return request(app.getHttpServer())
-        .put(`/publishers/${testPublisher.id}`)
+        .put(`/authors/${testAuthor.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ fullName: '   ' })
         .expect(422);
@@ -381,32 +411,34 @@ describe('Publishers Module E2E Tests', () => {
 
     it('PUT с несуществующим id возвращает 404', () => {
       return request(app.getHttpServer())
-        .put('/publishers/550e8400-e29b-41d4-a716-446655440099')
+        .put('/authors/550e8400-e29b-41d4-a716-446655440099')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ fullName: 'Имя' })
         .expect(404);
     });
+  });
 
+  describe('Крайние сценарии: удаление', () => {
     it('DELETE с несуществующим id возвращает 404', () => {
       return request(app.getHttpServer())
-        .delete('/publishers/550e8400-e29b-41d4-a716-446655440099')
+        .delete('/authors/550e8400-e29b-41d4-a716-446655440099')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(404);
     });
   });
 
   describe('Крайние сценарии: список и фильтры', () => {
-    it('GET /publishers?sortBy=fullName&sortOrder=ASC возвращает 200', () => {
+    it('GET /authors?sortBy=fullName&sortOrder=ASC возвращает 200', () => {
       return request(app.getHttpServer())
-        .get('/publishers?sortBy=fullName&sortOrder=ASC')
+        .get('/authors?sortBy=fullName&sortOrder=ASC')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => expect(Array.isArray(res.body)).toBe(true));
     });
 
-    it('GET /publishers?limit=1 возвращает не более 1', () => {
+    it('GET /authors?limit=1 возвращает не более 1', () => {
       return request(app.getHttpServer())
-        .get('/publishers?limit=1')
+        .get('/authors?limit=1')
         .set('Authorization', `Bearer ${guestToken}`)
         .expect(200)
         .expect((res) => {
@@ -414,21 +446,29 @@ describe('Publishers Module E2E Tests', () => {
           expect(res.body.length).toBeLessThanOrEqual(1);
         });
     });
+
+    it('GET /authors/search?q=пустой поиск возвращает массив', () => {
+      return request(app.getHttpServer())
+        .get('/authors/search?q=неттакого')
+        .set('Authorization', `Bearer ${guestToken}`)
+        .expect(200)
+        .expect((res) => expect(Array.isArray(res.body)).toBe(true));
+    });
   });
 
   describe('Невалидный токен', () => {
-    it('GET /publishers с невалидным токеном возвращает 403', () => {
+    it('POST /authors с невалидным токеном возвращает 403', () => {
       return request(app.getHttpServer())
-        .get('/publishers')
+        .post('/authors')
         .set('Authorization', 'Bearer invalid-token')
+        .send({ fullName: 'Имя' })
         .expect(403);
     });
 
-    it('POST /publishers с невалидным токеном возвращает 403', () => {
+    it('GET /authors с невалидным токеном возвращает 403', () => {
       return request(app.getHttpServer())
-        .post('/publishers')
+        .get('/authors')
         .set('Authorization', 'Bearer invalid-token')
-        .send({ fullName: 'Имя' })
         .expect(403);
     });
   });

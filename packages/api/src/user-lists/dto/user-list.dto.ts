@@ -5,17 +5,15 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  IsUUID,
   Max,
   Min,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateUserBookDto {
-  @ApiProperty({ format: 'uuid' })
-  @IsUUID()
+  @ApiProperty()
   @IsString()
-  bookId: string;
+  title: string;
 
   @ApiPropertyOptional({ minimum: 0, maximum: 100 })
   @IsOptional()
@@ -57,11 +55,6 @@ export class UpdateUserBookDto {
 }
 
 export class CreateUserMovieDto {
-  @ApiProperty({ format: 'uuid' })
-  @IsUUID()
-  @IsString()
-  movieId: string;
-
   @ApiPropertyOptional({ minimum: 0, maximum: 100 })
   @IsOptional()
   @Type(() => Number)
@@ -102,11 +95,6 @@ export class UpdateUserMovieDto {
 }
 
 export class CreateUserSeriesDto {
-  @ApiProperty({ format: 'uuid' })
-  @IsUUID()
-  @IsString()
-  seriesId: string;
-
   @ApiPropertyOptional({ minimum: 0, maximum: 100 })
   @IsOptional()
   @Type(() => Number)
@@ -161,11 +149,6 @@ export class UpdateUserSeriesDto {
 }
 
 export class CreateUserGameDto {
-  @ApiProperty({ format: 'uuid' })
-  @IsUUID()
-  @IsString()
-  gameId: string;
-
   @ApiPropertyOptional({ minimum: 0, maximum: 100 })
   @IsOptional()
   @Type(() => Number)

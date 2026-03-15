@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /**
  * E2E тесты модуля books.
  * Запуск:
@@ -20,15 +22,15 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import request from 'supertest';
 import { Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { User, UserRole } from '../src/users/entities/user.entity';
-import { Book } from '../src/books/entities/book.entity';
-import { Author } from '../src/authors/entities/author.entity';
-import { JwtService } from '../src/auth/jwt.service';
-import { AuthMiddleware } from '../src/auth/auth.middleware';
-import { AdminMiddleware } from '../src/auth/admin.middleware';
-import { AuthModule } from '../src/auth/auth.module';
-import { UsersModule } from '../src/users/users.module';
-import { BooksModule } from '../src/books/books.module';
+import { User, UserRole } from '../../src/users/entities/user.entity';
+import { Book } from '../../src/books/entities/book.entity';
+import { Author } from '../../src/authors/entities/author.entity';
+import { JwtService } from '../../src/auth/jwt.service';
+import { AuthMiddleware } from '../../src/auth/auth.middleware';
+import { AdminMiddleware } from '../../src/auth/admin.middleware';
+import { AuthModule } from '../../src/auth/auth.module';
+import { UsersModule } from '../../src/users/users.module';
+import { BooksModule } from '../../src/books/books.module';
 import { DataSource } from 'typeorm';
 
 const TEST_DB_NAME = 'watched_test';
@@ -336,7 +338,10 @@ describe('Books Module E2E Tests', () => {
       await request(app.getHttpServer())
         .put(`/books/${testBook.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ title: 'Война и мир (обновлено)', comment: 'Новый комментарий' })
+        .send({
+          title: 'Война и мир (обновлено)',
+          comment: 'Новый комментарий',
+        })
         .expect(200)
         .expect((res) => {
           expect(res.body.title).toBe('Война и мир (обновлено)');
@@ -405,9 +410,9 @@ describe('Books Module E2E Tests', () => {
         .expect((res) => {
           expect(res.body.message).toBeDefined();
           expect(res.body.violations).toBeDefined();
-          const titleViolation = (res.body.violations as Array<{ field: string }>).find(
-            (v: { field: string }) => v.field === 'title',
-          );
+          const titleViolation = (
+            res.body.violations as Array<{ field: string }>
+          ).find((v: { field: string }) => v.field === 'title');
           expect(titleViolation).toBeDefined();
         });
     });

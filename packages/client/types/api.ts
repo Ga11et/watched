@@ -45,6 +45,14 @@ export interface Book extends BaseEntity {
   author?: Author
 }
 
+export interface UserBook extends BaseEntity {
+  userId: string
+  rating?: number | null
+  readAt?: string | null
+  comment?: string | null
+  book: Book
+}
+
 export interface CreateBookDto {
   title: string
   authorId?: string

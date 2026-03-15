@@ -6,7 +6,7 @@
 
     <input
       :id="id"
-      :value="modelValue || ''"
+      v-model="model"
       type="date"
       :disabled="disabled"
       :class="[
@@ -16,7 +16,6 @@
           : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-200',
         disabled ? 'disabled:cursor-not-allowed disabled:opacity-60' : '',
       ]"
-      @input="onInput"
     />
 
     <p v-if="error" class="mt-1 text-sm text-red-600">{{ error }}</p>
@@ -28,24 +27,16 @@
 interface Props {
   id: string
   label: string
-  modelValue?: string
   hint?: string
   error?: string
   disabled?: boolean
 }
 
 withDefaults(defineProps<Props>(), {
-  modelValue: '',
   hint: '',
   error: '',
   disabled: false,
 })
 
-const emit = defineEmits<{
-  'update:modelValue': [value: string]
-}>()
-
-const onInput = (event: Event) => {
-  emit('update:modelValue', (event.target as HTMLInputElement).value)
-}
+const model = defineModel<string>('modelValue', { default: '' })
 </script>

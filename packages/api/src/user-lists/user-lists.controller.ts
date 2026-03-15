@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Param,
   ParseUUIDPipe,
@@ -9,7 +10,9 @@ import {
   Put,
   Req,
   UnauthorizedException,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -36,6 +39,7 @@ import {
   UpdateUserSeriesDto,
 } from './dto/user-list.dto';
 import { UserListsService } from './user-lists.service';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 interface AuthenticatedRequest {
   user?: {
@@ -55,10 +59,34 @@ export class UserListsController {
   @ApiResponse({ status: 200, type: [UserBook] })
   getCurrentUserBooks(@Req() request: AuthenticatedRequest) {
     const user = this.getAuthenticatedUser(request);
+
+    if (user.role === UserRole.GUEST) {
+      throw new ForbiddenException('Access denied');
+    }
+
     return this.userListsService.getCurrentUserBooks(user.id);
   }
 
+  @Get('user-books/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Получить книгу текущего пользователя по GUID' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiResponse({ status: 200, type: UserBook })
+  getCurrentUserBook(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    const user = this.getAuthenticatedUser(request);
+
+    if (user.role === UserRole.GUEST) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    return this.userListsService.getCurrentUserBook(user.id, id);
+  }
+
   @Post('user-books')
+  @UseInterceptors(FileInterceptor('cover'))
   @UseGuards(RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Добавить книгу в список текущего пользователя' })
@@ -67,10 +95,12 @@ export class UserListsController {
   createCurrentUserBook(
     @Req() request: AuthenticatedRequest,
     @Body() dto: CreateUserBookDto,
+    @UploadedFile() cover?: Express.Multer.File,
   ) {
     return this.userListsService.createCurrentUserBook(
       this.getAuthenticatedUser(request),
       dto,
+      cover,
     );
   }
 

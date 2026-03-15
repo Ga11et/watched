@@ -14,19 +14,13 @@
       <div class="flex items-center gap-3">
         <UiViewToggle v-model="viewMode" />
         <NuxtLink
-          to="/user-books"
-          class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
-        >
-          Книги пользователя
-        </NuxtLink>
-        <NuxtLink
-          to="/books/authors"
+          to="/user-books/authors"
           class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
         >
           Авторы
         </NuxtLink>
         <NuxtLink
-          to="/books/new"
+          to="/user-books/new"
           class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
         >
           Добавить книгу
@@ -42,8 +36,8 @@
 
     <UiEmpty v-else-if="!books?.length" message="Книг пока нет. Добавьте свою первую книгу!" />
 
-    <Transition name="fade" mode="out-in">
-      <EntitiesBooksCardsView
+    <Transition v-else name="fade" mode="out-in">
+      <EntitiesUserBooksCardsView
         v-if="viewMode === 'cards'"
         :books="filteredBooks"
         :sort-by="sortBy"
@@ -52,7 +46,7 @@
         @update-sorting="updateSorting"
         @update:searchQuery="updateSearchQuery"
       />
-      <EntitiesBooksTableView
+      <EntitiesUserBooksTableView
         v-else
         :books="filteredBooks"
         :sort-by="sortBy"
@@ -64,7 +58,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Book } from '~/types/api'
+import type { UserBook } from '~/types/api'
 
 // 2. Конфигурация и состояние
 const viewMode = useCookie<'cards' | 'table'>('watched_books_view_mode', {
@@ -88,12 +82,12 @@ const searchQuery = ref('')
 const error = ref<string>('')
 const config = useRuntimeConfig()
 
-const { data: books, pending: loading } = await useAsyncData<Book[]>(
-  'books',
+const { data: books, pending: loading } = await useAsyncData<UserBook[]>(
+  'user-books',
   async () => {
     try {
       error.value = ''
-      return await _fetch<Book[]>(`${config.public.apiBase}/books`, {
+      return await _fetch<UserBook[]>(`${config.public.apiBase}/user-books`, {
         params: {
           sortBy: sortBy.value,
           sortOrder: sortOrder.value,
@@ -121,8 +115,8 @@ const filteredBooks = computed(() => {
   }
 
   return list.filter((book) => {
-    const title = (book.title || '').toLowerCase()
-    const author = (book.author?.fullName || '').toLowerCase()
+    const title = (book.book?.title || '').toLowerCase()
+    const author = (book.book?.author?.fullName || '').toLowerCase()
     return title.includes(query) || author.includes(query)
   })
 })
