@@ -497,6 +497,109 @@ describe('Books Module E2E Tests', () => {
   });
 
   describe('Крайние сценарии: список и фильтры', () => {
+    beforeAll(async () => {
+      await booksRepository.save([
+        booksRepository.create({
+          title: 'Search Token Alpha',
+          genre: 'Test',
+          rating: 10,
+        }),
+        booksRepository.create({
+          title: 'search token beta',
+          genre: 'Test',
+          rating: 20,
+        }),
+        booksRepository.create({
+          title: 'Gamma Search Token',
+          genre: 'Test',
+          rating: 30,
+        }),
+        booksRepository.create({
+          title: 'Search Token Delta',
+          genre: 'Test',
+          rating: 40,
+        }),
+        booksRepository.create({
+          title: 'Search Token Epsilon',
+          genre: 'Test',
+          rating: 50,
+        }),
+        booksRepository.create({
+          title: 'Search Token Zeta',
+          genre: 'Test',
+          rating: 60,
+        }),
+      ]);
+    });
+
+    it('GET /books?search=<full-title> возвращает совпадение по точному названию', () => {
+      return request(app.getHttpServer())
+        .get('/books?search=Search%20Token%20Alpha')
+        .set('Authorization', `Bearer ${guestToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+          expect(
+            res.body.some(
+              (book: { title: string }) => book.title === 'Search Token Alpha',
+            ),
+          ).toBe(true);
+        });
+    });
+
+    it('GET /books?search=<partial-fragment> поддерживает частичный поиск', () => {
+      return request(app.getHttpServer())
+        .get('/books?search=Token')
+        .set('Authorization', `Bearer ${guestToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+          expect(res.body.length).toBeGreaterThan(0);
+          res.body.forEach((book: { title: string }) => {
+            expect(book.title.toLowerCase()).toContain('token');
+          });
+        });
+    });
+
+    it('GET /books?search=<upper-or-mixed-case> выполняет регистронезависимый поиск', () => {
+      return request(app.getHttpServer())
+        .get('/books?search=SeArCh%20ToKeN')
+        .set('Authorization', `Bearer ${guestToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+          expect(res.body.length).toBeGreaterThan(0);
+          res.body.forEach((book: { title: string }) => {
+            expect(book.title.toLowerCase()).toContain('search token');
+          });
+        });
+    });
+
+    it('GET /books?search=<query>&limit=5 возвращает не более 5 результатов и только по запросу', () => {
+      return request(app.getHttpServer())
+        .get('/books?search=Search%20Token&limit=5')
+        .set('Authorization', `Bearer ${guestToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+          expect(res.body.length).toBeLessThanOrEqual(5);
+          res.body.forEach((book: { title: string }) => {
+            expect(book.title.toLowerCase()).toContain('search token');
+          });
+        });
+    });
+
+    it('GET /books?search=<no-match> возвращает пустой массив', () => {
+      return request(app.getHttpServer())
+        .get('/books?search=NoSuchBookTitle123')
+        .set('Authorization', `Bearer ${guestToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+          expect(res.body).toHaveLength(0);
+        });
+    });
+
     it('GET /books?sortBy=title&sortOrder=ASC возвращает 200 и сортировку', () => {
       return request(app.getHttpServer())
         .get('/books?sortBy=title&sortOrder=ASC')

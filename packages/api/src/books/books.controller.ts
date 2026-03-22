@@ -109,13 +109,26 @@ export class BooksController {
     required: false,
     type: Number,
   })
+  @ApiQuery({
+    name: 'search',
+    description: 'Поиск по названию книги',
+    required: false,
+    type: String,
+  })
   findAll(
     @Query('sortBy') sortBy?: string,
     @Query('sortOrder') sortOrder?: 'ASC' | 'DESC',
     @Query('authorId') authorId?: string,
     @Query('limit') limit?: string,
+    @Query('search') search?: string,
   ): Promise<Book[]> {
-    return this.booksService.findAll(sortBy, sortOrder, authorId, limit);
+    return this.booksService.findAll(
+      sortBy,
+      sortOrder,
+      authorId,
+      limit,
+      search,
+    );
   }
 
   @Get(':id')

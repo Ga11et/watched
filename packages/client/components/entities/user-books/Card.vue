@@ -62,9 +62,6 @@
           <span>Прочитано:</span>
           <UiDateDisplay :date="userBook.readAt" />
         </div>
-        <div v-if="userBook.comment" class="line-clamp-2 text-gray-500">
-          {{ userBook.comment }}
-        </div>
       </div>
     </template>
   </EntitiesCommonCard>

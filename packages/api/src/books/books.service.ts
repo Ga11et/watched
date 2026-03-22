@@ -59,6 +59,7 @@ export class BooksService {
     sortOrder?: 'ASC' | 'DESC',
     authorId?: string,
     limit?: string,
+    search?: string,
   ): Promise<Book[]> {
     const queryBuilder = this.booksRepository
       .createQueryBuilder('book')
@@ -66,6 +67,18 @@ export class BooksService {
 
     if (authorId) {
       queryBuilder.where('book.authorId = :authorId', { authorId });
+    }
+
+    if (search?.trim()) {
+      if (authorId) {
+        queryBuilder.andWhere('book.title ILIKE :search', {
+          search: `%${search.trim()}%`,
+        });
+      } else {
+        queryBuilder.where('book.title ILIKE :search', {
+          search: `%${search.trim()}%`,
+        });
+      }
     }
 
     if (sortBy) {

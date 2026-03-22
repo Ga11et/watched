@@ -41,16 +41,15 @@
         <template #author>
           <div>
             <div class="text-sm text-gray-500">Автор</div>
-            <div class="text-base text-gray-900">
+            <div v-if="userBook.book.author" class="mt-1 flex flex-wrap gap-2">
               <NuxtLink
-                v-if="userBook.book.author"
                 :to="`/books/authors/${userBook.book.author.id}`"
-                class="text-indigo-600 hover:text-indigo-900"
+                class="inline-flex rounded-full bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200"
               >
                 {{ userBook.book.author.fullName }}
               </NuxtLink>
-              <span v-else>—</span>
             </div>
+            <div v-else class="text-base text-gray-900">—</div>
           </div>
         </template>
 

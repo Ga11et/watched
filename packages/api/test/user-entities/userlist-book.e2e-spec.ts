@@ -25,6 +25,7 @@ import { UsersModule } from '../../src/users/users.module';
 import { Book } from '../../src/books/entities/book.entity';
 import { BooksModule } from '../../src/books/books.module';
 import { AuthorsModule } from '../../src/authors/authors.module';
+import { Author } from '../../src/authors/entities/author.entity';
 
 const TEST_DB_NAME = 'watched_test';
 
@@ -83,6 +84,7 @@ describe('UserList-Book module (e2e)', () => {
   let usersRepository: Repository<User>;
   let userBooksRepository: Repository<UserBook>;
   let booksRepository: Repository<Book>;
+  let authorsRepository: Repository<Author>;
   let jwtService: JwtService;
 
   let adminUser: User;
@@ -134,6 +136,7 @@ describe('UserList-Book module (e2e)', () => {
     usersRepository = moduleFixture.get(getRepositoryToken(User));
     userBooksRepository = moduleFixture.get(getRepositoryToken(UserBook));
     booksRepository = moduleFixture.get(getRepositoryToken(Book));
+    authorsRepository = dataSource.getRepository(Author);
     jwtService = moduleFixture.get(JwtService);
 
     [adminUser, regularUser, otherUser, guestUser] = await usersRepository.save(
@@ -462,9 +465,16 @@ describe('UserList-Book module (e2e)', () => {
     });
 
     it('GET /user-books/:guid returns expected fields for requested user', async () => {
+      const createdAuthor = await authorsRepository.save(
+        authorsRepository.create({
+          fullName: 'Author for user-book payload',
+          comment: 'Author payload check',
+          photo: null,
+        }),
+      );
+
       const createdBook = await booksRepository.save(
         booksRepository.create({
-          id: IDS.bookC,
           title: 'Public payload book',
           genre: 'Sci-Fi',
           rating: 91,
@@ -473,7 +483,7 @@ describe('UserList-Book module (e2e)', () => {
           comment: 'Public endpoint book entity comment',
           publishYear: 2020,
           cover: '/uploads/books/public-book.jpg',
-          authorId: null,
+          authorId: createdAuthor.id,
         }),
       );
 
@@ -513,7 +523,13 @@ describe('UserList-Book module (e2e)', () => {
                 comment: 'Public endpoint book entity comment',
                 publishYear: 2020,
                 cover: '/uploads/books/public-book.jpg',
-                authorId: null,
+                authorId: createdAuthor.id,
+                author: expect.objectContaining({
+                  id: createdAuthor.id,
+                  fullName: 'Author for user-book payload',
+                  comment: 'Author payload check',
+                  photo: null,
+                }),
                 createdAt: expect.any(String),
                 updatedAt: expect.any(String),
               }),

@@ -6,6 +6,7 @@
         v-model:preview="coverPreview"
         label="Обложка"
         :error="errors.cover"
+        :disabled="isLocal"
         class="flex-shrink-0"
       />
 
@@ -15,7 +16,7 @@
             <label for="title" class="block text-sm font-medium text-gray-700"
               >Название<span class="text-red-500">*</span></label
             >
-            <IntegrationsBookAutocomplete
+            <EntitiesUserBooksInputsSearch
               id="title"
               v-model="selectedBook"
               v-model:manual-query="form.title"
@@ -24,6 +25,38 @@
               @select="onBookSelect"
             />
           </div>
+        </template>
+
+        <template #authorId>
+          <EntitiesUserBooksInputsAuthors
+            :disabled="isLocal"
+            :model-value="coreBookForm.authorId ? [coreBookForm.authorId] : undefined"
+            :error="errors.authorId"
+          />
+        </template>
+
+        <template #genre>
+          <EntitiesUserBooksInputsGanre
+            :disabled="isLocal"
+            v-model="coreBookForm.genre"
+            :error="errors.genre"
+          />
+        </template>
+
+        <template #pageCount>
+          <EntitiesUserBooksInputsPages
+            :disabled="isLocal"
+            v-model="coreBookForm.pageCount"
+            :error="errors.pageCount"
+          />
+        </template>
+
+        <template #publishYear>
+          <EntitiesUserBooksInputsPublished
+            :disabled="isLocal"
+            v-model="coreBookForm.publishYear"
+            :error="errors.publishYear"
+          />
         </template>
 
         <template #rating>
@@ -66,17 +99,28 @@
 </template>
 
 <script setup lang="ts">
+import type { Book } from '~/types/api'
 import type { GoogleBook } from '~/components/integrations/google-books.service'
 
 const config = useRuntimeConfig()
 const router = useRouter()
 const submitting = ref(false)
+const isLocal = ref(false)
 const error = ref('')
 const errors = ref<Record<string, string>>({})
 
 const coverFile = ref<File | null>(null)
 const coverPreview = ref<string | null>(null)
-const selectedBook = ref<GoogleBook | null>(null)
+
+interface UserBookSearchResult {
+  id: string
+  title: string
+  source: 'local' | 'public'
+  localBook?: Book
+  googleBook?: GoogleBook
+}
+
+const selectedBook = ref<UserBookSearchResult | null>(null)
 
 const form = reactive({
   title: '',
@@ -85,11 +129,28 @@ const form = reactive({
   rating: undefined as number | undefined,
 })
 
+const coreBookForm = reactive({
+  authorId: undefined as string | undefined,
+  publishYear: undefined as string | undefined,
+  pageCount: undefined as number | undefined,
+  genre: undefined as string | undefined,
+})
+
 const bookFormLayout = [
   {
     columns: 1,
     fields: [{ id: 'title' }],
   },
+
+  {
+    columns: 2,
+    fields: [{ id: 'authorId' }, { id: 'genre' }],
+  },
+  {
+    columns: 2,
+    fields: [{ id: 'pageCount' }, { id: 'publishYear' }],
+  },
+
   {
     columns: 2,
     fields: [{ id: 'rating' }, { id: 'readAt' }],
@@ -100,28 +161,48 @@ const bookFormLayout = [
   },
 ]
 
-const onBookSelect = (book: GoogleBook) => {
-  form.title = book.title
+const onBookSelect = (book: UserBookSearchResult) => {
+  if (book.source === 'local') {
+    form.title = book.localBook?.title || book.title
+    isLocal.value = book.source === 'local'
+    coverPreview.value = book.localBook?.cover ? config.public.apiBase + book.localBook.cover : null
 
-  if (book.description) {
-    form.comment = book.description
+    coreBookForm.authorId = book.localBook?.authorId || undefined
+    coreBookForm.genre = book.localBook?.genre || undefined
+    coreBookForm.pageCount = book.localBook?.pageCount ? +book.localBook.pageCount : undefined
+    coreBookForm.publishYear = book.localBook?.publishYear
+      ? String(book.localBook.publishYear)
+      : undefined
+    return
   }
 
-  if (book.publishedDate) {
-    const parsedDate = new Date(book.publishedDate)
+  const publicBook = book.googleBook
+
+  if (!publicBook) {
+    return
+  }
+
+  form.title = publicBook.title
+
+  if (publicBook.description) {
+    form.comment = publicBook.description
+  }
+
+  if (publicBook.publishedDate) {
+    const parsedDate = new Date(publicBook.publishedDate)
     if (!Number.isNaN(parsedDate.getTime())) {
       form.readAt = parsedDate.toISOString().slice(0, 10)
     }
   }
 
-  if (book.cover && !coverFile.value) {
-    const proxyUrl = `/api/proxy?url=${encodeURIComponent(book.cover)}`
+  if (publicBook.cover && !coverFile.value) {
+    const proxyUrl = `/api/proxy?url=${encodeURIComponent(publicBook.cover)}`
     fetch(proxyUrl)
       .then((response) => response.blob())
       .then((blob) => {
         const file = new File([blob], 'cover.jpg', { type: 'image/jpeg' })
         coverFile.value = file
-        coverPreview.value = book.cover || null
+        coverPreview.value = publicBook.cover || null
       })
       .catch((fetchError) => {
         console.warn('Failed to fetch book cover:', fetchError)
