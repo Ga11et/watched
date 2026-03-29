@@ -90,7 +90,7 @@ export class BooksController {
     name: 'sortBy',
     description: 'Поле сортировки',
     required: false,
-    enum: ['title', 'genre', 'rating', 'readAt', 'publishYear', 'createdAt'],
+    enum: ['title', 'genre', 'publishYear', 'createdAt', 'authors.fullName'],
   })
   @ApiQuery({
     name: 'sortOrder',

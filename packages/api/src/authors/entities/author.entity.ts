@@ -1,10 +1,4 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToMany,
-  ManyToMany,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany } from 'typeorm';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Book } from '../../books/entities/book.entity';
 
@@ -53,16 +47,9 @@ export class Author {
   updatedAt: Date;
 
   @ApiPropertyOptional({
-    description: 'Книги автора',
-    type: () => [Book],
-  })
-  @OneToMany(() => Book, (book) => book.author)
-  books: Book[];
-
-  @ApiPropertyOptional({
     description: 'Книги автора (many-to-many)',
     type: () => [Book],
   })
   @ManyToMany(() => Book, (book) => book.authors)
-  booksManyToMany: Book[];
+  books: Book[];
 }

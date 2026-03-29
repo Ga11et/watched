@@ -187,7 +187,7 @@ describe('Books Module E2E Tests', () => {
       title: 'Война и мир',
       genre: 'Роман',
       rating: 95,
-      authorId: testAuthor.id,
+      authors: [testAuthor],
       readAt: new Date('2024-01-15'),
       pageCount: 1225,
       comment: 'Великая книга',
@@ -298,14 +298,13 @@ describe('Books Module E2E Tests', () => {
         .send({
           title: 'Книга от админа',
           genre: 'Фантастика',
-          rating: 80,
         })
         .expect(201)
         .expect((res) => {
           expect(res.body.id).toBeDefined();
           expect(res.body.title).toBe('Книга от админа');
           expect(res.body.genre).toBe('Фантастика');
-          expect(res.body.rating).toBe(80);
+          expect(res.body.rating).toBeNull();
         });
     });
   });
@@ -340,12 +339,11 @@ describe('Books Module E2E Tests', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           title: 'Война и мир (обновлено)',
-          comment: 'Новый комментарий',
         })
         .expect(200)
         .expect((res) => {
           expect(res.body.title).toBe('Война и мир (обновлено)');
-          expect(res.body.comment).toBe('Новый комментарий');
+          expect(res.body.comment).toBeNull();
         });
       // восстанавливаем для других тестов
       await booksRepository.update(testBook.id, {
@@ -417,18 +415,19 @@ describe('Books Module E2E Tests', () => {
         });
     });
 
-    it('POST /books с валидным authorId привязывает автора', () => {
+    it('POST /books с валидным authorIds привязывает автора', () => {
       return request(app.getHttpServer())
         .post('/books')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           title: 'Анна Каренина',
-          authorId: testAuthor.id,
+          authorIds: [testAuthor.id],
           genre: 'Роман',
         })
         .expect(201)
         .expect((res) => {
-          expect(res.body.authorId).toBe(testAuthor.id);
+          expect(Array.isArray(res.body.authors)).toBe(true);
+          expect(res.body.authors[0]?.id).toBe(testAuthor.id);
           expect(res.body.title).toBe('Анна Каренина');
         });
     });
@@ -460,22 +459,6 @@ describe('Books Module E2E Tests', () => {
         .expect((res) => {
           expect(res.body.violations).toBeDefined();
         });
-    });
-
-    it('PUT /books/:id с rating < 0 возвращает 422', () => {
-      return request(app.getHttpServer())
-        .put(`/books/${testBook.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({ rating: -1 })
-        .expect(422);
-    });
-
-    it('PUT /books/:id с rating > 100 возвращает 422', () => {
-      return request(app.getHttpServer())
-        .put(`/books/${testBook.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({ rating: 101 })
-        .expect(422);
     });
 
     it('PUT /books/:id с несуществующим id возвращает 404', () => {
@@ -629,8 +612,11 @@ describe('Books Module E2E Tests', () => {
         .expect(200)
         .expect((res) => {
           expect(Array.isArray(res.body)).toBe(true);
-          res.body.forEach((book: { authorId: string | null }) => {
-            expect(book.authorId).toBe(testAuthor.id);
+          res.body.forEach((book: { authors?: Array<{ id: string }> }) => {
+            expect(Array.isArray(book.authors)).toBe(true);
+            expect(
+              book.authors?.some((author) => author.id === testAuthor.id),
+            ).toBe(true);
           });
         });
     });

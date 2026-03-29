@@ -57,7 +57,7 @@ export class UserListsService {
   getCurrentUserBooks(userId: string): Promise<UserBook[]> {
     return this.userBooksRepository.find({
       where: { userId },
-      relations: { book: true },
+      relations: { book: { authors: true } },
       order: { createdAt: 'DESC' },
     });
   }
@@ -65,7 +65,7 @@ export class UserListsService {
   async getCurrentUserBook(userId: string, id: string): Promise<UserBook> {
     const book = await this.userBooksRepository.findOne({
       where: { userId, id },
-      relations: { book: { author: true } },
+      relations: { book: { authors: true } },
     });
 
     if (!book) {

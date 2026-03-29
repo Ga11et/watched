@@ -4,13 +4,14 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual } from 'typeorm';
+import { Repository, MoreThanOrEqual, In } from 'typeorm';
 import { Book } from './entities/book.entity';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { isUuid } from '../common/utils/uuid.util';
+import { Author } from '../authors/entities/author.entity';
 
 @Injectable()
 export class BooksService {
@@ -19,10 +20,40 @@ export class BooksService {
   constructor(
     @InjectRepository(Book)
     private booksRepository: Repository<Book>,
+    @InjectRepository(Author)
+    private authorsRepository: Repository<Author>,
   ) {
     if (!fs.existsSync(this.uploadPath)) {
       fs.mkdirSync(this.uploadPath, { recursive: true });
     }
+  }
+
+  private async resolveAuthors(authorIds?: string[]): Promise<Author[]> {
+    if (!authorIds?.length) {
+      return [];
+    }
+
+    const uniqueAuthorIds = [...new Set(authorIds)];
+    const authors = await this.authorsRepository.findBy({
+      id: In(uniqueAuthorIds),
+    });
+
+    if (authors.length !== uniqueAuthorIds.length) {
+      const foundIds = new Set(authors.map((author) => author.id));
+      const missingIds = uniqueAuthorIds.filter((id) => !foundIds.has(id));
+
+      throw new UnprocessableEntityException({
+        message: 'Произошла ошибка при сохранении книги',
+        violations: [
+          {
+            field: 'authorIds',
+            message: `Авторы не найдены: ${missingIds.join(', ')}`,
+          },
+        ],
+      });
+    }
+
+    return authors;
   }
 
   async create(
@@ -45,10 +76,15 @@ export class BooksService {
       coverPath = `/uploads/books/${fileName}`;
     }
 
+    const authors = await this.resolveAuthors(createBookDto.authorIds);
+
     const book = this.booksRepository.create({
-      ...createBookDto,
+      title: createBookDto.title,
+      genre: createBookDto.genre ?? null,
       cover: coverPath,
-      readAt: createBookDto.readAt ? new Date(createBookDto.readAt) : null,
+      pageCount: createBookDto.pageCount ?? null,
+      publishYear: createBookDto.publishYear ?? null,
+      authors,
     });
 
     return this.booksRepository.save(book);
@@ -63,10 +99,10 @@ export class BooksService {
   ): Promise<Book[]> {
     const queryBuilder = this.booksRepository
       .createQueryBuilder('book')
-      .leftJoinAndSelect('book.author', 'author');
+      .leftJoinAndSelect('book.authors', 'authors');
 
     if (authorId) {
-      queryBuilder.where('book.authorId = :authorId', { authorId });
+      queryBuilder.where('authors.id = :authorId', { authorId });
     }
 
     if (search?.trim()) {
@@ -85,11 +121,9 @@ export class BooksService {
       const validSortFields = [
         'title',
         'genre',
-        'rating',
-        'readAt',
         'publishYear',
         'createdAt',
-        'author.fullName',
+        'authors.fullName',
       ];
       if (validSortFields.includes(sortBy)) {
         if (sortBy === 'rating') {
@@ -102,8 +136,8 @@ export class BooksService {
               .orderBy('book.rating IS NULL', 'ASC')
               .addOrderBy('book.rating', 'ASC');
           }
-        } else if (sortBy === 'author.fullName') {
-          queryBuilder.orderBy('author.fullName', sortOrder || 'ASC');
+        } else if (sortBy === 'authors.fullName') {
+          queryBuilder.orderBy('authors.fullName', sortOrder || 'ASC');
         } else {
           queryBuilder.orderBy(`book.${sortBy}`, sortOrder || 'ASC');
         }
@@ -126,11 +160,10 @@ export class BooksService {
     if (!isUuid(id)) {
       throw new NotFoundException(`Книга с ID ${id} не найдена`);
     }
-    const book = await this.booksRepository
-      .createQueryBuilder('book')
-      .leftJoinAndSelect('book.author', 'author')
-      .where('book.id = :id', { id })
-      .getOne();
+    const book = await this.booksRepository.findOne({
+      where: { id },
+      relations: { authors: true },
+    });
 
     if (!book) {
       throw new NotFoundException(`Книга с ID ${id} не найдена`);
@@ -152,44 +185,6 @@ export class BooksService {
       });
     }
 
-    // Валидация рейтинга
-    if (updateBookDto.rating !== undefined) {
-      const rating =
-        typeof updateBookDto.rating === 'string'
-          ? parseFloat(updateBookDto.rating)
-          : updateBookDto.rating;
-
-      if (isNaN(rating)) {
-        throw new UnprocessableEntityException({
-          message: 'Произошла ошибка при обновлении книги',
-          violations: [
-            {
-              field: 'rating',
-              message: 'rating must be a number or a numeric string',
-            },
-          ],
-        });
-      }
-
-      if (rating < 0) {
-        throw new UnprocessableEntityException({
-          message: 'Произошла ошибка при обновлении книги',
-          violations: [
-            { field: 'rating', message: 'rating must not be less than 0' },
-          ],
-        });
-      }
-
-      if (rating > 100) {
-        throw new UnprocessableEntityException({
-          message: 'Произошла ошибка при обновлении книги',
-          violations: [
-            { field: 'rating', message: 'rating must not be greater than 100' },
-          ],
-        });
-      }
-    }
-
     const book = await this.findOne(id);
 
     // Удаление текущей обложки если есть флаг removeCover или новая обложка
@@ -209,33 +204,29 @@ export class BooksService {
       book.cover = `/uploads/books/${fileName}`;
     }
 
+    const authors =
+      updateBookDto.authorIds !== undefined
+        ? await this.resolveAuthors(updateBookDto.authorIds)
+        : book.authors;
+
     const updatedBook: Book = {
       id: book.id,
       title: updateBookDto.title ?? book.title,
       genre: updateBookDto.genre ?? book.genre,
-      rating:
-        updateBookDto.rating !== undefined
-          ? typeof updateBookDto.rating === 'string'
-            ? parseFloat(updateBookDto.rating)
-            : updateBookDto.rating
-          : book.rating,
-      readAt: updateBookDto.readAt
-        ? new Date(updateBookDto.readAt)
-        : book.readAt,
-      pageCount: updateBookDto.pageCount
-        ? typeof updateBookDto.pageCount === 'string'
-          ? parseInt(updateBookDto.pageCount)
-          : updateBookDto.pageCount
-        : book.pageCount,
-      comment: updateBookDto.comment ?? book.comment,
-      publishYear: updateBookDto.publishYear
-        ? typeof updateBookDto.publishYear === 'string'
-          ? parseInt(updateBookDto.publishYear)
-          : updateBookDto.publishYear
-        : book.publishYear,
+      pageCount:
+        updateBookDto.pageCount !== undefined
+          ? typeof updateBookDto.pageCount === 'string'
+            ? parseInt(updateBookDto.pageCount)
+            : updateBookDto.pageCount
+          : book.pageCount,
+      publishYear:
+        updateBookDto.publishYear !== undefined
+          ? typeof updateBookDto.publishYear === 'string'
+            ? parseInt(updateBookDto.publishYear)
+            : updateBookDto.publishYear
+          : book.publishYear,
       cover: book.cover,
-      authorId: updateBookDto.authorId ?? book.authorId,
-      author: book.author,
+      authors,
       createdAt: book.createdAt,
       updatedAt: new Date(),
     };

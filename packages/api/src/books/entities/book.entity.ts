@@ -2,9 +2,7 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
   ManyToMany,
-  JoinColumn,
   JoinTable,
 } from 'typeorm';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -38,14 +36,14 @@ export class Book {
     example: 95,
   })
   @Column({ nullable: true, type: 'int' })
-  rating: number | null;
+  rating?: number | null;
 
   @ApiPropertyOptional({
     description: 'Дата прочтения книги',
     example: '2024-01-15T00:00:00.000Z',
   })
   @Column({ nullable: true, type: 'timestamp' })
-  readAt: Date | null;
+  readAt?: Date | null;
 
   @ApiPropertyOptional({
     description: 'Количество страниц',
@@ -59,7 +57,7 @@ export class Book {
     example: 'Величайшее произведение русской литературы',
   })
   @Column({ nullable: true, type: 'text' })
-  comment: string | null;
+  comment?: string | null;
 
   @ApiPropertyOptional({
     description: 'Год издания',
@@ -76,25 +74,10 @@ export class Book {
   cover: string | null;
 
   @ApiPropertyOptional({
-    description: 'Автор книги',
-    type: () => Author,
-  })
-  @ManyToOne(() => Author, (author) => author.books, { nullable: true })
-  @JoinColumn({ name: 'authorId' })
-  author: Author | null;
-
-  @ApiPropertyOptional({
-    description: 'ID автора',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
-  @Column({ nullable: true, type: 'uuid' })
-  authorId: string | null;
-
-  @ApiPropertyOptional({
     description: 'Авторы книги',
     type: () => [Author],
   })
-  @ManyToMany(() => Author, (author: Author) => author.booksManyToMany)
+  @ManyToMany(() => Author, (author: Author) => author.books)
   @JoinTable({
     name: 'book_authors',
     joinColumn: {
@@ -106,7 +89,7 @@ export class Book {
       referencedColumnName: 'id',
     },
   })
-  authors?: Author[];
+  authors: Author[];
 
   @ApiProperty({
     description: 'Дата создания записи',

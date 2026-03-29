@@ -51,8 +51,8 @@
 
     <template #content>
       <div class="mt-2 space-y-1 text-sm text-gray-600">
-        <div v-if="userBook.book.author" class="line-clamp-1 text-gray-500">
-          Автор: {{ userBook.book.author.fullName }}
+        <div v-if="userBook.book.authors?.length" class="line-clamp-1 text-gray-500">
+          Автор: {{ userBook.book.authors[0]?.fullName }}
         </div>
         <div v-if="userBook.book.genre" class="line-clamp-1 text-gray-500">
           Жанр: {{ userBook.book.genre }}

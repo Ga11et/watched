@@ -34,7 +34,6 @@ export interface Publisher extends BaseEntity {
 // Книги
 export interface Book extends BaseEntity {
   title: string
-  authorId?: string
   genre?: string
   rating?: number // 0-100
   readAt?: string
@@ -42,7 +41,7 @@ export interface Book extends BaseEntity {
   pageCount?: number | string
   comment?: string
   cover?: string
-  author?: Author
+  authors?: Author[]
 }
 
 export interface UserBook extends BaseEntity {

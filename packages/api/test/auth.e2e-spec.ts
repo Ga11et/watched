@@ -27,6 +27,7 @@ import { JwtService } from '../src/auth/jwt.service';
 import { ApiExceptionFilter } from '../src/auth/api-exception.filter';
 import { User, UserRole } from '../src/users/entities/user.entity';
 import { UserBook } from '../src/user-lists/entities/user-book.entity';
+import { Book } from '../src/books/entities/book.entity';
 import { BooksModule } from '../src/books/books.module';
 import { AuthorsModule } from '../src/authors/authors.module';
 import { APP_FILTER } from '@nestjs/core';
@@ -181,6 +182,15 @@ describe('Step 7 final authorization integration (e2e)', () => {
     );
   };
 
+  const createBookId = async (): Promise<string> => {
+    const booksRepository = dataSource.getRepository(Book);
+    const book = await booksRepository.save({
+      title: `auth-e2e-book-${Date.now()}-${randomUUID()}`,
+    });
+
+    return book.id;
+  };
+
   beforeAll(async () => {
     originalJwtSecret = process.env.JWT_SECRET;
     process.env.JWT_SECRET = 'step7-final-secret';
@@ -276,7 +286,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
     const guestToken = signToken(UserRole.GUEST, GUEST_ID);
 
     const userBooksRepository = dataSource.getRepository(UserBook);
-    const bookId = randomUUID();
+    const bookId = await createBookId();
 
     const foreignEntry = await userBooksRepository.save({
       userId: OTHER_USER_ID,
@@ -304,7 +314,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
 
     const ownEntry = await userBooksRepository.save({
       userId: USER_OWNER_ID,
-      bookId: randomUUID(),
+      bookId: await createBookId(),
       rating: 40,
       comment: 'owner-entry',
     });
@@ -399,7 +409,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
 
   it('keeps public /user/:guid/books scoped to requested guid', async () => {
     const userBooksRepository = dataSource.getRepository(UserBook);
-    const sharedBookId = randomUUID();
+    const sharedBookId = await createBookId();
 
     await userBooksRepository.save([
       {
@@ -550,7 +560,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
     const userBooksRepository = dataSource.getRepository(UserBook);
     const entity = await userBooksRepository.save({
       userId: USER_OWNER_ID,
-      bookId: randomUUID(),
+      bookId: await createBookId(),
       rating: 10,
       comment: 'initial',
     });

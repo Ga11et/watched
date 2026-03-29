@@ -357,7 +357,6 @@ describe('UserList-Book module (e2e)', () => {
           comment: 'Public endpoint book entity comment',
           publishYear: 2020,
           cover: '/uploads/books/public-book.jpg',
-          authorId: null,
         }),
       );
 
@@ -400,6 +399,14 @@ describe('UserList-Book module (e2e)', () => {
     });
 
     it('GET /user-books returns expected fields for user-book item', async () => {
+      const createdAuthor = await authorsRepository.save(
+        authorsRepository.create({
+          fullName: 'Author for user-book payload',
+          comment: 'Author payload check',
+          photo: null,
+        }),
+      );
+
       const createdBook = await booksRepository.save(
         booksRepository.create({
           id: IDS.bookC,
@@ -411,7 +418,7 @@ describe('UserList-Book module (e2e)', () => {
           comment: 'Book entity comment',
           publishYear: 2024,
           cover: '/uploads/books/book-a.jpg',
-          authorId: null,
+          authors: [createdAuthor],
         }),
       );
 
@@ -454,8 +461,15 @@ describe('UserList-Book module (e2e)', () => {
                 pageCount: 777,
                 comment: 'Book entity comment',
                 publishYear: 2024,
+                authors: expect.arrayContaining([
+                  expect.objectContaining({
+                    id: createdAuthor.id,
+                    fullName: 'Author for user-book payload',
+                    comment: 'Author payload check',
+                    photo: null,
+                  }),
+                ]),
                 cover: '/uploads/books/book-a.jpg',
-                authorId: null,
                 createdAt: expect.any(String),
                 updatedAt: expect.any(String),
               }),
@@ -483,7 +497,7 @@ describe('UserList-Book module (e2e)', () => {
           comment: 'Public endpoint book entity comment',
           publishYear: 2020,
           cover: '/uploads/books/public-book.jpg',
-          authorId: createdAuthor.id,
+          authors: [createdAuthor],
         }),
       );
 
@@ -523,13 +537,14 @@ describe('UserList-Book module (e2e)', () => {
                 comment: 'Public endpoint book entity comment',
                 publishYear: 2020,
                 cover: '/uploads/books/public-book.jpg',
-                authorId: createdAuthor.id,
-                author: expect.objectContaining({
-                  id: createdAuthor.id,
-                  fullName: 'Author for user-book payload',
-                  comment: 'Author payload check',
-                  photo: null,
-                }),
+                authors: expect.arrayContaining([
+                  expect.objectContaining({
+                    id: createdAuthor.id,
+                    fullName: 'Author for user-book payload',
+                    comment: 'Author payload check',
+                    photo: null,
+                  }),
+                ]),
                 createdAt: expect.any(String),
                 updatedAt: expect.any(String),
               }),

@@ -41,12 +41,14 @@
         <template #author>
           <div>
             <div class="text-sm text-gray-500">Автор</div>
-            <div v-if="userBook.book.author" class="mt-1 flex flex-wrap gap-2">
+            <div class="mt-1 flex flex-wrap gap-2" v-if="userBook.book.authors?.length">
               <NuxtLink
-                :to="`/books/authors/${userBook.book.author.id}`"
+                v-for="author in userBook.book.authors"
+                :key="author.id"
+                :to="`/books/authors/${author.id}`"
                 class="inline-flex rounded-full bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200"
               >
-                {{ userBook.book.author.fullName }}
+                {{ author.fullName }}
               </NuxtLink>
             </div>
             <div v-else class="text-base text-gray-900">—</div>
