@@ -14,7 +14,7 @@
         :step="step"
         :disabled="disabled"
         :class="[
-          'block w-full rounded-lg border py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:ring-2',
+          'block w-full h-10 rounded-lg border py-2 text-sm text-gray-900 placeholder:text-gray-400 shadow-sm focus:ring-2',
           suffix ? 'pl-3 pr-12' : 'px-3',
           error
             ? 'border-red-300 focus:border-red-500 focus:ring-red-200'

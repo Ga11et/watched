@@ -68,21 +68,21 @@
           </div>
         </template>
 
-        <template #bookComment>
+        <template v-if="userBook.comment" #bookComment>
           <EntitiesCommonCommentBlock :comment="userBook.comment" />
         </template>
 
         <template #bookCreatedAt>
           <div>
             <div class="tracking-wide text-sm text-gray-500">Создана карточка книги</div>
-            <div class="m-0 text-gray-900"><UiDateDisplay :date="userBook.book.createdAt" /></div>
+            <div class="m-0 text-gray-900"><UiDateDisplay :date="userBook.createdAt" /></div>
           </div>
         </template>
 
         <template #bookUpdatedAt>
           <div>
             <div class="tracking-wide text-sm text-gray-500">Обновлена карточка книги</div>
-            <div class="m-0 text-gray-900"><UiDateDisplay :date="userBook.book.updatedAt" /></div>
+            <div class="m-0 text-gray-900"><UiDateDisplay :date="userBook.updatedAt" /></div>
           </div>
         </template>
       </CommonOutputsConfigurableFields>

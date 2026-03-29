@@ -25,7 +25,7 @@
           {{ item.label }}
           <button
             type="button"
-            class="rounded-full text-indigo-500 hover:text-indigo-700"
+            class="rounded-full h-10 text-indigo-500 hover:text-indigo-700"
             :disabled="disabled"
             @click.stop="removeOption(item.value)"
           >
@@ -41,7 +41,7 @@
           type="text"
           :placeholder="inputPlaceholder"
           :disabled="disabled"
-          class="h-full min-w-[8rem] flex-1 border-0 p-0 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-0"
+          class="h-full min-w-[8rem] h-10 flex-1 border-0 p-0 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-0"
           @input="onInput"
           @focus="openDropdown"
         />
