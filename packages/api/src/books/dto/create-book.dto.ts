@@ -55,4 +55,12 @@ export class CreateBookDto {
   @IsString()
   @IsOptional()
   cover?: string;
+
+  @ApiPropertyOptional({
+    description: 'Комментарий к книге',
+    example: 'Величайшее произведение русской литературы',
+  })
+  @IsString()
+  @IsOptional()
+  comment?: string;
 }

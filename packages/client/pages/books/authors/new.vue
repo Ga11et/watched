@@ -102,8 +102,8 @@ const selectedPerson = ref<TmdbPerson | null>(null)
 // Вычисляемые свойства
 const breadcrumbItems = computed(() => [
   { label: 'Главная', to: '/' },
-  { label: 'Книги', to: '/books' },
-  { label: 'Авторы', to: '/books/authors' },
+  { label: 'Справочник: книги', to: '/books' },
+  { label: 'Справочник: авторы', to: '/books/authors' },
   { label: 'Новый автор' },
 ])
 

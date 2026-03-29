@@ -32,20 +32,6 @@ export class Book {
   genre: string | null;
 
   @ApiPropertyOptional({
-    description: 'Рейтинг книги от 0 до 100',
-    example: 95,
-  })
-  @Column({ nullable: true, type: 'int' })
-  rating?: number | null;
-
-  @ApiPropertyOptional({
-    description: 'Дата прочтения книги',
-    example: '2024-01-15T00:00:00.000Z',
-  })
-  @Column({ nullable: true, type: 'timestamp' })
-  readAt?: Date | null;
-
-  @ApiPropertyOptional({
     description: 'Количество страниц',
     example: 1225,
   })

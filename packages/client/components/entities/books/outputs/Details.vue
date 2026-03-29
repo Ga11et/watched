@@ -49,25 +49,6 @@
           </div>
         </template>
 
-        <template #rating>
-          <div>
-            <div class="text-sm text-gray-500">Рейтинг</div>
-            <div class="text-base text-gray-900">
-              {{ book.rating != null ? `${book.rating}/100` : '—' }}
-            </div>
-          </div>
-        </template>
-
-        <template #readAt>
-          <div>
-            <div class="text-sm text-gray-500">Дата прочтения</div>
-            <div class="text-base text-gray-900">
-              <UiDateDisplay v-if="book.readAt" :date="book.readAt" />
-              <span v-else>—</span>
-            </div>
-          </div>
-        </template>
-
         <template v-if="book.comment" #comment>
           <EntitiesCommonCommentBlock :comment="book.comment" />
         </template>
@@ -112,7 +93,6 @@ const outputLayout: OutputRowConfig[] = [
   { columns: 1, fields: [{ id: 'title' }] },
   { columns: 2, fields: [{ id: 'author' }, { id: 'genre' }] },
   { columns: 2, fields: [{ id: 'publishYear' }, { id: 'pageCount' }] },
-  { columns: 2, fields: [{ id: 'rating' }, { id: 'readAt' }] },
   { columns: 1, fields: [{ id: 'comment' }] },
   { columns: 2, fields: [{ id: 'createdAt' }, { id: 'updatedAt' }] },
 ]

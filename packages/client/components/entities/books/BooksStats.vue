@@ -27,7 +27,7 @@
     </div>
     <div class="mt-4">
       <NuxtLink
-        to="/books"
+        to="/user-books"
         class="block w-full text-center px-3 py-2 bg-blue-50 text-blue-600 text-sm font-medium rounded-md hover:bg-blue-100 transition-colors"
       >
         Все книги

@@ -2,7 +2,6 @@ import { Transform } from 'class-transformer';
 import {
   IsString,
   IsOptional,
-  IsDateString,
   IsUUID,
   IsBoolean,
   IsArray,
@@ -37,21 +36,6 @@ export class UpdateBookDto {
   @IsString()
   @IsOptional()
   genre?: string;
-
-  @ApiPropertyOptional({
-    description: 'Рейтинг книги от 0 до 100',
-    example: 95,
-  })
-  @IsOptional()
-  rating?: number;
-
-  @ApiPropertyOptional({
-    description: 'Дата прочтения книги',
-    example: '2024-01-15T00:00:00.000Z',
-  })
-  @IsDateString()
-  @IsOptional()
-  readAt?: string;
 
   @ApiPropertyOptional({
     description: 'Количество страниц',

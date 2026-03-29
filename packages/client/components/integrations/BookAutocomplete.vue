@@ -6,7 +6,7 @@
         v-model="searchQuery"
         type="text"
         :placeholder="placeholder"
-        class="block w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+        class="block w-full h-10 rounded-lg border border-gray-300 px-3 py-2 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
         :class="{ 'border-red-300 focus:ring-red-200': error }"
         @input="onSearch"
         @keydown.down="highlightNext"
@@ -123,26 +123,24 @@
 import { googleBooksService, type GoogleBook } from './google-books.service'
 
 interface Props {
-  modelValue?: GoogleBook | null
-  manualQuery?: string
   placeholder?: string
   error?: string
 }
 
 interface Emits {
-  (e: 'update:modelValue', value: GoogleBook | null): void
-  (e: 'update:manualQuery', value: string): void
   (e: 'select', book: GoogleBook): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  modelValue: null,
   placeholder: 'Поиск книги...',
 })
 
 const emit = defineEmits<Emits>()
 
-const searchQuery = ref(props.modelValue?.title ?? '')
+const model = defineModel<GoogleBook>('modelValue', { default: undefined })
+const manualQuery = defineModel<string>('manualQuery', { default: '' })
+
+const searchQuery = ref(model.value?.title ?? '')
 const searchResults = ref<GoogleBook[]>([])
 const loading = ref(false)
 const showDropdown = ref(false)
@@ -152,27 +150,21 @@ const inputRef = ref<HTMLInputElement>()
 let searchTimeout: NodeJS.Timeout | null = null
 
 // Следим за изменением modelValue
-watch(
-  () => props.modelValue,
-  (newVal) => {
-    if (newVal) {
-      searchQuery.value = newVal.title
-    }
-  },
-)
+watch(model, (newVal) => {
+  if (newVal) {
+    searchQuery.value = newVal.title
+  }
+})
 
 // Следим за изменением manualQuery
-watch(
-  () => props.manualQuery,
-  (newVal) => {
-    if (newVal !== undefined) {
-      searchQuery.value = newVal
-    }
-  },
-)
+watch(manualQuery, (newVal) => {
+  if (newVal !== undefined) {
+    searchQuery.value = newVal
+  }
+})
 
 const onSearch = () => {
-  emit('update:manualQuery', searchQuery.value)
+  manualQuery.value = searchQuery.value
 
   if (searchTimeout) {
     clearTimeout(searchTimeout)
@@ -205,7 +197,7 @@ const selectBook = (book: GoogleBook) => {
   searchQuery.value = book.title
   showDropdown.value = false
   emit('select', book)
-  emit('update:modelValue', book)
+  model.value = book
 }
 
 const selectHighlighted = () => {
@@ -251,6 +243,8 @@ const onImageError = (event: Event) => {
 
 // Закрываем дропдаун при клике вне компонента
 onMounted(() => {
+  searchQuery.value = manualQuery.value
+
   const handleClickOutside = (event: MouseEvent) => {
     if (!inputRef.value?.contains(event.target as Node)) {
       closeDropdown()

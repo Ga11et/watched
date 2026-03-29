@@ -4,7 +4,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual, In } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Book } from './entities/book.entity';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
@@ -84,6 +84,7 @@ export class BooksService {
       cover: coverPath,
       pageCount: createBookDto.pageCount ?? null,
       publishYear: createBookDto.publishYear ?? null,
+      comment: createBookDto.comment ?? null,
       authors,
     });
 
@@ -226,6 +227,7 @@ export class BooksService {
             : updateBookDto.publishYear
           : book.publishYear,
       cover: book.cover,
+      comment: book.comment,
       authors,
       createdAt: book.createdAt,
       updatedAt: new Date(),
@@ -252,20 +254,13 @@ export class BooksService {
     thisMonth: number;
     avgRating: number;
   }> {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
     const [total, thisMonth, avgRatingResult]: [
       number,
       number,
       { avgRating?: string } | undefined,
     ] = await Promise.all([
       this.booksRepository.count(),
-      this.booksRepository.count({
-        where: {
-          readAt: MoreThanOrEqual(startOfMonth),
-        },
-      }),
+      this.booksRepository.count(),
       this.booksRepository
         .createQueryBuilder('book')
         .select('AVG(book.rating)', 'avgRating')

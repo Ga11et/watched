@@ -116,6 +116,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   'update:modelValue': [value: SelectOption[]]
   'update:searchQuery': [value: string]
+  focus: []
 }>()
 
 const rootRef = ref<HTMLElement | null>(null)
@@ -161,6 +162,7 @@ const removeOption = (value: string) => {
 
 const openDropdown = () => {
   isOpen.value = true
+  emit('focus')
 }
 
 const focusInput = () => {

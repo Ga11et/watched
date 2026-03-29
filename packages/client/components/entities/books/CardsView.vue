@@ -45,8 +45,6 @@ const sortOptions = [
   { value: 'author.fullName', label: 'По автору' },
   { value: 'genre', label: 'По жанру' },
   { value: 'publishedYear', label: 'По году издания' },
-  { value: 'rating', label: 'По рейтингу' },
-  { value: 'readAt', label: 'По дате прочтения' },
   { value: 'createdAt', label: 'По дате добавления' },
 ]
 

@@ -3,7 +3,7 @@
     <LayoutBreadcrumbs
       :items="[
         { label: 'Главная', to: '/' },
-        { label: 'Книги', to: '/books' },
+        { label: 'Справочник: книги', to: '/books' },
         { label: book?.title || 'Загрузка...' },
       ]"
     />
@@ -28,27 +28,6 @@
             :disabled="deleting"
             class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-white shadow-sm transition hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            <svg
-              v-if="deleting"
-              class="h-4 w-4 animate-spin"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              />
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-              />
-            </svg>
             <span>Удалить</span>
           </button>
         </div>

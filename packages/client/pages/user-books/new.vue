@@ -3,7 +3,7 @@
     <LayoutBreadcrumbs
       :items="[
         { label: 'Главная', to: '/' },
-        { label: 'Книги', to: '/user-books' },
+        { label: 'Ваши книги', to: '/user-books' },
         { label: 'Добавление' },
       ]"
     />

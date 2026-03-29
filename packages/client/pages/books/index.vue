@@ -10,15 +10,9 @@
     </div>
 
     <div class="flex justify-between items-center mb-6">
-      <h2 class="text-2xl font-bold">Книги</h2>
+      <h1 class="text-2xl font-bold">Справочник: книги</h1>
       <div class="flex items-center gap-3">
         <UiViewToggle v-model="viewMode" />
-        <NuxtLink
-          to="/user-books"
-          class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
-        >
-          Книги пользователя
-        </NuxtLink>
         <NuxtLink
           to="/books/authors"
           class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
@@ -110,7 +104,10 @@ const { data: books, pending: loading } = await useAsyncData<Book[]>(
 )
 
 // 4. Вычисляемые свойства
-const breadcrumbItems = computed(() => [{ label: 'Главная', to: '/' }, { label: 'Книги' }])
+const breadcrumbItems = computed(() => [
+  { label: 'Главная', to: '/' },
+  { label: 'Справочник: книги' },
+])
 
 const filteredBooks = computed(() => {
   const list = books.value || []
@@ -122,7 +119,7 @@ const filteredBooks = computed(() => {
 
   return list.filter((book) => {
     const title = (book.title || '').toLowerCase()
-    const author = (book.author?.fullName || '').toLowerCase()
+    const author = (book.authors?.[0]?.fullName || '').toLowerCase()
     return title.includes(query) || author.includes(query)
   })
 })

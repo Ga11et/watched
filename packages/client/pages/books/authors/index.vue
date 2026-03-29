@@ -10,7 +10,7 @@
     </div>
 
     <div class="flex justify-between items-center mb-6">
-      <h2 class="text-2xl font-bold">Авторы</h2>
+      <h1 class="text-2xl font-bold">Справочник: авторы</h1>
       <div class="flex items-center gap-3">
         <UiViewToggle v-model="viewMode" />
         <NuxtLink
@@ -34,7 +34,10 @@
       ></div>
     </div>
 
-    <UiEmpty v-else-if="!authors?.length" entity-name="автор" />
+    <UiEmpty
+      v-else-if="!authors?.length"
+      message="Авторов пока нет. Добавьте своего первого автора!"
+    />
 
     <Transition name="fade" mode="out-in">
       <EntitiesAuthorsCardsView
@@ -107,8 +110,8 @@ const { data: authors, pending: loading } = await useAsyncData<Author[]>(
 // 4. Вычисляемые свойства
 const breadcrumbItems = computed(() => [
   { label: 'Главная', to: '/' },
-  { label: 'Книги', to: '/books' },
-  { label: 'Авторы' },
+  { label: 'Справочник: книги', to: '/books' },
+  { label: 'Справочник: авторы' },
 ])
 
 const filteredAuthors = computed(() => {
