@@ -1,25 +1,7 @@
 <template>
   <EntitiesCommonCard>
     <template #image>
-      <div v-if="book.cover" class="flex-shrink-0 w-32 h-48">
-        <img :src="coverUrl" :alt="book.title" class="w-full h-full object-cover" />
-      </div>
-      <div v-else class="flex-shrink-0 w-32 h-48 bg-gray-100 flex items-center justify-center">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-16 w-12 text-gray-300"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-          />
-        </svg>
-      </div>
+      <EntitiesBooksOutputsCover :cover="book.cover" :alt="book.title" size="sm" />
     </template>
 
     <template #title>
@@ -51,7 +33,7 @@
 
     <template #content>
       <div class="mt-2 text-sm text-gray-600 space-y-1">
-        <div v-if="book.author" class="flex items-center">
+        <div v-if="book.authors?.length" class="flex items-center">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             class="h-4 w-4 mr-2 text-gray-400 min-w-4"
@@ -66,7 +48,7 @@
               d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
             />
           </svg>
-          <span class="text-gray-500 line-clamp-1">{{ book.author.fullName }}</span>
+          <span class="text-gray-500 line-clamp-1">{{ book.authors[0].fullName }}</span>
         </div>
         <div v-if="book.genre" class="flex items-center">
           <svg
@@ -127,11 +109,4 @@
 import type { Book } from '~/types/api'
 
 const { book } = defineProps<{ book: Book }>()
-
-const config = useRuntimeConfig()
-
-const coverUrl = computed(() => {
-  if (!book.cover) return null
-  return `${config.public.apiBase}${book.cover}`
-})
 </script>

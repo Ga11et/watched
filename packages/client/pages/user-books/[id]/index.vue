@@ -18,6 +18,12 @@
         </div>
         <div class="flex items-center gap-3">
           <NuxtLink
+            :to="`/books/${userBook?.book.id}`"
+            class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-white shadow-sm transition hover:bg-emerald-700"
+          >
+            Книга
+          </NuxtLink>
+          <NuxtLink
             :to="`/user-books/${route.params.id}/edit`"
             class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-white shadow-sm transition hover:bg-indigo-700"
           >

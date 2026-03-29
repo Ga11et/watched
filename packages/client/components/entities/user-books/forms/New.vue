@@ -30,8 +30,8 @@
         <template #authorId>
           <EntitiesUserBooksInputsAuthors
             :disabled="isLocal"
-            :model-value="coreBookForm.authorId ? [coreBookForm.authorId] : undefined"
-            :error="errors.authorId"
+            v-model="coreBookForm.authors"
+            :error="errors.authors"
           />
         </template>
 
@@ -99,7 +99,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Book } from '~/types/api'
+import type { Author, Book } from '~/types/api'
 import type { GoogleBook } from '~/components/integrations/google-books.service'
 
 const config = useRuntimeConfig()
@@ -130,7 +130,7 @@ const form = reactive({
 })
 
 const coreBookForm = reactive({
-  authorId: undefined as string | undefined,
+  authors: [] as Author[],
   publishYear: undefined as string | undefined,
   pageCount: undefined as number | undefined,
   genre: undefined as string | undefined,
@@ -167,7 +167,6 @@ const onBookSelect = (book: UserBookSearchResult) => {
     isLocal.value = book.source === 'local'
     coverPreview.value = book.localBook?.cover ? config.public.apiBase + book.localBook.cover : null
 
-    coreBookForm.authorId = book.localBook?.authorId || undefined
     coreBookForm.genre = book.localBook?.genre || undefined
     coreBookForm.pageCount = book.localBook?.pageCount ? +book.localBook.pageCount : undefined
     coreBookForm.publishYear = book.localBook?.publishYear
@@ -210,17 +209,23 @@ const onBookSelect = (book: UserBookSearchResult) => {
   }
 }
 
-const onSubmit = async () => {
+const validateForm = (): boolean => {
   error.value = ''
   errors.value = {}
   if (!form.title.trim()) {
     errors.value.title = 'Название обязательно'
-    return
+    return false
   }
   if (form.title.length > 200) {
     errors.value.title = 'Название слишком длинное'
-    return
+    return false
   }
+  return true
+}
+
+const onSubmit = async () => {
+  if (!validateForm()) return
+
   submitting.value = true
   try {
     const formData = new FormData()
@@ -241,6 +246,18 @@ const onSubmit = async () => {
 
     if (coverFile.value) {
       formData.append('cover', coverFile.value)
+    }
+
+    if (coreBookForm.genre) {
+      formData.append('genre', coreBookForm.genre)
+    }
+
+    if (coreBookForm.pageCount) {
+      formData.append('pageCount', coreBookForm.pageCount.toString())
+    }
+
+    if (coreBookForm.publishYear) {
+      formData.append('publishYear', coreBookForm.publishYear.toString())
     }
 
     await _fetch(`${config.public.apiBase}/user-books`, {

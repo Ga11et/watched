@@ -63,95 +63,7 @@
           {{ error }}
         </div>
         <div v-else-if="!book" class="text-gray-500">Книга не найдена.</div>
-        <div v-else class="flex gap-6">
-          <div class="flex-shrink-0">
-            <div v-if="book.cover" class="w-40 h-56 rounded-lg overflow-hidden">
-              <img :src="coverUrl" :alt="book.title" class="w-full h-full object-cover" />
-            </div>
-            <div v-else class="w-40 h-56 rounded-lg bg-gray-100 flex items-center justify-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-12 w-12 text-gray-300"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                />
-              </svg>
-            </div>
-          </div>
-          <div class="flex-1">
-            <!-- Название книги во всю ширину -->
-            <div class="mb-6">
-              <div class="text-sm text-gray-500">Название</div>
-              <div class="text-xl text-gray-900 font-medium">{{ book.title }}</div>
-            </div>
-
-            <!-- Остальная информация в 2 колонки -->
-            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div class="space-y-4">
-                <div>
-                  <div class="text-sm text-gray-500">Автор</div>
-                  <div class="text-base text-gray-900">
-                    <NuxtLink
-                      v-if="book.author"
-                      :to="`/books/authors/${book.author.id}`"
-                      class="text-indigo-600 hover:text-indigo-900"
-                    >
-                      {{ book.author.fullName }}
-                    </NuxtLink>
-                    <span v-else>—</span>
-                  </div>
-                </div>
-                <div>
-                  <div class="text-sm text-gray-500">Жанр</div>
-                  <div class="text-base text-gray-900">{{ book.genre || '—' }}</div>
-                </div>
-                <div>
-                  <div class="text-sm text-gray-500">Год издания</div>
-                  <div class="text-base text-gray-900">{{ book.publishYear || '—' }}</div>
-                </div>
-              </div>
-              <div class="space-y-4">
-                <div>
-                  <div class="text-sm text-gray-500">Рейтинг</div>
-                  <div class="text-base text-gray-900">
-                    {{ book.rating != null ? `${book.rating}/100` : '—' }}
-                  </div>
-                </div>
-                <div>
-                  <div class="text-sm text-gray-500">Количество страниц</div>
-                  <div class="text-base text-gray-900">{{ book.pageCount || '—' }}</div>
-                </div>
-                <div>
-                  <div class="text-sm text-gray-500">Дата прочтения</div>
-                  <div class="text-gray-900 m-0">
-                    <UiDateDisplay v-if="book.readAt" :date="book.readAt" />
-                    <span v-else>—</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <EntitiesCommonCommentBlock :comment="book.comment" />
-
-            <div class="mt-6 grid grid-cols-2 gap-4 text-sm text-gray-500">
-              <div>
-                <div class="tracking-wide">Создано</div>
-                <div class="text-gray-900 m-0"><UiDateDisplay :date="book.createdAt" /></div>
-              </div>
-              <div>
-                <div class="tracking-wide">Обновлено</div>
-                <div class="text-gray-900 m-0"><UiDateDisplay :date="book.updatedAt" /></div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <EntitiesBooksOutputsDetails v-else :book="book" />
       </div>
     </div>
   </div>
@@ -168,13 +80,6 @@ const deleting = ref(false)
 
 const { data: book, pending } = await useAsyncData(`book-${route.params.id}`, async () => {
   return await _fetch<Book>(`${config.public.apiBase}/books/${route.params.id}`)
-})
-
-const coverUrl = computed(() => {
-  if (!book.value?.cover) return ''
-  return book.value.cover.startsWith('http')
-    ? book.value.cover
-    : `${config.public.apiBase}${book.value.cover}`
 })
 
 const onDelete = async () => {

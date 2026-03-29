@@ -11,27 +11,7 @@
 
     <div v-else-if="userBook" class="space-y-6">
       <div class="flex gap-6">
-        <div class="flex-shrink-0">
-          <div v-if="userBook.book.cover" class="h-56 w-40 overflow-hidden rounded-lg">
-            <img :src="coverUrl" :alt="userBook.book.title" class="h-full w-full object-cover" />
-          </div>
-          <div v-else class="flex h-56 w-40 items-center justify-center rounded-lg bg-gray-100">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-12 w-12 text-gray-300"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-              />
-            </svg>
-          </div>
-        </div>
+        <EntitiesBooksOutputsCover :cover="userBook.book.cover" :alt="userBook.book.title" />
 
         <CommonFormsConfigurableFields :config="editFormLayout" class="flex-1">
           <template #bookTitle>
@@ -51,16 +31,17 @@
           <template #author>
             <div>
               <div class="text-sm text-gray-500">Автор</div>
-              <div class="text-base text-gray-900">
+              <div class="mt-1 flex flex-wrap gap-2" v-if="userBook.book.authors?.length">
                 <NuxtLink
-                  v-if="userBook.book.author"
-                  :to="`/books/authors/${userBook.book.author.id}`"
-                  class="text-indigo-600 hover:text-indigo-900"
+                  v-for="author in userBook.book.authors"
+                  :key="author.id"
+                  :to="`/books/authors/${author.id}`"
+                  class="inline-flex rounded-full bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200"
                 >
-                  {{ userBook.book.author.fullName }}
+                  {{ author.fullName }}
                 </NuxtLink>
-                <span v-else>—</span>
               </div>
+              <div v-else class="text-base text-gray-900">—</div>
             </div>
           </template>
 
@@ -226,13 +207,6 @@ const editFormLayout: FormRowConfig[] = [
   },
   { columns: 2, fields: [{ id: 'createdAt' }, { id: 'updatedAt' }] },
 ]
-
-const coverUrl = computed(() => {
-  if (!userBook.value?.book.cover) return ''
-  return userBook.value.book.cover.startsWith('http')
-    ? userBook.value.book.cover
-    : `${config.public.apiBase}${userBook.value.book.cover}`
-})
 
 const onSubmit = async () => {
   if (isFormDisabled.value) return

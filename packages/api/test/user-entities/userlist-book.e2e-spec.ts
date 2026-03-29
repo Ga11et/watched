@@ -576,6 +576,120 @@ describe('UserList-Book module (e2e)', () => {
       expect(found?.bookId).toBe(created.id);
     });
 
+    it('POST with created book not changing book fields', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/user-books')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          title: 'book A',
+          rating: 55,
+          comment: 'should not touch book',
+          publishYear: 2000,
+          pageCount: 50,
+        })
+        .expect(201);
+
+      const book = await booksRepository.findOneOrFail({
+        where: { id: IDS.bookA },
+      });
+      expect(book.title).toBe('book A');
+      expect(book.publishYear).toBe(2010);
+      expect(book.pageCount).toBe(100);
+
+      const userBook = await userBooksRepository.findOneOrFail({
+        where: { id: response.body.id },
+      });
+      expect(userBook.bookId).toBe(IDS.bookA);
+    });
+
+    it('POST with uncreated book creates new book entity with used fields', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/user-books')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          title: 'book unknown',
+          rating: 33,
+          comment: 'should not touch book',
+          publishYear: 2000,
+          pageCount: 50,
+        })
+        .expect(201);
+
+      const book = await booksRepository.findOneOrFail({
+        where: { id: response.body.book.id },
+      });
+      expect(book.title).toBe('book unknown');
+      expect(book.publishYear).toBe(2000);
+      expect(book.pageCount).toBe(50);
+      expect(book.comment).toBeNull();
+      expect(book.rating).toBeNull();
+
+      const userBook = await userBooksRepository.findOneOrFail({
+        where: { id: response.body.id },
+        relations: { book: { authors: true } },
+      });
+      expect(userBook.book.id).toBe(response.body.book.id);
+      expect(userBook.comment).toBe('should not touch book');
+      expect(userBook.rating).toBe(33);
+    });
+
+    it('POST with uncreated book and one author assigns author to book', async () => {
+      const author = await authorsRepository.save(
+        authorsRepository.create({ fullName: 'Single Author' }),
+      );
+
+      const response = await request(app.getHttpServer())
+        .post('/user-books')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          title: 'book with one author',
+          rating: 70,
+          authorIds: [author.id],
+        })
+        .expect(201);
+
+      expect(response.body.book.authors).toHaveLength(1);
+      expect(response.body.book.authors[0].id).toBe(author.id);
+      expect(response.body.book.authors[0].fullName).toBe('Single Author');
+
+      const book = await booksRepository.findOneOrFail({
+        where: { id: response.body.book.id },
+        relations: { authors: true },
+      });
+      expect(book.authors).toHaveLength(1);
+      expect(book.authors[0].id).toBe(author.id);
+    });
+
+    it('POST with uncreated book and two authors assigns both authors to book', async () => {
+      const [authorA, authorB] = await authorsRepository.save([
+        authorsRepository.create({ fullName: 'Author Alpha' }),
+        authorsRepository.create({ fullName: 'Author Beta' }),
+      ]);
+
+      const response = await request(app.getHttpServer())
+        .post('/user-books')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          title: 'book with two authors',
+          rating: 85,
+          authorIds: [authorA.id, authorB.id],
+        })
+        .expect(201);
+
+      expect(response.body.book.authors).toHaveLength(2);
+      const authors = response.body.book.authors as { id: string }[];
+      const returnedIds = authors.map((a) => a.id).sort();
+      expect(returnedIds).toEqual([authorA.id, authorB.id].sort());
+
+      const book = await booksRepository.findOneOrFail({
+        where: { id: response.body.book.id },
+        relations: { authors: true },
+      });
+      expect(book.authors).toHaveLength(2);
+      const dbIds = book.authors.map((a) => a.id).sort();
+      expect(dbIds).toEqual([authorA.id, authorB.id].sort());
+    });
+
     it('PUT updates record in db', async () => {
       const createdUserBook = await userBooksRepository.save(
         userBooksRepository.create(putScenarioUserBookPayload),
@@ -616,6 +730,46 @@ describe('UserList-Book module (e2e)', () => {
       });
       expect(book.body.id).toBe(found?.id);
       expect(book.body.readAt).toBe(new Date('2026-03-15').toISOString());
+    });
+
+    it('PUT does not change any book fields', async () => {
+      const createdUserBook = await userBooksRepository.save(
+        userBooksRepository.create(putScenarioUserBookPayload),
+      );
+
+      const bookBefore = await booksRepository.findOneOrFail({
+        where: { id: putScenarioUserBookPayload.bookId },
+        relations: { authors: true },
+      });
+
+      await request(app.getHttpServer())
+        .put(`/user-books/${createdUserBook.id}`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          rating: 10,
+          comment: 'trying to change book fields',
+          title: 'Hacked title',
+          genre: 'Hacked genre',
+          publishYear: 1999,
+          pageCount: 1,
+          cover: '/hacked-cover.jpg',
+          authorIds: [],
+        })
+        .expect(200);
+
+      const bookAfter = await booksRepository.findOneOrFail({
+        where: { id: putScenarioUserBookPayload.bookId },
+        relations: { authors: true },
+      });
+
+      expect(bookAfter.title).toBe(bookBefore.title);
+      expect(bookAfter.genre).toBe(bookBefore.genre);
+      expect(bookAfter.publishYear).toBe(bookBefore.publishYear);
+      expect(bookAfter.pageCount).toBe(bookBefore.pageCount);
+      expect(bookAfter.cover).toBe(bookBefore.cover);
+      expect(bookAfter.authors.map((a) => a.id).sort()).toEqual(
+        bookBefore.authors.map((a) => a.id).sort(),
+      );
     });
 
     it('DELETE removes record from database', async () => {

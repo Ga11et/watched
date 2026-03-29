@@ -25,6 +25,8 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { User, UserRole } from '../../src/users/entities/user.entity';
 import { Book } from '../../src/books/entities/book.entity';
 import { Author } from '../../src/authors/entities/author.entity';
+import { UserBook } from '../../src/user-lists/entities/user-book.entity';
+import { UserListsModule } from '../../src/user-lists/user-lists.module';
 import { JwtService } from '../../src/auth/jwt.service';
 import { AuthMiddleware } from '../../src/auth/auth.middleware';
 import { AdminMiddleware } from '../../src/auth/admin.middleware';
@@ -53,6 +55,7 @@ const e2eDbConfig = {
     AuthModule,
     UsersModule,
     BooksModule,
+    UserListsModule,
   ],
   providers: [AuthMiddleware, AdminMiddleware],
 })
@@ -476,6 +479,44 @@ describe('Books Module E2E Tests', () => {
         .delete('/books/550e8400-e29b-41d4-a716-446655440099')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(404);
+    });
+
+    it('DELETE /books/:id каскадно удаляет все связанные user-books', async () => {
+      const dataSource = app.get(DataSource);
+      const userBooksRepository = dataSource.getRepository(UserBook);
+
+      const book = await booksRepository.save(
+        booksRepository.create({ title: 'Book to cascade delete' }),
+      );
+
+      const [ub1, ub2] = await userBooksRepository.save([
+        userBooksRepository.create({
+          userId: adminUser.id,
+          bookId: book.id,
+          rating: 80,
+        }),
+        userBooksRepository.create({
+          userId: plainUser.id,
+          bookId: book.id,
+          rating: 60,
+          comment: 'will be deleted',
+        }),
+      ]);
+
+      await request(app.getHttpServer())
+        .delete(`/books/${book.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      const deletedBook = await booksRepository.findOne({
+        where: { id: book.id },
+      });
+      expect(deletedBook).toBeNull();
+
+      const remainingUserBooks = await userBooksRepository.find({
+        where: [{ id: ub1.id }, { id: ub2.id }],
+      });
+      expect(remainingUserBooks).toHaveLength(0);
     });
   });
 

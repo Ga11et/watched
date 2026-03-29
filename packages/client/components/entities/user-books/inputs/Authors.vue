@@ -12,7 +12,7 @@
         hint="Можно выбрать несколько авторов"
         :error="error"
         :disabled="disabled"
-        :loading="loading || resolvingSelected"
+        :loading="loading"
         no-results-text="Авторы не найдены"
         @update:model-value="onSelectedOptionsChange"
         @update:search-query="searchQuery = $event"
@@ -37,78 +37,54 @@ interface SelectOption {
 }
 
 interface Props {
-  modelValue?: string[]
   error?: string
   disabled?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  modelValue: () => [],
   error: '',
   disabled: false,
 })
 
-const emit = defineEmits<{
-  'update:modelValue': [value: string[]]
-}>()
+const model = defineModel<Author[]>({ default: () => [] })
 
 const config = useRuntimeConfig()
 const route = useRoute()
 
 const searchQuery = ref('')
 const loading = ref(false)
-const resolvingSelected = ref(false)
 const options = ref<SelectOption[]>([])
 const selectedOptions = ref<SelectOption[]>([])
 
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
+const authorMap = new Map<string, Author>()
+
 const onSelectedOptionsChange = (value: SelectOption[]) => {
   selectedOptions.value = value
-  emit(
-    'update:modelValue',
-    value.map((item) => item.value),
-  )
+  model.value = value
+    .map((item) => authorMap.get(item.value))
+    .filter((a): a is Author => Boolean(a))
 }
 
-const syncSelectedOptions = async (ids?: string[]) => {
-  if (!ids?.length) {
+const syncSelectedOptions = (authors?: Author[]) => {
+  if (!authors?.length) {
     selectedOptions.value = []
     return
   }
 
-  const currentMap = new Map(selectedOptions.value.map((option) => [option.value, option]))
-  const missingIds = ids.filter((id) => !currentMap.has(id))
+  authors.forEach((a) => authorMap.set(a.id, a))
 
-  if (missingIds.length > 0) {
-    resolvingSelected.value = true
-    try {
-      const loadedItems = await Promise.all(
-        missingIds.map((id) => _fetch<Author>(`${config.public.apiBase}/authors/${id}`)),
-      )
-
-      loadedItems.forEach((author) => {
-        currentMap.set(author.id, {
-          value: author.id,
-          label: author.fullName,
-        })
-      })
-    } catch (e) {
-      console.warn('Failed to load selected authors:', e)
-    } finally {
-      resolvingSelected.value = false
-    }
-  }
-
-  selectedOptions.value = ids
-    .map((id) => currentMap.get(id))
-    .filter((option): option is SelectOption => Boolean(option))
+  selectedOptions.value = authors.map((a) => ({
+    value: a.id,
+    label: a.fullName,
+  }))
 }
 
 watch(
-  () => props.modelValue,
-  (ids) => {
-    void syncSelectedOptions(ids)
+  model,
+  (authors) => {
+    syncSelectedOptions(authors)
   },
   { immediate: true },
 )
@@ -131,6 +107,8 @@ watch(searchQuery, (query) => {
       const results = await _fetch<Author[]>(`${config.public.apiBase}/authors/search`, {
         params: { q: query.trim() },
       })
+
+      results.forEach((a) => authorMap.set(a.id, a))
 
       options.value = results.map((author) => ({
         value: author.id,

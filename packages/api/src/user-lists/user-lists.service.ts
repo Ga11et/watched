@@ -2,9 +2,10 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { UserRole } from '../users/entities/user.entity';
 import { UserBook } from './entities/user-book.entity';
 import { UserMovie } from './entities/user-movie.entity';
@@ -21,6 +22,7 @@ import {
   UpdateUserSeriesDto,
 } from './dto/user-list.dto';
 import { Book } from '../books/entities/book.entity';
+import { Author } from '../authors/entities/author.entity';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -48,6 +50,8 @@ export class UserListsService {
     private readonly userGamesRepository: Repository<UserGame>,
     @InjectRepository(Book)
     private readonly booksRepository: Repository<Book>,
+    @InjectRepository(Author)
+    private readonly authorsRepository: Repository<Author>,
   ) {
     if (!fs.existsSync(this.booksUploadPath)) {
       fs.mkdirSync(this.booksUploadPath, { recursive: true });
@@ -94,9 +98,15 @@ export class UserListsService {
         coverPath = `/uploads/books/${fileName}`;
       }
 
+      const authors = await this.resolveAuthors(dto.authorIds);
+
       book = this.booksRepository.create({
         title: dto.title,
+        genre: dto.genre,
+        pageCount: dto.pageCount,
+        publishYear: dto.publishYear,
         cover: coverPath,
+        authors,
       });
 
       book = await this.booksRepository.save(book);
@@ -110,7 +120,38 @@ export class UserListsService {
       comment: dto.comment ?? null,
     });
 
-    return this.userBooksRepository.save(entity);
+    const saved = await this.userBooksRepository.save(entity);
+
+    return this.userBooksRepository.findOneOrFail({
+      where: { id: saved.id },
+      relations: { book: { authors: true } },
+    });
+  }
+
+  private async resolveAuthors(authorIds?: string[]): Promise<Author[]> {
+    if (!authorIds?.length) {
+      return [];
+    }
+
+    const uniqueIds = [...new Set(authorIds)];
+    const authors = await this.authorsRepository.findBy({ id: In(uniqueIds) });
+
+    if (authors.length !== uniqueIds.length) {
+      const foundIds = new Set(authors.map((a) => a.id));
+      const missingIds = uniqueIds.filter((id) => !foundIds.has(id));
+
+      throw new UnprocessableEntityException({
+        message: 'Произошла ошибка при сохранении книги',
+        violations: [
+          {
+            field: 'authorIds',
+            message: `Авторы не найдены: ${missingIds.join(', ')}`,
+          },
+        ],
+      });
+    }
+
+    return authors;
   }
 
   async updateCurrentUserBook(

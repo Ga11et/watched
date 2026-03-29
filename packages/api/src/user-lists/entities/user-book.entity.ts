@@ -20,7 +20,7 @@ export class UserBook {
   @Column({ type: 'uuid' })
   bookId: string;
 
-  @ManyToOne(() => Book, { nullable: false })
+  @ManyToOne(() => Book, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'bookId' })
   book: Book;
 
