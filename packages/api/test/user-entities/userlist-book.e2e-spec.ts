@@ -351,8 +351,6 @@ describe('UserList-Book module (e2e)', () => {
           id: IDS.bookC,
           title: 'Public payload book',
           genre: 'Sci-Fi',
-          rating: 91,
-          readAt: null,
           pageCount: 512,
           comment: 'Public endpoint book entity comment',
           publishYear: 2020,
@@ -412,8 +410,6 @@ describe('UserList-Book module (e2e)', () => {
           id: IDS.bookC,
           title: 'Book with full payload',
           genre: 'Fantasy',
-          rating: 99,
-          readAt: null,
           pageCount: 777,
           comment: 'Book entity comment',
           publishYear: 2024,
@@ -456,8 +452,6 @@ describe('UserList-Book module (e2e)', () => {
                 id: createdBook.id,
                 title: 'Book with full payload',
                 genre: 'Fantasy',
-                rating: 99,
-                readAt: null,
                 pageCount: 777,
                 comment: 'Book entity comment',
                 publishYear: 2024,
@@ -491,8 +485,6 @@ describe('UserList-Book module (e2e)', () => {
         booksRepository.create({
           title: 'Public payload book',
           genre: 'Sci-Fi',
-          rating: 91,
-          readAt: null,
           pageCount: 512,
           comment: 'Public endpoint book entity comment',
           publishYear: 2020,
@@ -531,8 +523,6 @@ describe('UserList-Book module (e2e)', () => {
                 id: createdBook.id,
                 title: 'Public payload book',
                 genre: 'Sci-Fi',
-                rating: 91,
-                readAt: null,
                 pageCount: 512,
                 comment: 'Public endpoint book entity comment',
                 publishYear: 2020,
@@ -622,7 +612,6 @@ describe('UserList-Book module (e2e)', () => {
       expect(book.publishYear).toBe(2000);
       expect(book.pageCount).toBe(50);
       expect(book.comment).toBeNull();
-      expect(book.rating).toBeNull();
 
       const userBook = await userBooksRepository.findOneOrFail({
         where: { id: response.body.id },
@@ -944,6 +933,154 @@ describe('UserList-Book module (e2e)', () => {
       expect(created.body.rating).toBeNull();
       expect(created.body.readAt).toBeNull();
       expect(created.body.comment).toBeNull();
+    });
+  });
+
+  describe('stats', () => {
+    it('returns 401 without token', async () => {
+      await request(app.getHttpServer()).get('/user-books/stats').expect(401);
+    });
+
+    it('returns 403 for GUEST', async () => {
+      await request(app.getHttpServer())
+        .get('/user-books/stats')
+        .set('Authorization', `Bearer ${guestToken}`)
+        .expect(403);
+    });
+
+    it('returns correct structure with empty state', async () => {
+      await request(app.getHttpServer())
+        .get('/user-books/stats')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body).toEqual({
+            total: 0,
+            thisMonth: 0,
+            avgRating: null,
+          });
+        });
+    });
+
+    it('counts only current user records', async () => {
+      await userBooksRepository.save([
+        userBooksRepository.create({
+          userId: regularUser.id,
+          bookId: IDS.bookA,
+          rating: 80,
+          readAt: null,
+          comment: null,
+        }),
+        userBooksRepository.create({
+          userId: regularUser.id,
+          bookId: IDS.bookB,
+          rating: 60,
+          readAt: null,
+          comment: null,
+        }),
+        userBooksRepository.create({
+          userId: otherUser.id,
+          bookId: IDS.bookA,
+          rating: 90,
+          readAt: null,
+          comment: null,
+        }),
+      ]);
+
+      await request(app.getHttpServer())
+        .get('/user-books/stats')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.total).toBe(2);
+        });
+    });
+
+    it('calculates thisMonth from readAt', async () => {
+      const now = new Date();
+      const thisMonthDate = new Date(now.getFullYear(), now.getMonth(), 15);
+      const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 15);
+
+      await userBooksRepository.save([
+        userBooksRepository.create({
+          userId: regularUser.id,
+          bookId: IDS.bookA,
+          rating: 70,
+          readAt: thisMonthDate,
+          comment: null,
+        }),
+        userBooksRepository.create({
+          userId: regularUser.id,
+          bookId: IDS.bookB,
+          rating: 50,
+          readAt: lastMonthDate,
+          comment: null,
+        }),
+      ]);
+
+      await request(app.getHttpServer())
+        .get('/user-books/stats')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.total).toBe(2);
+          expect(res.body.thisMonth).toBe(1);
+        });
+    });
+
+    it('calculates avgRating correctly', async () => {
+      await userBooksRepository.save([
+        userBooksRepository.create({
+          userId: regularUser.id,
+          bookId: IDS.bookA,
+          rating: 80,
+          readAt: null,
+          comment: null,
+        }),
+        userBooksRepository.create({
+          userId: regularUser.id,
+          bookId: IDS.bookB,
+          rating: 60,
+          readAt: null,
+          comment: null,
+        }),
+      ]);
+
+      await request(app.getHttpServer())
+        .get('/user-books/stats')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.avgRating).toBe(70);
+        });
+    });
+
+    it('ignores null ratings in avgRating calculation', async () => {
+      await userBooksRepository.save([
+        userBooksRepository.create({
+          userId: regularUser.id,
+          bookId: IDS.bookA,
+          rating: 90,
+          readAt: null,
+          comment: null,
+        }),
+        userBooksRepository.create({
+          userId: regularUser.id,
+          bookId: IDS.bookB,
+          rating: null,
+          readAt: null,
+          comment: null,
+        }),
+      ]);
+
+      await request(app.getHttpServer())
+        .get('/user-books/stats')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.total).toBe(2);
+          expect(res.body.avgRating).toBe(90);
+        });
     });
   });
 });

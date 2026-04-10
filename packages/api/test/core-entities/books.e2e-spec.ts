@@ -189,9 +189,7 @@ describe('Books Module E2E Tests', () => {
       id: '770e8400-e29b-41d4-a716-446655440001',
       title: 'Война и мир',
       genre: 'Роман',
-      rating: 95,
       authors: [testAuthor],
-      readAt: new Date('2024-01-15'),
       pageCount: 1225,
       comment: 'Великая книга',
       publishYear: 1869,
@@ -237,10 +235,8 @@ describe('Books Module E2E Tests', () => {
         .expect((res) => {
           expect(res.body).toHaveProperty('total');
           expect(res.body).toHaveProperty('thisMonth');
-          expect(res.body).toHaveProperty('avgRating');
           expect(typeof res.body.total).toBe('number');
           expect(typeof res.body.thisMonth).toBe('number');
-          expect(typeof res.body.avgRating).toBe('number');
         });
     });
 
@@ -307,7 +303,6 @@ describe('Books Module E2E Tests', () => {
           expect(res.body.id).toBeDefined();
           expect(res.body.title).toBe('Книга от админа');
           expect(res.body.genre).toBe('Фантастика');
-          expect(res.body.rating).toBeNull();
         });
     });
   });
@@ -346,7 +341,7 @@ describe('Books Module E2E Tests', () => {
         .expect(200)
         .expect((res) => {
           expect(res.body.title).toBe('Война и мир (обновлено)');
-          expect(res.body.comment).toBeNull();
+          expect(res.body.comment).toBe('Великая книга');
         });
       // восстанавливаем для других тестов
       await booksRepository.update(testBook.id, {
@@ -363,7 +358,6 @@ describe('Books Module E2E Tests', () => {
       bookToDelete = booksRepository.create({
         title: 'Книга на удаление',
         genre: 'Драма',
-        rating: 50,
       });
       await booksRepository.save(bookToDelete);
     });
@@ -526,32 +520,26 @@ describe('Books Module E2E Tests', () => {
         booksRepository.create({
           title: 'Search Token Alpha',
           genre: 'Test',
-          rating: 10,
         }),
         booksRepository.create({
           title: 'search token beta',
           genre: 'Test',
-          rating: 20,
         }),
         booksRepository.create({
           title: 'Gamma Search Token',
           genre: 'Test',
-          rating: 30,
         }),
         booksRepository.create({
           title: 'Search Token Delta',
           genre: 'Test',
-          rating: 40,
         }),
         booksRepository.create({
           title: 'Search Token Epsilon',
           genre: 'Test',
-          rating: 50,
         }),
         booksRepository.create({
           title: 'Search Token Zeta',
           genre: 'Test',
-          rating: 60,
         }),
       ]);
     });
@@ -681,7 +669,6 @@ describe('Books Module E2E Tests', () => {
       expect(res.body).toEqual({
         total: expect.any(Number),
         thisMonth: expect.any(Number),
-        avgRating: expect.any(Number),
       });
     });
   });

@@ -5,7 +5,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, MoreThanOrEqual, Repository } from 'typeorm';
 import { UserRole } from '../users/entities/user.entity';
 import { UserBook } from './entities/user-book.entity';
 import { UserMovie } from './entities/user-movie.entity';
@@ -76,6 +76,38 @@ export class UserListsService {
       throw new NotFoundException('UserBook not found');
     }
     return book;
+  }
+
+  async getUserBookStats(
+    userId: string,
+  ): Promise<{ total: number; thisMonth: number; avgRating: number | null }> {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [total, thisMonth, avgRatingResult]: [
+      number,
+      number,
+      { avgRating: string | null }[],
+    ] = await Promise.all([
+      this.userBooksRepository.count({ where: { userId } }),
+      this.userBooksRepository.count({
+        where: { userId, readAt: MoreThanOrEqual(startOfMonth) },
+      }),
+      this.userBooksRepository
+        .createQueryBuilder('ub')
+        .select('AVG(ub.rating)', 'avgRating')
+        .where('ub.userId = :userId', { userId })
+        .andWhere('ub.rating IS NOT NULL')
+        .getRawMany(),
+    ]);
+
+    const avg = avgRatingResult[0]?.avgRating;
+
+    return {
+      total,
+      thisMonth,
+      avgRating: avg != null ? Math.round(parseFloat(avg)) : null,
+    };
   }
 
   async createCurrentUserBook(

@@ -4,7 +4,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, MoreThanOrEqual } from 'typeorm';
 import { Book } from './entities/book.entity';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
@@ -127,24 +127,12 @@ export class BooksService {
         'authors.fullName',
       ];
       if (validSortFields.includes(sortBy)) {
-        if (sortBy === 'rating') {
-          if (sortOrder === 'DESC') {
-            queryBuilder
-              .orderBy('book.rating IS NULL', 'ASC')
-              .addOrderBy('book.rating', 'DESC');
-          } else {
-            queryBuilder
-              .orderBy('book.rating IS NULL', 'ASC')
-              .addOrderBy('book.rating', 'ASC');
-          }
-        } else if (sortBy === 'authors.fullName') {
+        if (sortBy === 'authors.fullName') {
           queryBuilder.orderBy('authors.fullName', sortOrder || 'ASC');
         } else {
           queryBuilder.orderBy(`book.${sortBy}`, sortOrder || 'ASC');
         }
       }
-    } else {
-      queryBuilder.orderBy('book.readAt', 'DESC');
     }
 
     if (limit) {
@@ -252,28 +240,20 @@ export class BooksService {
   async getStats(): Promise<{
     total: number;
     thisMonth: number;
-    avgRating: number;
   }> {
-    const [total, thisMonth, avgRatingResult]: [
-      number,
-      number,
-      { avgRating?: string } | undefined,
-    ] = await Promise.all([
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [total, thisMonth]: [number, number] = await Promise.all([
       this.booksRepository.count(),
-      this.booksRepository.count(),
-      this.booksRepository
-        .createQueryBuilder('book')
-        .select('AVG(book.rating)', 'avgRating')
-        .where('book.rating IS NOT NULL')
-        .getRawOne<{ avgRating?: string }>(),
+      this.booksRepository.count({
+        where: { createdAt: MoreThanOrEqual(startOfMonth) },
+      }),
     ]);
 
     return {
       total,
       thisMonth,
-      avgRating: avgRatingResult?.avgRating
-        ? parseFloat(avgRatingResult.avgRating)
-        : 0,
     };
   }
 }

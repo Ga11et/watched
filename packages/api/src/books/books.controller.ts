@@ -70,7 +70,6 @@ export class BooksController {
   getStats(): Promise<{
     total: number;
     thisMonth: number;
-    avgRating: number;
   }> {
     return this.booksService.getStats();
   }

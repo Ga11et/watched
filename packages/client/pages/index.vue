@@ -8,31 +8,14 @@ const {
   error,
 } = await useAsyncData('dashboard', async () => {
   try {
-    const [
-      moviesResponse,
-      gamesResponse,
-      booksResponse,
-      seriesResponse,
-      allMovies,
-      allGames,
-      allBooks,
-      allSeries,
-    ] = await Promise.all([
-      _fetch(`${config.public.apiBase}/movies?limit=5`),
-      _fetch(`${config.public.apiBase}/games?limit=5`),
-      _fetch(`${config.public.apiBase}/books?limit=5`),
-      _fetch(`${config.public.apiBase}/series?limit=5`),
+    const [allMovies, allGames, allBooks, allSeries] = await Promise.all([
       _fetch(`${config.public.apiBase}/movies/stats`),
       _fetch(`${config.public.apiBase}/games/stats`),
-      _fetch(`${config.public.apiBase}/books/stats`),
+      _fetch(`${config.public.apiBase}/user-books/stats`),
       _fetch(`${config.public.apiBase}/series/stats`),
     ])
 
     return {
-      recentMovies: moviesResponse.data || [],
-      recentGames: gamesResponse.data || [],
-      recentBooks: booksResponse.data || [],
-      recentSeries: seriesResponse.data || [],
       stats: {
         movies: allMovies,
         games: allGames,
@@ -43,10 +26,6 @@ const {
   } catch (e) {
     console.error('Dashboard data fetch error:', e)
     return {
-      recentMovies: [],
-      recentGames: [],
-      recentBooks: [],
-      recentSeries: [],
       stats: {
         movies: { total: 0, thisMonth: 0, avgRating: 0 },
         games: { total: 0, thisMonth: 0, avgRating: 0 },

@@ -1,25 +1,7 @@
 <template>
   <EntitiesCommonCard>
     <template #image>
-      <div v-if="author.photo" class="flex-shrink-0 w-32 h-48">
-        <img :src="photoUrl" :alt="author.fullName" class="w-full h-full object-cover" />
-      </div>
-      <div v-else class="flex-shrink-0 w-32 h-48 bg-gray-100 flex items-center justify-center">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-10 w-10 text-gray-300"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"
-          />
-        </svg>
-      </div>
+      <EntitiesAuthorsOutputsCover :photo="author.photo" :alt="author.fullName" size="sm" />
     </template>
 
     <template #title>
@@ -101,11 +83,4 @@ interface Author {
 }
 
 const { author } = defineProps<{ author: Author }>()
-
-const config = useRuntimeConfig()
-
-const photoUrl = computed(() => {
-  if (!author.photo) return null
-  return `${config.public.apiBase}${author.photo}`
-})
 </script>

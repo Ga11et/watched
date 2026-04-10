@@ -60,7 +60,6 @@ const config = useRuntimeConfig()
 const TMDB_API_KEY = config.public.tmdbApiKey
 
 interface Props {
-  modelValue?: TmdbPerson | null
   label?: string
   placeholder?: string
   error?: string
@@ -69,7 +68,6 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  modelValue: null,
   label: '',
   placeholder: 'Введите имя',
   error: '',
@@ -77,25 +75,20 @@ const props = withDefaults(defineProps<Props>(), {
   id: 'tmdb-person-search',
 })
 
-const emit = defineEmits<{
-  'update:modelValue': [value: TmdbPerson | null]
-  'update:manualQuery': [value: string]
-}>()
+const model = defineModel<TmdbPerson | null>({ default: null })
+const manualQuery = defineModel<string>('manualQuery', { default: '' })
 
 const containerRef = ref<HTMLElement | null>(null)
-const query = ref(props.modelValue?.name ?? '')
+const query = ref(model.value?.name ?? manualQuery ?? '')
 const suggestions = ref<TmdbPerson[]>([])
 const showSuggestions = ref(false)
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
-watch(
-  () => props.modelValue,
-  (newVal) => {
-    if (newVal) {
-      query.value = newVal.name
-    }
-  },
-)
+watch(model, (newVal) => {
+  if (newVal) {
+    query.value = newVal.name
+  }
+})
 
 const searchPersons = async (searchQuery: string) => {
   if (!searchQuery || searchQuery.length < 2) {
@@ -122,7 +115,7 @@ const searchPersons = async (searchQuery: string) => {
 }
 
 const onSearchInput = () => {
-  emit('update:manualQuery', query.value)
+  manualQuery.value = query.value
   if (searchTimeout) clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
     searchPersons(query.value)
@@ -133,7 +126,7 @@ const selectPerson = (selected: TmdbPerson) => {
   query.value = selected.name
   suggestions.value = []
   showSuggestions.value = false
-  emit('update:modelValue', selected)
+  model.value = selected
 }
 
 onMounted(() => {

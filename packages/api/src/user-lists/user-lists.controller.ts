@@ -67,6 +67,41 @@ export class UserListsController {
     return this.userListsService.getCurrentUserBooks(user.id);
   }
 
+  @Get('user-books/stats')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Получить статистику книг текущего пользователя',
+    description: 'Возвращает total, thisMonth (по readAt), avgRating',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Статистика книг пользователя',
+    schema: {
+      type: 'object',
+      properties: {
+        total: { type: 'number', description: 'Общее количество книг' },
+        thisMonth: {
+          type: 'number',
+          description: 'Прочитано за текущий месяц',
+        },
+        avgRating: {
+          type: 'number',
+          nullable: true,
+          description: 'Средний рейтинг',
+        },
+      },
+    },
+  })
+  getUserBookStats(@Req() request: AuthenticatedRequest) {
+    const user = this.getAuthenticatedUser(request);
+
+    if (user.role === UserRole.GUEST) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    return this.userListsService.getUserBookStats(user.id);
+  }
+
   @Get('user-books/:id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Получить книгу текущего пользователя по GUID' })
