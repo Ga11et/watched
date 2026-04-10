@@ -7,6 +7,10 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserRole } from './entities/user.entity';
+import { UserBook } from '../user-lists/entities/user-book.entity';
+import { UserMovie } from '../user-lists/entities/user-movie.entity';
+import { UserSeries } from '../user-lists/entities/user-series.entity';
+import { UserGame } from '../user-lists/entities/user-game.entity';
 import { UserDto } from './dto/user.dto';
 import {
   UpdateUserDto,
@@ -20,6 +24,14 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(UserBook)
+    private userBooksRepository: Repository<UserBook>,
+    @InjectRepository(UserMovie)
+    private userMoviesRepository: Repository<UserMovie>,
+    @InjectRepository(UserSeries)
+    private userSeriesRepository: Repository<UserSeries>,
+    @InjectRepository(UserGame)
+    private userGamesRepository: Repository<UserGame>,
   ) {}
 
   private toUserDto(user: User): UserDto {
@@ -181,15 +193,31 @@ export class UsersService {
     return this.toUserDto(user);
   }
 
-  async adminDeleteUser(identifier: string): Promise<void> {
+  async deactivateUser(identifier: string, callerId: string): Promise<UserDto> {
     const user = await this.getUserByIdentifierOrFail(identifier);
 
-    if (user.id === identifier) {
-      throw new ConflictException('Cannot delete self');
+    if (user.id === callerId) {
+      throw new ConflictException('Cannot deactivate self');
     }
 
     user.isActive = false;
     await this.usersRepository.save(user);
+    return this.toUserDto(user);
+  }
+
+  async adminDeleteUser(identifier: string, callerId: string): Promise<void> {
+    const user = await this.getUserByIdentifierOrFail(identifier);
+
+    if (user.id === callerId) {
+      throw new ConflictException('Cannot delete self');
+    }
+
+    await this.userBooksRepository.delete({ userId: user.id });
+    await this.userMoviesRepository.delete({ userId: user.id });
+    await this.userSeriesRepository.delete({ userId: user.id });
+    await this.userGamesRepository.delete({ userId: user.id });
+
+    await this.usersRepository.remove(user);
   }
 
   async adminChangeUserRole(

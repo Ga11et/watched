@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /**
  * E2E тесты модуля publishers.
  * Публичных эндпоинтов нет: все GET защищены как минимум ролью GUEST.
@@ -28,6 +29,8 @@ import { PublishersModule } from '../../src/publishers/publishers.module';
 import { DataSource } from 'typeorm';
 import { Game } from '../../src/games/entities/game.entity';
 import { Developer } from '../../src/developers/entities/developer.entity';
+import { Book } from '../../src/books/entities/book.entity';
+import { Author } from '../../src/authors/entities/author.entity';
 
 const TEST_DB_NAME = 'watched_test';
 
@@ -46,7 +49,7 @@ const e2eDbConfig = {
 @Module({
   imports: [
     TypeOrmModule.forRoot(e2eDbConfig),
-    TypeOrmModule.forFeature([Game, Developer]),
+    TypeOrmModule.forFeature([Game, Developer, Book, Author]),
     AuthModule,
     UsersModule,
     PublishersModule,

@@ -156,16 +156,58 @@ export class UsersController {
     return this.usersService.adminUpdateUser(identifier, dto);
   }
 
-  @Delete(':identifier')
+  @Patch(':identifier/deactivate')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete user (soft delete, admin only)' })
+  @ApiOperation({ summary: 'Deactivate user (admin only)' })
   @ApiParam({
     name: 'identifier',
     type: 'string',
     description: 'User UUID or username',
   })
   @ApiResponse({
-    status: 204,
+    status: 200,
+    description: 'User deactivated',
+    type: UserDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Cannot deactivate self',
+  })
+  async deactivateUser(
+    @Request() req: AuthRequest,
+    @Param('identifier') identifier: string,
+  ): Promise<UserDto> {
+    if (!req.user || req.user.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('Admin access required');
+    }
+
+    return this.usersService.deactivateUser(identifier, req.user.id);
+  }
+
+  @Delete(':identifier')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Delete user and all related user-entities (admin only)',
+  })
+  @ApiParam({
+    name: 'identifier',
+    type: 'string',
+    description: 'User UUID or username',
+  })
+  @ApiResponse({
+    status: 200,
     description: 'User deleted',
   })
   @ApiResponse({
@@ -192,7 +234,7 @@ export class UsersController {
       throw new ForbiddenException('Admin access required');
     }
 
-    await this.usersService.adminDeleteUser(identifier);
+    await this.usersService.adminDeleteUser(identifier, req.user.id);
   }
 
   @Patch(':identifier/role')

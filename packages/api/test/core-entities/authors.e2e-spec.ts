@@ -28,6 +28,7 @@ import { AdminMiddleware } from '../../src/auth/admin.middleware';
 import { AuthModule } from '../../src/auth/auth.module';
 import { UsersModule } from '../../src/users/users.module';
 import { AuthorsModule } from '../../src/authors/authors.module';
+import { UserBook } from '../../src/user-lists/entities/user-book.entity';
 
 const TEST_DB_NAME = 'watched_test';
 
@@ -46,7 +47,7 @@ const e2eDbConfig = {
 @Module({
   imports: [
     TypeOrmModule.forRoot(e2eDbConfig),
-    TypeOrmModule.forFeature([Book]),
+    TypeOrmModule.forFeature([Book, UserBook]),
     AuthModule,
     UsersModule,
     AuthorsModule,

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /**
  * E2E тесты модуля movies.
  * Публичных эндпоинтов нет: все GET защищены как минимум ролью GUEST.
@@ -27,6 +29,8 @@ import { AuthModule } from '../../src/auth/auth.module';
 import { UsersModule } from '../../src/users/users.module';
 import { MoviesModule } from '../../src/movies/movies.module';
 import { DirectorsModule } from '../../src/directors/directors.module';
+import { Book } from '../../src/books/entities/book.entity';
+import { Author } from '../../src/authors/entities/author.entity';
 import { DataSource } from 'typeorm';
 
 const TEST_DB_NAME = 'watched_test';
@@ -46,6 +50,7 @@ const e2eDbConfig = {
 @Module({
   imports: [
     TypeOrmModule.forRoot(e2eDbConfig),
+    TypeOrmModule.forFeature([Book, Author]),
     AuthModule,
     UsersModule,
     MoviesModule,

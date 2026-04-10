@@ -28,6 +28,8 @@ import { AdminMiddleware } from '../../src/auth/admin.middleware';
 import { AuthModule } from '../../src/auth/auth.module';
 import { UsersModule } from '../../src/users/users.module';
 import { DevelopersModule } from '../../src/developers/developers.module';
+import { Book } from '../../src/books/entities/book.entity';
+import { Author } from '../../src/authors/entities/author.entity';
 import { DataSource } from 'typeorm';
 
 const TEST_DB_NAME = 'watched_test';
@@ -47,7 +49,7 @@ const e2eDbConfig = {
 @Module({
   imports: [
     TypeOrmModule.forRoot(e2eDbConfig),
-    TypeOrmModule.forFeature([Game, Publisher]),
+    TypeOrmModule.forFeature([Game, Publisher, Book, Author]),
     AuthModule,
     UsersModule,
     DevelopersModule,
