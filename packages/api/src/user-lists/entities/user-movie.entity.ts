@@ -4,9 +4,11 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  Unique,
 } from 'typeorm';
 
 @Entity({ name: 'user_movies' })
+@Unique('UQ_user_movies_user_movie', ['userId', 'movieId'])
 export class UserMovie {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -20,8 +22,8 @@ export class UserMovie {
   @Column({ type: 'int', nullable: true })
   rating: number | null;
 
-  @Column({ type: 'bigint', nullable: true })
-  watchedAt: string | null;
+  @Column({ type: 'timestamp', nullable: true })
+  watchedAt: Date | null;
 
   @Column({ type: 'text', nullable: true })
   comment: string | null;

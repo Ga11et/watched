@@ -9,6 +9,7 @@ import { UserSeries } from './entities/user-series.entity';
 import { UserGame } from './entities/user-game.entity';
 import { Book } from '../books/entities/book.entity';
 import { Author } from '../authors/entities/author.entity';
+import { Movie } from '../movies/entities/movie.entity';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { Author } from '../authors/entities/author.entity';
       UserGame,
       Book,
       Author,
+      Movie,
     ]),
   ],
   controllers: [UserListsController],

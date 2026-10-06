@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -23,6 +24,7 @@ import {
 } from './dto/user-list.dto';
 import { Book } from '../books/entities/book.entity';
 import { Author } from '../authors/entities/author.entity';
+import { Movie } from '../movies/entities/movie.entity';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -52,6 +54,8 @@ export class UserListsService {
     private readonly booksRepository: Repository<Book>,
     @InjectRepository(Author)
     private readonly authorsRepository: Repository<Author>,
+    @InjectRepository(Movie)
+    private readonly moviesRepository: Repository<Movie>,
   ) {
     if (!fs.existsSync(this.booksUploadPath)) {
       fs.mkdirSync(this.booksUploadPath, { recursive: true });
@@ -244,10 +248,25 @@ export class UserListsService {
   ): Promise<UserMovie> {
     this.ensureCanMutate(actor);
 
+    const movie = await this.moviesRepository.findOne({
+      where: { id: dto.movieId },
+    });
+    if (!movie) {
+      throw new NotFoundException('Movie not found');
+    }
+
+    const existing = await this.userMoviesRepository.findOne({
+      where: { userId: actor.id, movieId: movie.id },
+    });
+    if (existing) {
+      throw new ConflictException('UserMovie already exists');
+    }
+
     const entity = this.userMoviesRepository.create({
       userId: actor.id,
+      movieId: movie.id,
       rating: dto.rating ?? null,
-      watchedAt: dto.watchedAt ? `${Date.parse(dto.watchedAt)}` : null,
+      watchedAt: dto.watchedAt ? new Date(dto.watchedAt) : null,
       comment: dto.comment ?? null,
     });
 
@@ -272,7 +291,7 @@ export class UserListsService {
       entity.rating = dto.rating;
     }
     if (dto.watchedAt !== undefined) {
-      entity.watchedAt = dto.watchedAt ? `${Date.parse(dto.watchedAt)}` : null;
+      entity.watchedAt = dto.watchedAt ? new Date(dto.watchedAt) : null;
     }
     if (dto.comment !== undefined) {
       entity.comment = dto.comment;

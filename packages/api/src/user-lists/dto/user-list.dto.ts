@@ -99,6 +99,10 @@ export class UpdateUserBookDto {
 }
 
 export class CreateUserMovieDto {
+  @ApiProperty({ format: 'uuid' })
+  @IsUUID()
+  movieId: string;
+
   @ApiPropertyOptional({ minimum: 0, maximum: 100 })
   @IsOptional()
   @Type(() => Number)
