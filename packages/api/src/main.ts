@@ -42,6 +42,7 @@ async function bootstrap() {
     .addTag('directors')
     .addTag('publishers')
     .addTag('developers')
+    .addTag('user-lists')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
