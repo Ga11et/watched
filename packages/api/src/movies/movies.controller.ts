@@ -90,7 +90,7 @@ export class MoviesController {
     name: 'sortBy',
     description: 'Поле сортировки',
     required: false,
-    enum: ['title', 'genre', 'rating', 'watchedAt', 'releaseYear', 'createdAt'],
+    enum: ['title', 'genre', 'releaseYear', 'createdAt'],
   })
   @ApiQuery({
     name: 'sortOrder',

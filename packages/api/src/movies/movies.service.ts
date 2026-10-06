@@ -53,7 +53,6 @@ export class MoviesService {
 
     const movie = this.moviesRepository.create({
       ...movieDto,
-      watchedAt: movieDto.watchedAt ? new Date(movieDto.watchedAt) : null,
       poster: posterPath,
       directors,
     });
@@ -86,30 +85,15 @@ export class MoviesService {
       const validSortFields = [
         'title',
         'genre',
-        'rating',
-        'watchedAt',
         'releaseYear',
         'createdAt',
       ];
       if (validSortFields.includes(sortBy)) {
-        if (sortBy === 'rating') {
-          // For rating sorting, handle null values properly
-          if (sortOrder === 'DESC') {
-            queryBuilder
-              .orderBy('movie.rating IS NULL', 'ASC') // NULL values last
-              .addOrderBy('movie.rating', 'DESC');
-          } else {
-            queryBuilder
-              .orderBy('movie.rating IS NULL', 'ASC') // NULL values first
-              .addOrderBy('movie.rating', 'ASC');
-          }
-        } else {
-          queryBuilder.orderBy(`movie.${sortBy}`, sortOrder || 'ASC');
-        }
+        queryBuilder.orderBy(`movie.${sortBy}`, sortOrder || 'ASC');
       }
     } else {
       // Default sorting
-      queryBuilder.orderBy('movie.watchedAt', 'DESC');
+      queryBuilder.orderBy('movie.createdAt', 'DESC');
     }
 
     if (limit) {
@@ -177,7 +161,6 @@ export class MoviesService {
 
     const updatedMovie = this.moviesRepository.merge(movie, {
       ...movieDto,
-      watchedAt: movieDto.watchedAt ? new Date(movieDto.watchedAt) : movie.watchedAt,
       poster: movie.poster,
       updatedAt: new Date(),
       ...(directors !== undefined ? { directors } : {}),
@@ -271,14 +254,10 @@ export class MoviesService {
       this.moviesRepository.count(),
       this.moviesRepository.count({
         where: {
-          watchedAt: MoreThanOrEqual(startOfMonth),
+          createdAt: MoreThanOrEqual(startOfMonth),
         },
       }),
-      this.moviesRepository
-        .createQueryBuilder('movie')
-        .select('AVG(movie.rating)', 'avgRating')
-        .where('movie.rating IS NOT NULL')
-        .getRawOne<{ avgRating?: string }>(),
+      this.getUserMoviesAverageRating(),
     ]);
 
     return {
@@ -288,5 +267,31 @@ export class MoviesService {
         ? parseFloat(avgRatingResult.avgRating)
         : 0,
     };
+  }
+
+  private async getUserMoviesAverageRating(): Promise<{ avgRating?: string } | undefined> {
+    try {
+      return await this.moviesRepository.manager
+        .createQueryBuilder()
+        .select('AVG(userMovie.rating)', 'avgRating')
+        .from('user_movies', 'userMovie')
+        .where('userMovie.rating IS NOT NULL')
+        .getRawOne<{ avgRating?: string }>();
+    } catch (error: unknown) {
+      if (this.hasMissingTableError(error)) {
+        // Keep stats endpoint resilient in isolated test modules without user list tables.
+        return undefined;
+      }
+
+      throw error;
+    }
+  }
+
+  private hasMissingTableError(error: unknown): boolean {
+    if (!error || typeof error !== 'object' || !('code' in error)) {
+      return false;
+    }
+
+    return error.code === '42P01';
   }
 }

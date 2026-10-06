@@ -32,27 +32,6 @@ export class Movie {
   genre: string | null;
 
   @ApiPropertyOptional({
-    description: 'Рейтинг фильма от 0 до 100',
-    example: 85,
-  })
-  @Column({ nullable: true, type: 'int' })
-  rating: number | null;
-
-  @ApiPropertyOptional({
-    description: 'Дата просмотра фильма',
-    example: '2024-01-15T00:00:00.000Z',
-  })
-  @Column({ nullable: true, type: 'timestamp' })
-  watchedAt: Date | null;
-
-  @ApiPropertyOptional({
-    description: 'Комментарий к фильму',
-    example: 'Отличный сюжет, потрясающая визуализация',
-  })
-  @Column({ nullable: true, type: 'text' })
-  comment: string | null;
-
-  @ApiPropertyOptional({
     description: 'Год выпуска фильма',
     example: 2014,
   })

@@ -183,8 +183,6 @@ describe('Movies Module E2E Tests', () => {
       id: '770e8400-e29b-41d4-a716-446655440001',
       title: 'Интерстеллар',
       genre: 'Фантастика',
-      rating: 85,
-      comment: 'Отличный фильм',
       releaseYear: 2014,
       poster: null,
       directors: [testDirector],
@@ -239,6 +237,9 @@ describe('Movies Module E2E Tests', () => {
         .expect((res) => {
           expect(res.body.id).toBe(testMovie.id);
           expect(res.body.title).toBe(testMovie.title);
+          expect(res.body).not.toHaveProperty('rating');
+          expect(res.body).not.toHaveProperty('watchedAt');
+          expect(res.body).not.toHaveProperty('comment');
           expect(res.body.directors).toEqual(
             expect.arrayContaining([
               expect.objectContaining({ id: testDirector.id }),
@@ -289,17 +290,36 @@ describe('Movies Module E2E Tests', () => {
           genre: 'Фантастика',
           directorIds: [testDirector.id, secondDirector.id],
           rating: 90,
+          watchedAt: '2026-02-10T10:00:00.000Z',
+          comment: 'Это персональный комментарий',
         })
         .expect(201)
         .expect((res) => {
           expect(res.body.id).toBeDefined();
           expect(res.body.title).toBe('Начало');
+          expect(res.body).not.toHaveProperty('rating');
+          expect(res.body).not.toHaveProperty('watchedAt');
+          expect(res.body).not.toHaveProperty('comment');
           expect(res.body.directors).toEqual(
             expect.arrayContaining([
               expect.objectContaining({ id: testDirector.id }),
               expect.objectContaining({ id: secondDirector.id }),
             ]),
           );
+        });
+    });
+
+    it('POST с legacy directorId не создает связь с режиссёром', () => {
+      return request(app.getHttpServer())
+        .post('/movies')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          title: 'Legacy director field',
+          directorId: testDirector.id,
+        })
+        .expect(201)
+        .expect((res) => {
+          expect(res.body.directors).toEqual([]);
         });
     });
   });
@@ -342,7 +362,6 @@ describe('Movies Module E2E Tests', () => {
         });
       await moviesRepository.update(testMovie.id, {
         title: testMovie.title,
-        comment: testMovie.comment,
       });
       await moviesRepository
         .createQueryBuilder()

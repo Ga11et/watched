@@ -1,7 +1,6 @@
 import {
   IsString,
   IsOptional,
-  IsDateString,
   IsUUID,
   IsArray,
   ArrayUnique,
@@ -36,29 +35,6 @@ export class CreateMovieDto {
   @IsUUID('4', { each: true })
   @IsOptional()
   directorIds?: string[];
-
-  @ApiPropertyOptional({
-    description: 'Рейтинг фильма от 0 до 100',
-    example: 85,
-  })
-  @IsOptional()
-  rating?: number;
-
-  @ApiPropertyOptional({
-    description: 'Дата просмотра фильма',
-    example: '2024-01-15T00:00:00.000Z',
-  })
-  @IsDateString()
-  @IsOptional()
-  watchedAt?: string;
-
-  @ApiPropertyOptional({
-    description: 'Комментарий к фильму',
-    example: 'Отличный сюжет, потрясающая визуализация',
-  })
-  @IsString()
-  @IsOptional()
-  comment?: string;
 
   @ApiPropertyOptional({
     description: 'Год выпуска фильма',
