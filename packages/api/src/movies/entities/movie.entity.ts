@@ -32,13 +32,6 @@ export class Movie {
   genre: string | null;
 
   @ApiPropertyOptional({
-    description: 'ID режиссера',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
-  @Column({ nullable: true, type: 'uuid' })
-  directorId: string | null;
-
-  @ApiPropertyOptional({
     description: 'Рейтинг фильма от 0 до 100',
     example: 85,
   })

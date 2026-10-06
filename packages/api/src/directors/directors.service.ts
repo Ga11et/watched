@@ -154,11 +154,18 @@ export class DirectorsService {
       }
     }
 
-    // Remove director reference from all movies
-    await this.moviesRepository.update(
-      { directorId: id },
-      { directorId: null },
-    );
+    // Remove director relations from all movies before deleting director
+    const moviesWithDirector = await this.moviesRepository
+      .createQueryBuilder('movie')
+      .innerJoin('movie.directors', 'director', 'director.id = :id', { id })
+      .getMany();
+    for (const movie of moviesWithDirector) {
+      await this.moviesRepository
+        .createQueryBuilder()
+        .relation(Movie, 'directors')
+        .of(movie.id)
+        .remove(id);
+    }
 
     await this.directorsRepository.delete(id);
   }

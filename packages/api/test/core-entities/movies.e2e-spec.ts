@@ -87,6 +87,7 @@ describe('Movies Module E2E Tests', () => {
   let userToken: string;
   let guestToken: string;
   let testDirector: Director;
+  let secondDirector: Director;
   let testMovie: Movie;
 
   beforeAll(async () => {
@@ -170,17 +171,23 @@ describe('Movies Module E2E Tests', () => {
       comment: null,
       photo: null,
     });
-    await directorsRepository.save(testDirector);
+    secondDirector = directorsRepository.create({
+      id: '660e8400-e29b-41d4-a716-446655440002',
+      fullName: 'Лана Вачовски',
+      comment: null,
+      photo: null,
+    });
+    await directorsRepository.save([testDirector, secondDirector]);
 
     testMovie = moviesRepository.create({
       id: '770e8400-e29b-41d4-a716-446655440001',
       title: 'Интерстеллар',
       genre: 'Фантастика',
       rating: 85,
-      directorId: testDirector.id,
       comment: 'Отличный фильм',
       releaseYear: 2014,
       poster: null,
+      directors: [testDirector],
     });
     await moviesRepository.save(testMovie);
   });
@@ -232,6 +239,11 @@ describe('Movies Module E2E Tests', () => {
         .expect((res) => {
           expect(res.body.id).toBe(testMovie.id);
           expect(res.body.title).toBe(testMovie.title);
+          expect(res.body.directors).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({ id: testDirector.id }),
+            ]),
+          );
         });
     });
 
@@ -275,14 +287,19 @@ describe('Movies Module E2E Tests', () => {
         .send({
           title: 'Начало',
           genre: 'Фантастика',
-          directorId: testDirector.id,
+          directorIds: [testDirector.id, secondDirector.id],
           rating: 90,
         })
         .expect(201)
         .expect((res) => {
           expect(res.body.id).toBeDefined();
           expect(res.body.title).toBe('Начало');
-          expect(res.body.directorId).toBe(testDirector.id);
+          expect(res.body.directors).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({ id: testDirector.id }),
+              expect.objectContaining({ id: secondDirector.id }),
+            ]),
+          );
         });
     });
   });
@@ -308,19 +325,30 @@ describe('Movies Module E2E Tests', () => {
         .expect(403);
     });
 
-    it('PUT с ADMIN возвращает 200', async () => {
+    it('PUT с ADMIN возвращает 200 и обновляет связи many-to-many режиссёров', async () => {
       await request(app.getHttpServer())
         .put(`/movies/${testMovie.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           title: 'Интерстеллар (обновлено)',
           comment: 'Новый комментарий',
+          directorIds: [secondDirector.id],
         })
-        .expect(200);
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.directors).toEqual([
+            expect.objectContaining({ id: secondDirector.id }),
+          ]);
+        });
       await moviesRepository.update(testMovie.id, {
         title: testMovie.title,
         comment: testMovie.comment,
       });
+      await moviesRepository
+        .createQueryBuilder()
+        .relation(Movie, 'directors')
+        .of(testMovie.id)
+        .remove([secondDirector.id]);
     });
 
     let movieToDelete: Movie;
@@ -432,8 +460,12 @@ describe('Movies Module E2E Tests', () => {
         .expect(200)
         .expect((res) => {
           expect(Array.isArray(res.body)).toBe(true);
-          res.body.forEach((m: { directorId: string | null }) => {
-            expect(m.directorId).toBe(testDirector.id);
+          res.body.forEach((m: { directors: Array<{ id: string }> }) => {
+            expect(
+              m.directors.some((director: { id: string }) => {
+                return director.id === testDirector.id;
+              }),
+            ).toBe(true);
           });
         });
     });

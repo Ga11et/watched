@@ -4,13 +4,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual } from 'typeorm';
+import { Repository, MoreThanOrEqual, In } from 'typeorm';
 import { Movie } from './entities/movie.entity';
 import { CreateMovieDto } from './dto/create-movie.dto';
 import { UpdateMovieDto } from './dto/update-movie.dto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { isUuid } from '../common/utils/uuid.util';
+import { Director } from '../directors/entities/director.entity';
 
 @Injectable()
 export class MoviesService {
@@ -19,6 +20,8 @@ export class MoviesService {
   constructor(
     @InjectRepository(Movie)
     private moviesRepository: Repository<Movie>,
+    @InjectRepository(Director)
+    private directorsRepository: Repository<Director>,
   ) {
     if (!fs.existsSync(this.uploadPath)) {
       fs.mkdirSync(this.uploadPath, { recursive: true });
@@ -36,6 +39,9 @@ export class MoviesService {
       });
     }
 
+    const { directorIds, ...movieDto } = createMovieDto;
+    const directors = await this.getDirectorsByIds(directorIds);
+
     let posterPath: string | null = null;
 
     if (poster) {
@@ -46,14 +52,14 @@ export class MoviesService {
     }
 
     const movie = this.moviesRepository.create({
-      ...createMovieDto,
-      watchedAt: createMovieDto.watchedAt
-        ? new Date(createMovieDto.watchedAt)
-        : null,
+      ...movieDto,
+      watchedAt: movieDto.watchedAt ? new Date(movieDto.watchedAt) : null,
       poster: posterPath,
+      directors,
     });
 
-    return this.moviesRepository.save(movie);
+    const savedMovie = await this.moviesRepository.save(movie);
+    return this.findOne(savedMovie.id);
   }
 
   async findAll(
@@ -62,10 +68,18 @@ export class MoviesService {
     directorId?: string,
     limit?: string,
   ): Promise<Movie[]> {
-    const queryBuilder = this.moviesRepository.createQueryBuilder('movie');
+    const queryBuilder = this.moviesRepository
+      .createQueryBuilder('movie')
+      .leftJoinAndSelect('movie.directors', 'directors')
+      .distinct(true);
 
     if (directorId) {
-      queryBuilder.where('movie.directorId = :directorId', { directorId });
+      queryBuilder.innerJoin(
+        'movie.directors',
+        'directorFilter',
+        'directorFilter.id = :directorId',
+        { directorId },
+      );
     }
 
     if (sortBy) {
@@ -113,7 +127,10 @@ export class MoviesService {
       throw new NotFoundException(`Фильм с ID ${id} не найден`);
     }
 
-    const movie = await this.moviesRepository.findOne({ where: { id } });
+    const movie = await this.moviesRepository.findOne({
+      where: { id },
+      relations: ['directors'],
+    });
     if (!movie) {
       throw new NotFoundException(`Фильм с ID ${id} не найден`);
     }
@@ -135,9 +152,14 @@ export class MoviesService {
     }
 
     const movie = await this.findOne(id);
+    const { removePoster, directorIds, ...movieDto } = updateMovieDto;
+    const directors =
+      directorIds !== undefined
+        ? await this.getDirectorsByIds(directorIds)
+        : undefined;
 
     // Удаление текущего постера если есть флаг removePoster или новый постер
-    if (movie.poster && (updateMovieDto.removePoster || poster)) {
+    if (movie.poster && (removePoster || poster)) {
       const oldPosterPath = path.join(process.cwd(), movie.poster);
       if (fs.existsSync(oldPosterPath)) {
         fs.unlinkSync(oldPosterPath);
@@ -153,17 +175,44 @@ export class MoviesService {
       movie.poster = `/uploads/movies/${fileName}`;
     }
 
-    const updatedMovie = {
-      ...movie,
-      ...updateMovieDto,
-      watchedAt: updateMovieDto.watchedAt
-        ? new Date(updateMovieDto.watchedAt)
-        : movie.watchedAt,
+    const updatedMovie = this.moviesRepository.merge(movie, {
+      ...movieDto,
+      watchedAt: movieDto.watchedAt ? new Date(movieDto.watchedAt) : movie.watchedAt,
       poster: movie.poster,
       updatedAt: new Date(),
-    };
+      ...(directors !== undefined ? { directors } : {}),
+    });
 
-    return this.moviesRepository.save(updatedMovie);
+    const savedMovie = await this.moviesRepository.save(updatedMovie);
+    if (directors !== undefined) {
+      const targetDirectorIds = directors.map((director) => director.id);
+      const movieWithRelations = await this.findOne(savedMovie.id);
+      const currentDirectorIds = movieWithRelations.directors?.map((director) => {
+        return director.id;
+      }) || [];
+
+      const directorIdsToRemove = currentDirectorIds.filter((directorId) => {
+        return !targetDirectorIds.includes(directorId);
+      });
+      if (directorIdsToRemove.length > 0) {
+        await this.moviesRepository
+          .createQueryBuilder()
+          .relation(Movie, 'directors')
+          .of(savedMovie.id)
+          .remove(directorIdsToRemove);
+      }
+      const directorIdsToAdd = targetDirectorIds.filter((directorId) => {
+        return !currentDirectorIds.includes(directorId);
+      });
+      if (directorIdsToAdd.length > 0) {
+        await this.moviesRepository
+          .createQueryBuilder()
+          .relation(Movie, 'directors')
+          .of(savedMovie.id)
+          .add(directorIdsToAdd);
+      }
+    }
+    return this.findOne(savedMovie.id);
   }
 
   async remove(id: string): Promise<void> {
@@ -177,6 +226,33 @@ export class MoviesService {
     }
 
     await this.moviesRepository.delete(id);
+  }
+
+  private async getDirectorsByIds(directorIds?: string[]): Promise<Director[]> {
+    if (!directorIds || directorIds.length === 0) {
+      return [];
+    }
+
+    const directors = await this.directorsRepository.findBy({
+      id: In(directorIds),
+    });
+    if (directors.length !== directorIds.length) {
+      throw new UnprocessableEntityException({
+        message: 'Произошла ошибка при обработке режиссёров фильма',
+        violations: [
+          {
+            field: 'directorIds',
+            message: 'Один или несколько режиссёров не найдены',
+          },
+        ],
+      });
+    }
+
+    return directorIds
+      .map((directorId) => {
+        return directors.find((director) => director.id === directorId);
+      })
+      .filter((director): director is Director => director !== undefined);
   }
 
   async getStats(): Promise<{

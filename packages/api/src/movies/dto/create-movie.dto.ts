@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsDateString, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsDateString,
+  IsUUID,
+  IsArray,
+  ArrayUnique,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateMovieDto {
@@ -18,12 +25,17 @@ export class CreateMovieDto {
   genre?: string;
 
   @ApiPropertyOptional({
-    description: 'ID режиссера',
-    example: '123e4567-e89b-12d3-a456-426614174000',
+    description: 'ID режиссёров фильма',
+    example: [
+      '123e4567-e89b-12d3-a456-426614174000',
+      '123e4567-e89b-12d3-a456-426614174001',
+    ],
   })
-  @IsUUID()
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
   @IsOptional()
-  directorId?: string;
+  directorIds?: string[];
 
   @ApiPropertyOptional({
     description: 'Рейтинг фильма от 0 до 100',
