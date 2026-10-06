@@ -33,6 +33,7 @@ import { AdminMiddleware } from '../../src/auth/admin.middleware';
 import { AuthModule } from '../../src/auth/auth.module';
 import { UsersModule } from '../../src/users/users.module';
 import { BooksModule } from '../../src/books/books.module';
+import { DirectorsModule } from '../../src/directors/directors.module';
 import { DataSource } from 'typeorm';
 
 const TEST_DB_NAME = 'watched_test';
@@ -54,6 +55,7 @@ const e2eDbConfig = {
     TypeOrmModule.forRoot(e2eDbConfig),
     AuthModule,
     UsersModule,
+    DirectorsModule,
     BooksModule,
     UserListsModule,
   ],

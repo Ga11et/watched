@@ -25,6 +25,7 @@ import { UsersModule } from '../../src/users/users.module';
 import { Book } from '../../src/books/entities/book.entity';
 import { BooksModule } from '../../src/books/books.module';
 import { AuthorsModule } from '../../src/authors/authors.module';
+import { DirectorsModule } from '../../src/directors/directors.module';
 import { Author } from '../../src/authors/entities/author.entity';
 
 const TEST_DB_NAME = 'watched_test';
@@ -58,6 +59,7 @@ const IDS = {
     TypeOrmModule.forFeature([BooksModule, AuthorsModule]),
     AuthModule,
     UsersModule,
+    DirectorsModule,
     UserListsModule,
   ],
   providers: [

@@ -30,6 +30,7 @@ import { UserBook } from '../src/user-lists/entities/user-book.entity';
 import { Book } from '../src/books/entities/book.entity';
 import { BooksModule } from '../src/books/books.module';
 import { AuthorsModule } from '../src/authors/authors.module';
+import { DirectorsModule } from '../src/directors/directors.module';
 import { APP_FILTER } from '@nestjs/core';
 
 const TEST_DB_NAME = 'watched_test';
@@ -101,6 +102,7 @@ const INACTIVE_USER_ID = '55555555-5555-4555-8555-555555555555';
     TypeOrmModule.forFeature([BooksModule, AuthorsModule]),
     AuthModule,
     UsersModule,
+    DirectorsModule,
     UserListsModule,
   ],
   controllers: [CatalogStubController],

@@ -10,10 +10,18 @@ import {
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { User, UserRole } from './entities/user.entity';
+import { UserBook } from '../user-lists/entities/user-book.entity';
+import { UserMovie } from '../user-lists/entities/user-movie.entity';
+import { UserSeries } from '../user-lists/entities/user-series.entity';
+import { UserGame } from '../user-lists/entities/user-game.entity';
 
 describe('UsersService', () => {
   let service: UsersService;
   let repository: Repository<User>;
+  let userBooksRepository: Repository<UserBook>;
+  let userMoviesRepository: Repository<UserMovie>;
+  let userSeriesRepository: Repository<UserSeries>;
+  let userGamesRepository: Repository<UserGame>;
 
   const mockUser: User = {
     id: '550e8400-e29b-41d4-a716-446655440001',
@@ -46,6 +54,31 @@ describe('UsersService', () => {
             findOne: jest.fn(),
             createQueryBuilder: jest.fn(),
             save: jest.fn(),
+            remove: jest.fn(),
+          },
+        },
+        {
+          provide: getRepositoryToken(UserBook),
+          useValue: {
+            delete: jest.fn(),
+          },
+        },
+        {
+          provide: getRepositoryToken(UserMovie),
+          useValue: {
+            delete: jest.fn(),
+          },
+        },
+        {
+          provide: getRepositoryToken(UserSeries),
+          useValue: {
+            delete: jest.fn(),
+          },
+        },
+        {
+          provide: getRepositoryToken(UserGame),
+          useValue: {
+            delete: jest.fn(),
           },
         },
       ],
@@ -53,6 +86,18 @@ describe('UsersService', () => {
 
     service = module.get<UsersService>(UsersService);
     repository = module.get<Repository<User>>(getRepositoryToken(User));
+    userBooksRepository = module.get<Repository<UserBook>>(
+      getRepositoryToken(UserBook),
+    );
+    userMoviesRepository = module.get<Repository<UserMovie>>(
+      getRepositoryToken(UserMovie),
+    );
+    userSeriesRepository = module.get<Repository<UserSeries>>(
+      getRepositoryToken(UserSeries),
+    );
+    userGamesRepository = module.get<Repository<UserGame>>(
+      getRepositoryToken(UserGame),
+    );
   });
 
   afterEach(() => {
@@ -564,32 +609,48 @@ describe('UsersService', () => {
   });
 
   describe('adminDeleteUser', () => {
-    it('should soft-delete user', async () => {
+    it('should hard-delete user and remove user-list entities', async () => {
       jest.spyOn(repository, 'findOne').mockResolvedValue(mockUser);
-      jest.spyOn(repository, 'save').mockResolvedValue({
-        ...mockUser,
-        isActive: false,
+      jest.spyOn(repository, 'remove').mockResolvedValue(mockUser);
+      jest.spyOn(userBooksRepository, 'delete').mockResolvedValue({} as any);
+      jest.spyOn(userMoviesRepository, 'delete').mockResolvedValue({} as any);
+      jest.spyOn(userSeriesRepository, 'delete').mockResolvedValue({} as any);
+      jest.spyOn(userGamesRepository, 'delete').mockResolvedValue({} as any);
+
+      await service.adminDeleteUser('testuser', mockAdminUser.id);
+
+      expect(userBooksRepository.delete).toHaveBeenCalledWith({
+        userId: mockUser.id,
       });
-
-      await service.adminDeleteUser('testuser');
-
-      expect(repository.save).toHaveBeenCalled();
+      expect(userMoviesRepository.delete).toHaveBeenCalledWith({
+        userId: mockUser.id,
+      });
+      expect(userSeriesRepository.delete).toHaveBeenCalledWith({
+        userId: mockUser.id,
+      });
+      expect(userGamesRepository.delete).toHaveBeenCalledWith({
+        userId: mockUser.id,
+      });
+      expect(repository.remove).toHaveBeenCalledWith(mockUser);
     });
 
     it('should prevent self-deletion', async () => {
       jest.spyOn(repository, 'findOne').mockResolvedValue(mockUser);
 
       await expect(
-        service.adminDeleteUser('550e8400-e29b-41d4-a716-446655440001'),
+        service.adminDeleteUser(
+          '550e8400-e29b-41d4-a716-446655440001',
+          '550e8400-e29b-41d4-a716-446655440001',
+        ),
       ).rejects.toThrow(ConflictException);
     });
 
     it('should throw error when user not found', async () => {
       jest.spyOn(repository, 'findOne').mockResolvedValue(null);
 
-      await expect(service.adminDeleteUser('nonexistent')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.adminDeleteUser('nonexistent', mockAdminUser.id),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
