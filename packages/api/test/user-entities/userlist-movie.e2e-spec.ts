@@ -70,6 +70,7 @@ class UserListMovieE2ETestModule implements NestModule {
 
 describe('UserList-Movie module (e2e)', () => {
   let app: INestApplication;
+  let dataSource: DataSource;
   let usersRepository: Repository<User>;
   let userMoviesRepository: Repository<UserMovie>;
   let moviesRepository: Repository<Movie>;
@@ -104,7 +105,7 @@ describe('UserList-Movie module (e2e)', () => {
     );
     await app.init();
 
-    const dataSource = moduleFixture.get(DataSource);
+    dataSource = moduleFixture.get(DataSource);
     const [{ current_database: actualDb }] = await dataSource.query(
       'SELECT current_database() AS current_database',
     );
@@ -222,6 +223,52 @@ describe('UserList-Movie module (e2e)', () => {
       .expect(409);
   });
 
+  it('applies role matrix for reading current user movie entries', async () => {
+    await userMoviesRepository.save([
+      userMoviesRepository.create({
+        userId: IDS.user,
+        movieId: IDS.movieA,
+        rating: 75,
+      }),
+      userMoviesRepository.create({
+        userId: IDS.otherUser,
+        movieId: IDS.movieB,
+        rating: 30,
+      }),
+    ]);
+
+    await request(app.getHttpServer())
+      .get('/user-movies')
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toHaveLength(1);
+        expect(res.body[0]).toEqual(
+          expect.objectContaining({
+            userId: IDS.user,
+            movieId: IDS.movieA,
+            rating: 75,
+          }),
+        );
+      });
+
+    await request(app.getHttpServer())
+      .get('/user-movies')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toEqual([]);
+      });
+
+    await request(app.getHttpServer())
+      .get('/user-movies')
+      .set('Authorization', `Bearer ${guestToken}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toEqual([]);
+      });
+  });
+
   it('enforces role behavior for movie mutations', async () => {
     const foreignRecord = await userMoviesRepository.save(
       userMoviesRepository.create({
@@ -270,5 +317,97 @@ describe('UserList-Movie module (e2e)', () => {
       .delete(`/user-movies/${foreignRecord.id}`)
       .set('Authorization', `Bearer ${otherUserToken}`)
       .expect(200);
+  });
+
+  it('requires authentication for user-movie endpoints', async () => {
+    const ownedRecord = await userMoviesRepository.save(
+      userMoviesRepository.create({
+        userId: IDS.user,
+        movieId: IDS.movieA,
+      }),
+    );
+
+    await request(app.getHttpServer()).get('/user-movies').expect(401);
+
+    await request(app.getHttpServer())
+      .post('/user-movies')
+      .send({ movieId: IDS.movieA, rating: 10 })
+      .expect(401);
+
+    await request(app.getHttpServer())
+      .put(`/user-movies/${ownedRecord.id}`)
+      .send({ rating: 10 })
+      .expect(401);
+
+    await request(app.getHttpServer())
+      .delete(`/user-movies/${ownedRecord.id}`)
+      .expect(401);
+  });
+
+  it('preserves split-model schema and ownership boundaries for movies', async () => {
+    const movieColumns = (await dataSource.query(`
+      SELECT "column_name"
+      FROM "information_schema"."columns"
+      WHERE "table_schema" = 'public' AND "table_name" = 'movie'
+    `)) as Array<{ column_name: string }>;
+    const movieColumnNames = new Set(movieColumns.map((row) => row.column_name));
+
+    expect(movieColumnNames.has('rating')).toBe(false);
+    expect(movieColumnNames.has('watchedAt')).toBe(false);
+    expect(movieColumnNames.has('comment')).toBe(false);
+    expect(movieColumnNames.has('directorId')).toBe(false);
+
+    const userMovieColumns = (await dataSource.query(`
+      SELECT "column_name"
+      FROM "information_schema"."columns"
+      WHERE "table_schema" = 'public' AND "table_name" = 'user_movies'
+    `)) as Array<{ column_name: string }>;
+    const userMovieColumnNames = new Set(
+      userMovieColumns.map((row) => row.column_name),
+    );
+
+    expect(userMovieColumnNames.has('userId')).toBe(true);
+    expect(userMovieColumnNames.has('movieId')).toBe(true);
+    expect(userMovieColumnNames.has('rating')).toBe(true);
+    expect(userMovieColumnNames.has('watchedAt')).toBe(true);
+    expect(userMovieColumnNames.has('comment')).toBe(true);
+
+    const movieDirectorColumns = (await dataSource.query(`
+      SELECT "column_name"
+      FROM "information_schema"."columns"
+      WHERE "table_schema" = 'public' AND "table_name" = 'movie_directors'
+    `)) as Array<{ column_name: string }>;
+    const movieDirectorColumnNames = new Set(
+      movieDirectorColumns.map((row) => row.column_name),
+    );
+
+    expect(movieDirectorColumnNames.has('movieId')).toBe(true);
+    expect(movieDirectorColumnNames.has('directorId')).toBe(true);
+
+    await request(app.getHttpServer())
+      .post('/user-movies')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({
+        movieId: IDS.movieA,
+        rating: 77,
+        watchedAt: '2026-03-01T10:00:00.000Z',
+        comment: 'split model works',
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .get('/user-movies')
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toEqual([
+          expect.objectContaining({
+            userId: IDS.user,
+            movieId: IDS.movieA,
+            rating: 77,
+            comment: 'split model works',
+          }),
+        ]);
+      });
   });
 });
