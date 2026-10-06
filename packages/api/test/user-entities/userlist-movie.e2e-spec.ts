@@ -44,6 +44,7 @@ const IDS = {
   guest: '150e8400-e29b-41d4-a716-446655440004',
   movieA: '250e8400-e29b-41d4-a716-446655440001',
   movieB: '250e8400-e29b-41d4-a716-446655440002',
+  unknownRecord: '250e8400-e29b-41d4-a716-446655449999',
 };
 
 @Module({
@@ -62,8 +63,11 @@ class UserListMovieE2ETestModule implements NestModule {
     consumer
       .apply(AuthMiddleware)
       .forRoutes(
-        { path: 'user-movies', method: RequestMethod.ALL },
-        { path: 'user-movies/(.*)', method: RequestMethod.ALL },
+        { path: 'user-movies', method: RequestMethod.GET },
+        { path: 'user-movies/stats', method: RequestMethod.GET },
+        { path: 'user-movies', method: RequestMethod.POST },
+        { path: 'user-movies/:id', method: RequestMethod.PUT },
+        { path: 'user-movies/:id', method: RequestMethod.DELETE },
       );
   }
 }
@@ -342,6 +346,117 @@ describe('UserList-Movie module (e2e)', () => {
     await request(app.getHttpServer())
       .delete(`/user-movies/${ownedRecord.id}`)
       .expect(401);
+  });
+
+  it('allows reading a user-movie by id without auth and without ownership checks', async () => {
+    const foreignRecord = await userMoviesRepository.save(
+      userMoviesRepository.create({
+        userId: IDS.otherUser,
+        movieId: IDS.movieB,
+        rating: 66,
+        watchedAt: new Date('2026-02-10T10:00:00.000Z'),
+        comment: 'foreign movie entry',
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .get(`/user-movies/${foreignRecord.id}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toEqual(
+          expect.objectContaining({
+            id: foreignRecord.id,
+            userId: IDS.otherUser,
+            movieId: IDS.movieB,
+            rating: 66,
+            comment: 'foreign movie entry',
+            watchedAt: expect.any(String),
+          }),
+        );
+      });
+
+    await request(app.getHttpServer())
+      .get(`/user-movies/${foreignRecord.id}`)
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get(`/user-movies/${foreignRecord.id}`)
+      .set('Authorization', `Bearer ${guestToken}`)
+      .expect(200);
+  });
+
+  it('returns 404 for unknown user-movie id', async () => {
+    await request(app.getHttpServer())
+      .get(`/user-movies/${IDS.unknownRecord}`)
+      .expect(404);
+  });
+
+  describe('stats', () => {
+    it('returns 401 without token', async () => {
+      await request(app.getHttpServer()).get('/user-movies/stats').expect(401);
+    });
+
+    it('returns 403 for GUEST', async () => {
+      await request(app.getHttpServer())
+        .get('/user-movies/stats')
+        .set('Authorization', `Bearer ${guestToken}`)
+        .expect(403);
+    });
+
+    it('returns caller-scoped aggregates for USER and ADMIN', async () => {
+      const now = new Date();
+      const thisMonthDate = new Date(now.getFullYear(), now.getMonth(), 15);
+      const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 15);
+
+      await userMoviesRepository.save([
+        userMoviesRepository.create({
+          userId: IDS.user,
+          movieId: IDS.movieA,
+          rating: 90,
+          watchedAt: thisMonthDate,
+          comment: null,
+        }),
+        userMoviesRepository.create({
+          userId: IDS.user,
+          movieId: IDS.movieB,
+          rating: null,
+          watchedAt: lastMonthDate,
+          comment: null,
+        }),
+        userMoviesRepository.create({
+          userId: IDS.admin,
+          movieId: IDS.movieA,
+          rating: 51,
+          watchedAt: thisMonthDate,
+          comment: null,
+        }),
+      ]);
+
+      await request(app.getHttpServer())
+        .get('/user-movies/stats')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body).toEqual({
+            total: 2,
+            thisMonth: 1,
+            avgRating: 90,
+          });
+        });
+
+      await request(app.getHttpServer())
+        .get('/user-movies/stats')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body).toEqual({
+            total: 1,
+            thisMonth: 1,
+            avgRating: 51,
+          });
+        });
+    });
   });
 
   it('preserves split-model schema and ownership boundaries for movies', async () => {

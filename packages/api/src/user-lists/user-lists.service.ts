@@ -242,6 +242,48 @@ export class UserListsService {
     });
   }
 
+  async getUserMovieById(id: string): Promise<UserMovie> {
+    const movie = await this.userMoviesRepository.findOne({ where: { id } });
+
+    if (!movie) {
+      throw new NotFoundException('UserMovie not found');
+    }
+
+    return movie;
+  }
+
+  async getUserMovieStats(
+    userId: string,
+  ): Promise<{ total: number; thisMonth: number; avgRating: number | null }> {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [total, thisMonth, avgRatingResult]: [
+      number,
+      number,
+      { avgRating: string | null }[],
+    ] = await Promise.all([
+      this.userMoviesRepository.count({ where: { userId } }),
+      this.userMoviesRepository.count({
+        where: { userId, watchedAt: MoreThanOrEqual(startOfMonth) },
+      }),
+      this.userMoviesRepository
+        .createQueryBuilder('um')
+        .select('AVG(um.rating)', 'avgRating')
+        .where('um.userId = :userId', { userId })
+        .andWhere('um.rating IS NOT NULL')
+        .getRawMany(),
+    ]);
+
+    const avg = avgRatingResult[0]?.avgRating;
+
+    return {
+      total,
+      thisMonth,
+      avgRating: avg != null ? Math.round(parseFloat(avg)) : null,
+    };
+  }
+
   async createCurrentUserMovie(
     actor: Actor,
     dto: CreateUserMovieDto,

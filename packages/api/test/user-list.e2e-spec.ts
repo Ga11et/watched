@@ -236,6 +236,16 @@ class UserListsStubController {
     return [];
   }
 
+  @Get('user-movies/stats')
+  getCurrentUserMovieStats(): { total: number; thisMonth: number; avgRating: null } {
+    return { total: 0, thisMonth: 0, avgRating: null };
+  }
+
+  @Get('user-movies/:id')
+  getCurrentUserMovieById(@Param('id', ParseUUIDPipe) id: string): { id: string } {
+    return { id };
+  }
+
   @Post('user-movies')
   createCurrentUserMovie(): { created: boolean } {
     return { created: true };
@@ -409,8 +419,11 @@ class AuthProtectionTestModule implements NestModule {
       .forRoutes(
         { path: 'user-books', method: RequestMethod.ALL },
         { path: 'user-books/(.*)', method: RequestMethod.ALL },
-        { path: 'user-movies', method: RequestMethod.ALL },
-        { path: 'user-movies/(.*)', method: RequestMethod.ALL },
+        { path: 'user-movies', method: RequestMethod.GET },
+        { path: 'user-movies/stats', method: RequestMethod.GET },
+        { path: 'user-movies', method: RequestMethod.POST },
+        { path: 'user-movies/:id', method: RequestMethod.PUT },
+        { path: 'user-movies/:id', method: RequestMethod.DELETE },
         { path: 'user-series', method: RequestMethod.ALL },
         { path: 'user-series/(.*)', method: RequestMethod.ALL },
         { path: 'user-games', method: RequestMethod.ALL },
@@ -478,6 +491,7 @@ describe('Step 4 auth protection (e2e)', () => {
     },
 
     { method: 'get', path: '/user-movies', expectedStatus: 200 },
+    { method: 'get', path: '/user-movies/stats', expectedStatus: 200 },
     { method: 'post', path: '/user-movies', expectedStatus: 201, body: {} },
     {
       method: 'put',
@@ -570,6 +584,7 @@ describe('Step 4 auth protection (e2e)', () => {
     '/authors/550e8400-e29b-41d4-a716-446655440000',
     '/directors',
     '/directors/550e8400-e29b-41d4-a716-446655440000',
+    '/user-movies/550e8400-e29b-41d4-a716-446655440000',
   ];
 
   const adminEntities: Array<{

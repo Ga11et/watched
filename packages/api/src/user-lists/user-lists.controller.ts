@@ -186,6 +186,49 @@ export class UserListsController {
     return this.userListsService.getCurrentUserMovies(user.id);
   }
 
+  @Get('user-movies/stats')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Получить статистику фильмов текущего пользователя',
+    description: 'Возвращает total, thisMonth (по watchedAt), avgRating',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Статистика фильмов пользователя',
+    schema: {
+      type: 'object',
+      properties: {
+        total: { type: 'number', description: 'Общее количество фильмов' },
+        thisMonth: {
+          type: 'number',
+          description: 'Просмотрено за текущий месяц',
+        },
+        avgRating: {
+          type: 'number',
+          nullable: true,
+          description: 'Средний рейтинг',
+        },
+      },
+    },
+  })
+  getUserMovieStats(@Req() request: AuthenticatedRequest) {
+    const user = this.getAuthenticatedUser(request);
+
+    if (user.role === UserRole.GUEST) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    return this.userListsService.getUserMovieStats(user.id);
+  }
+
+  @Get('user-movies/:id')
+  @ApiOperation({ summary: 'Получить запись фильма пользователя по GUID' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiResponse({ status: 200, type: UserMovie })
+  getUserMovieById(@Param('id', ParseUUIDPipe) id: string) {
+    return this.userListsService.getUserMovieById(id);
+  }
+
   @Post('user-movies')
   @UseGuards(RolesGuard)
   @ApiBearerAuth()
