@@ -485,6 +485,117 @@ describe('UserList-Movie module (e2e)', () => {
       .expect(200, created.body);
   });
 
+  it('edits personal fields with rating zero and preserves the catalog movie', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/user-movies')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ title: 'Movie A', rating: 91, comment: 'Original review' })
+      .expect(201);
+    const updated = await request(app.getHttpServer())
+      .put(`/user-movies/${created.body.id}`)
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({
+        rating: 0,
+        watchedAt: '2026-10-07T00:00:00.000Z',
+        comment: 'Updated review',
+      })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toEqual({
+          ...created.body,
+          rating: 0,
+          watchedAt: '2026-10-07T00:00:00.000Z',
+          comment: 'Updated review',
+          updatedAt: expect.any(String),
+        });
+      });
+    await request(app.getHttpServer())
+      .get(`/user-movies/${created.body.id}`)
+      .expect(200, updated.body);
+    await request(app.getHttpServer())
+      .get(`/movies/${IDS.movieA}`)
+      .expect(200, created.body.movie);
+  });
+
+  it('clears personal fields with null and preserves fields omitted from PUT', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/user-movies')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({
+        title: 'Movie A',
+        rating: 80,
+        watchedAt: '2026-02-10T10:00:00.000Z',
+        comment: 'Original review',
+      })
+      .expect(201);
+    await request(app.getHttpServer())
+      .put(`/user-movies/${created.body.id}`)
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ comment: '' })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.rating).toBe(80);
+        expect(res.body.watchedAt).toBe('2026-02-10T10:00:00.000Z');
+        expect(res.body.comment).toBe('');
+      });
+    const cleared = await request(app.getHttpServer())
+      .put(`/user-movies/${created.body.id}`)
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ rating: null, watchedAt: null, comment: null })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toEqual({
+          ...created.body,
+          rating: null,
+          watchedAt: null,
+          comment: null,
+          updatedAt: expect.any(String),
+        });
+      });
+    await request(app.getHttpServer())
+      .get(`/user-movies/${created.body.id}`)
+      .expect(200, cleared.body);
+  });
+
+  it.each([
+    { movieId: IDS.movieB },
+    { title: 'Changed title' },
+    { genre: 'Comedy' },
+    { releaseYear: 1999 },
+    { directors: [] },
+    { directorIds: [] },
+    { poster: '/uploads/movies/changed.jpg' },
+    { rating: -1 },
+    { rating: 101 },
+    { rating: 90.5 },
+    { watchedAt: '' },
+    { watchedAt: 'not-a-date' },
+    { comment: 12 },
+  ])(
+    'rejects invalid personal edits or catalog changes %j without changes',
+    async (body) => {
+      const created = await request(app.getHttpServer())
+        .post('/user-movies')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ title: 'Movie A', rating: 80, comment: 'Original review' })
+        .expect(201);
+      await request(app.getHttpServer())
+        .put(`/user-movies/${created.body.id}`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .send(body)
+        .expect(422)
+        .expect((res) => {
+          expect(res.body.message).toEqual(expect.any(Array));
+        });
+      await request(app.getHttpServer())
+        .get(`/user-movies/${created.body.id}`)
+        .expect(200, created.body);
+      await request(app.getHttpServer())
+        .get(`/movies/${IDS.movieA}`)
+        .expect(200, created.body.movie);
+    },
+  );
+
   it('documents exact-title creation and its error responses in Swagger', () => {
     const document = SwaggerModule.createDocument(
       app,

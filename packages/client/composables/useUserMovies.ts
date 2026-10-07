@@ -1,4 +1,4 @@
-import type { CreateUserMovieDto, UserMovie } from '~/types/api'
+import type { CreateUserMovieDto, UpdateUserMovieDto, UserMovie } from '~/types/api'
 
 export const useUserMovies = () => {
   const config = useRuntimeConfig()
@@ -22,8 +22,16 @@ export const useUserMovies = () => {
 
   const create = (body: CreateUserMovieDto) =>
     nuxtApp.runWithContext(() =>
-      _fetch<UserMovie>(`${config.public.apiBase}/user-movies`, { method: 'POST', body })
+      _fetch<UserMovie>(`${config.public.apiBase}/user-movies`, { method: 'POST', body }),
     )
 
-  return { list, get, create }
+  const update = (id: string, body: UpdateUserMovieDto) =>
+    nuxtApp.runWithContext(() =>
+      _fetch<UserMovie>(`${config.public.apiBase}/user-movies/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        body,
+      }),
+    )
+
+  return { list, get, create, update }
 }

@@ -18,13 +18,20 @@
           </h1>
           <p v-if="userMovie" class="mt-1 text-sm text-gray-500">Детали вашей записи</p>
         </div>
-        <NuxtLink
-          v-if="userMovie && !pending && !error"
-          :to="`/movies/${userMovie.movie.id}`"
-          class="rounded-lg bg-emerald-600 px-3 py-2 text-white shadow-sm transition hover:bg-emerald-700"
-        >
-          Фильм в каталоге
-        </NuxtLink>
+        <div v-if="userMovie && !pending && !error" class="flex flex-wrap gap-3">
+          <NuxtLink
+            :to="`/user-movies/${userMovie.id}/edit`"
+            class="rounded-lg bg-indigo-600 px-3 py-2 text-white shadow-sm transition hover:bg-indigo-700"
+          >
+            Редактировать
+          </NuxtLink>
+          <NuxtLink
+            :to="`/movies/${userMovie.movie.id}`"
+            class="rounded-lg bg-emerald-600 px-3 py-2 text-white shadow-sm transition hover:bg-emerald-700"
+          >
+            Фильм в каталоге
+          </NuxtLink>
+        </div>
       </div>
 
       <div class="px-6 py-6">

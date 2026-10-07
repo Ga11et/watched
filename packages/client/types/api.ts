@@ -92,6 +92,12 @@ export interface CreateUserMovieDto {
   comment?: string | null
 }
 
+export interface UpdateUserMovieDto {
+  rating?: number | null
+  watchedAt?: string | null
+  comment?: string | null
+}
+
 export interface CreateMovieDto {
   title: string
   genre?: string
