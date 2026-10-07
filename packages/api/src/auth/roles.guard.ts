@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   CanActivate,
   ExecutionContext,
   ForbiddenException,
@@ -94,7 +93,7 @@ export class RolesGuard implements CanActivate {
       });
     } catch (error: unknown) {
       if (this.isInvalidUuidQueryError(error)) {
-        throw new BadRequestException('Validation failed (uuid is expected)');
+        throw new NotFoundException('Record not found', { cause: error });
       }
 
       throw error;

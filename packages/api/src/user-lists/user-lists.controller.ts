@@ -4,6 +4,7 @@ import {
   Delete,
   ForbiddenException,
   Get,
+  HttpStatus,
   Param,
   ParseUUIDPipe,
   Post,
@@ -40,6 +41,10 @@ import {
 } from './dto/user-list.dto';
 import { UserListsService } from './user-lists.service';
 import { FileInterceptor } from '@nestjs/platform-express';
+
+const resourceIdPipe = new ParseUUIDPipe({
+  errorHttpStatusCode: HttpStatus.NOT_FOUND,
+});
 
 interface AuthenticatedRequest {
   user?: {
@@ -108,7 +113,7 @@ export class UserListsController {
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiResponse({ status: 200, type: UserBook })
   getCurrentUserBook(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', resourceIdPipe) id: string,
     @Req() request: AuthenticatedRequest,
   ) {
     const user = this.getAuthenticatedUser(request);
@@ -147,7 +152,7 @@ export class UserListsController {
   @ApiBody({ type: UpdateUserBookDto })
   @ApiResponse({ status: 200, type: UserBook })
   updateCurrentUserBook(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', resourceIdPipe) id: string,
     @Req() request: AuthenticatedRequest,
     @Body() dto: UpdateUserBookDto,
   ) {
@@ -168,7 +173,7 @@ export class UserListsController {
     schema: { type: 'object', properties: { id: { type: 'string' } } },
   })
   removeCurrentUserBook(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', resourceIdPipe) id: string,
     @Req() request: AuthenticatedRequest,
   ) {
     return this.userListsService.removeCurrentUserBook(
@@ -225,16 +230,35 @@ export class UserListsController {
   @ApiOperation({ summary: 'Получить запись фильма пользователя по GUID' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiResponse({ status: 200, type: UserMovie })
-  getUserMovieById(@Param('id', ParseUUIDPipe) id: string) {
+  getUserMovieById(@Param('id', resourceIdPipe) id: string) {
     return this.userListsService.getUserMovieById(id);
   }
 
   @Post('user-movies')
   @UseGuards(RolesGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Добавить фильм в список текущего пользователя' })
+  @ApiOperation({
+    summary: 'Добавить существующий фильм по точному названию',
+    description:
+      'Название сравнивается с учётом регистра и всех пробелов, без нормализации. ' +
+      'Допустимы только title, rating, watchedAt и comment; movieId и каталожные поля запрещены. ' +
+      'Фильм не создаётся и не редактируется.',
+  })
   @ApiBody({ type: CreateUserMovieDto })
   @ApiResponse({ status: 201, type: UserMovie })
+  @ApiResponse({
+    status: 404,
+    description: 'Фильм с точным названием не найден',
+  })
+  @ApiResponse({
+    status: 409,
+    description:
+      'Несколько точных совпадений или фильм уже добавлен пользователем',
+  })
+  @ApiResponse({
+    status: 422,
+    description: 'Невалидное тело запроса или лишние поля',
+  })
   createCurrentUserMovie(
     @Req() request: AuthenticatedRequest,
     @Body() dto: CreateUserMovieDto,
@@ -253,7 +277,7 @@ export class UserListsController {
   @ApiBody({ type: UpdateUserMovieDto })
   @ApiResponse({ status: 200, type: UserMovie })
   updateCurrentUserMovie(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', resourceIdPipe) id: string,
     @Req() request: AuthenticatedRequest,
     @Body() dto: UpdateUserMovieDto,
   ) {
@@ -274,7 +298,7 @@ export class UserListsController {
     schema: { type: 'object', properties: { id: { type: 'string' } } },
   })
   removeCurrentUserMovie(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', resourceIdPipe) id: string,
     @Req() request: AuthenticatedRequest,
   ) {
     return this.userListsService.removeCurrentUserMovie(
@@ -316,7 +340,7 @@ export class UserListsController {
   @ApiBody({ type: UpdateUserSeriesDto })
   @ApiResponse({ status: 200, type: UserSeries })
   updateCurrentUserSeries(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', resourceIdPipe) id: string,
     @Req() request: AuthenticatedRequest,
     @Body() dto: UpdateUserSeriesDto,
   ) {
@@ -337,7 +361,7 @@ export class UserListsController {
     schema: { type: 'object', properties: { id: { type: 'string' } } },
   })
   removeCurrentUserSeries(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', resourceIdPipe) id: string,
     @Req() request: AuthenticatedRequest,
   ) {
     return this.userListsService.removeCurrentUserSeries(
@@ -379,7 +403,7 @@ export class UserListsController {
   @ApiBody({ type: UpdateUserGameDto })
   @ApiResponse({ status: 200, type: UserGame })
   updateCurrentUserGame(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', resourceIdPipe) id: string,
     @Req() request: AuthenticatedRequest,
     @Body() dto: UpdateUserGameDto,
   ) {
@@ -400,7 +424,7 @@ export class UserListsController {
     schema: { type: 'object', properties: { id: { type: 'string' } } },
   })
   removeCurrentUserGame(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', resourceIdPipe) id: string,
     @Req() request: AuthenticatedRequest,
   ) {
     return this.userListsService.removeCurrentUserGame(
@@ -420,7 +444,7 @@ export class UserListsController {
   }
 
   @Put('user-authors/:id')
-  updateCurrentUserAuthor(@Param('id', ParseUUIDPipe) id: string): {
+  updateCurrentUserAuthor(@Param('id', resourceIdPipe) id: string): {
     id: string;
     updated: boolean;
   } {
@@ -428,7 +452,7 @@ export class UserListsController {
   }
 
   @Delete('user-authors/:id')
-  removeCurrentUserAuthor(@Param('id', ParseUUIDPipe) id: string): {
+  removeCurrentUserAuthor(@Param('id', resourceIdPipe) id: string): {
     id: string;
     deleted: boolean;
   } {
@@ -446,7 +470,7 @@ export class UserListsController {
   }
 
   @Put('user-directors/:id')
-  updateCurrentUserDirector(@Param('id', ParseUUIDPipe) id: string): {
+  updateCurrentUserDirector(@Param('id', resourceIdPipe) id: string): {
     id: string;
     updated: boolean;
   } {
@@ -454,7 +478,7 @@ export class UserListsController {
   }
 
   @Delete('user-directors/:id')
-  removeCurrentUserDirector(@Param('id', ParseUUIDPipe) id: string): {
+  removeCurrentUserDirector(@Param('id', resourceIdPipe) id: string): {
     id: string;
     deleted: boolean;
   } {
@@ -465,7 +489,7 @@ export class UserListsController {
   @ApiOperation({ summary: 'Получить книги пользователя по GUID' })
   @ApiParam({ name: 'guid', format: 'uuid' })
   @ApiResponse({ status: 200, type: [UserBook] })
-  getUserBooksByGuid(@Param('guid', ParseUUIDPipe) guid: string) {
+  getUserBooksByGuid(@Param('guid', resourceIdPipe) guid: string) {
     return this.userListsService.getUserBooksByGuid(guid);
   }
 
@@ -473,7 +497,7 @@ export class UserListsController {
   @ApiOperation({ summary: 'Получить фильмы пользователя по GUID' })
   @ApiParam({ name: 'guid', format: 'uuid' })
   @ApiResponse({ status: 200, type: [UserMovie] })
-  getUserMoviesByGuid(@Param('guid', ParseUUIDPipe) guid: string) {
+  getUserMoviesByGuid(@Param('guid', resourceIdPipe) guid: string) {
     return this.userListsService.getUserMoviesByGuid(guid);
   }
 
@@ -481,7 +505,7 @@ export class UserListsController {
   @ApiOperation({ summary: 'Получить сериалы пользователя по GUID' })
   @ApiParam({ name: 'guid', format: 'uuid' })
   @ApiResponse({ status: 200, type: [UserSeries] })
-  getUserSeriesByGuid(@Param('guid', ParseUUIDPipe) guid: string) {
+  getUserSeriesByGuid(@Param('guid', resourceIdPipe) guid: string) {
     return this.userListsService.getUserSeriesByGuid(guid);
   }
 
@@ -489,7 +513,7 @@ export class UserListsController {
   @ApiOperation({ summary: 'Получить игры пользователя по GUID' })
   @ApiParam({ name: 'guid', format: 'uuid' })
   @ApiResponse({ status: 200, type: [UserGame] })
-  getUserGamesByGuid(@Param('guid', ParseUUIDPipe) guid: string) {
+  getUserGamesByGuid(@Param('guid', resourceIdPipe) guid: string) {
     return this.userListsService.getUserGamesByGuid(guid);
   }
 
@@ -500,7 +524,7 @@ export class UserListsController {
     status: 200,
     schema: { type: 'array', items: { type: 'string' } },
   })
-  getUserAuthorsByGuid(@Param('guid', ParseUUIDPipe) guid: string): string[] {
+  getUserAuthorsByGuid(@Param('guid', resourceIdPipe) guid: string): string[] {
     void guid;
     return [];
   }
@@ -512,7 +536,9 @@ export class UserListsController {
     status: 200,
     schema: { type: 'array', items: { type: 'string' } },
   })
-  getUserDirectorsByGuid(@Param('guid', ParseUUIDPipe) guid: string): string[] {
+  getUserDirectorsByGuid(
+    @Param('guid', resourceIdPipe) guid: string,
+  ): string[] {
     void guid;
     return [];
   }

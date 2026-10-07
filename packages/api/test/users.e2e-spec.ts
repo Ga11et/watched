@@ -7,7 +7,6 @@ import {
   Module,
   NestModule,
   RequestMethod,
-  ValidationPipe,
 } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import request from 'supertest';
@@ -25,6 +24,7 @@ import { UserGame } from '../src/user-lists/entities/user-game.entity';
 import { Book } from '../src/books/entities/book.entity';
 import { Author } from '../src/authors/entities/author.entity';
 import { Movie } from '../src/movies/entities/movie.entity';
+import { ApplicationValidationPipe } from '../src/common/application-validation.pipe';
 
 const TEST_DB_NAME = 'watched_test';
 
@@ -106,7 +106,7 @@ describe('Users Module E2E Tests', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe());
+    app.useGlobalPipes(new ApplicationValidationPipe());
     await app.init();
 
     usersRepository = moduleFixture.get<Repository<User>>(
@@ -409,11 +409,11 @@ describe('Users Module E2E Tests', () => {
         });
     });
 
-    it('should return 400 for invalid boolean isActive filter', () => {
+    it('should return 422 for invalid boolean isActive filter', () => {
       return request(app.getHttpServer())
         .get('/users?isActive=not-boolean')
         .set('Authorization', `Bearer ${adminToken}`)
-        .expect(400);
+        .expect(422);
     });
   });
 
@@ -440,7 +440,7 @@ describe('Users Module E2E Tests', () => {
         .send({
           username: 'admin',
         })
-        .expect(400);
+        .expect(422);
     });
 
     it('should reject invalid email', () => {
@@ -450,7 +450,7 @@ describe('Users Module E2E Tests', () => {
         .send({
           email: 'invalid-email',
         })
-        .expect(400);
+        .expect(422);
     });
 
     it('should return 403 for non-ADMIN user', () => {
@@ -690,7 +690,7 @@ describe('Users Module E2E Tests', () => {
         .send({
           role: 'INVALID',
         })
-        .expect(400);
+        .expect(422);
     });
 
     it('should return 403 for non-ADMIN user', () => {
@@ -759,7 +759,7 @@ describe('Users Module E2E Tests', () => {
         .send({
           email: 'invalid-email',
         })
-        .expect(400);
+        .expect(422);
     });
 
     it('should validate username format', () => {
@@ -769,7 +769,7 @@ describe('Users Module E2E Tests', () => {
         .send({
           username: 'invalid-user!',
         })
-        .expect(400);
+        .expect(422);
     });
 
     it('should handle missing user gracefully', () => {

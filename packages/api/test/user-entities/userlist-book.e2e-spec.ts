@@ -116,6 +116,7 @@ describe('UserList-Book module (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(
       new ValidationPipe({
+        errorHttpStatusCode: 422,
         transform: true,
         whitelist: true,
         forbidNonWhitelisted: false,
@@ -850,13 +851,13 @@ describe('UserList-Book module (e2e)', () => {
         .expect((res) => expectValidationViolations(res, ['readAt']));
     });
 
-    it('PUT /user-books/:id validates route and body', async () => {
+    it('PUT /user-books/:id returns 404 for invalid resource id and 422 for invalid body', async () => {
       await request(app.getHttpServer())
         .put('/user-books/not-a-uuid')
         .set('Authorization', `Bearer ${userToken}`)
         .send({ rating: 50 })
-        .expect(422)
-        .expect((res) => expectValidationViolations(res, ['id']));
+        .expect(404)
+        .expect((res) => expect(res.body.message).toBe('Record not found'));
 
       const created = await userBooksRepository.save(
         userBooksRepository.create({
@@ -919,10 +920,10 @@ describe('UserList-Book module (e2e)', () => {
         });
     });
 
-    it('public GET /user/:guid/books returns 400 for invalid guid format', async () => {
+    it('public GET /user/:guid/books returns 404 for invalid guid format', async () => {
       await request(app.getHttpServer())
         .get('/user/not-a-guid/books')
-        .expect(400);
+        .expect(404);
     });
 
     it('supports minimal payload and nullable optional fields', async () => {

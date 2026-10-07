@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ApplicationValidationPipe } from './common/application-validation.pipe';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
@@ -9,13 +9,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Enable global validation
-  app.useGlobalPipes(
-    new ValidationPipe({
-      transform: true,
-      whitelist: true,
-      forbidNonWhitelisted: true,
-    }),
-  );
+  app.useGlobalPipes(new ApplicationValidationPipe());
 
   app.enableCors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:33000',

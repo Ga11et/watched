@@ -322,12 +322,17 @@ export class UserListsService {
   ): Promise<UserMovieResponse> {
     this.ensureCanMutate(actor);
 
-    const movie = await this.moviesRepository.findOne({
-      where: { id: dto.movieId },
+    const movies = await this.moviesRepository.find({
+      where: { title: dto.title },
+      take: 2,
     });
-    if (!movie) {
+    if (!movies.length) {
       throw new NotFoundException('Movie not found');
     }
+    if (movies.length > 1) {
+      throw new ConflictException('Multiple movies have this exact title');
+    }
+    const [movie] = movies;
 
     const existing = await this.userMoviesRepository.findOne({
       where: { userId: actor.id, movieId: movie.id },
@@ -349,6 +354,15 @@ export class UserListsService {
       return this.getUserMovieById(saved.id);
     } catch (error: unknown) {
       const message = 'Не удалось добавить фильм в пользовательский список';
+      if (
+        error instanceof QueryFailedError &&
+        'code' in error &&
+        error.code === '23505' &&
+        'constraint' in error &&
+        error.constraint === 'UQ_user_movies_user_movie'
+      ) {
+        throw new ConflictException('UserMovie already exists', { cause: error });
+      }
       if (
         error instanceof QueryFailedError &&
         'code' in error &&

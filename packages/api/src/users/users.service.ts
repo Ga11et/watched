@@ -1,7 +1,7 @@
 import {
   Injectable,
   NotFoundException,
-  BadRequestException,
+  UnprocessableEntityException,
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -110,7 +110,7 @@ export class UsersService {
       message: 'Unprocessable entity',
       violations: [{ field, message }],
     };
-    throw new BadRequestException(response);
+    throw new UnprocessableEntityException(response);
   }
 
   async updateUserProfile(

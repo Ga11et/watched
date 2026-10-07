@@ -6,15 +6,16 @@ import {
   Module,
   NestModule,
   RequestMethod,
-  ValidationPipe,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
 import request from 'supertest';
 import { DataSource, Repository } from 'typeorm';
 import { AuthModule } from '../../src/auth/auth.module';
 import { AuthMiddleware } from '../../src/auth/auth.middleware';
 import { JwtService } from '../../src/auth/jwt.service';
+import { ApplicationValidationPipe } from '../../src/common/application-validation.pipe';
 import { DirectorsModule } from '../../src/directors/directors.module';
 import { Director } from '../../src/directors/entities/director.entity';
 import { Movie } from '../../src/movies/entities/movie.entity';
@@ -115,14 +116,8 @@ describe('UserList-Movie module (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(
-      new ValidationPipe({
-        transform: true,
-        whitelist: true,
-        forbidNonWhitelisted: false,
-      }),
-    );
-    await app.init();
+    app.useGlobalPipes(new ApplicationValidationPipe());
+    await app.listen(0, '127.0.0.1');
 
     dataSource = moduleFixture.get(DataSource);
     const [{ current_database: actualDb }] = await dataSource.query(
@@ -228,6 +223,26 @@ describe('UserList-Movie module (e2e)', () => {
     }
   });
 
+  async function expectRejectedWithoutChanges(body: object, status: number) {
+    const catalog = await request(app.getHttpServer())
+      .get('/movies')
+      .expect(200);
+    const list = await request(app.getHttpServer())
+      .get('/user-movies')
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/user-movies')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send(body)
+      .expect(status);
+    await request(app.getHttpServer())
+      .get('/user-movies')
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(200, list.body);
+    await request(app.getHttpServer()).get('/movies').expect(200, catalog.body);
+  }
+
   it.each(MOVIE_READ_ROUTES)(
     'returns the full catalog movie in the $name without movieId',
     async ({ path, isList }) => {
@@ -235,7 +250,7 @@ describe('UserList-Movie module (e2e)', () => {
         .post('/user-movies')
         .set('Authorization', `Bearer ${userToken}`)
         .send({
-          movieId: IDS.movieA,
+          title: 'Movie A',
           rating: 91,
           watchedAt: '2026-02-10T10:00:00.000Z',
           comment: 'Personal review',
@@ -317,7 +332,7 @@ describe('UserList-Movie module (e2e)', () => {
       const created = await request(app.getHttpServer())
         .post('/user-movies')
         .set('Authorization', `Bearer ${userToken}`)
-        .send({ movieId: IDS.movieB })
+        .send({ title: 'Movie B' })
         .expect(201);
 
       await request(app.getHttpServer())
@@ -439,7 +454,7 @@ describe('UserList-Movie module (e2e)', () => {
       .expect(200, []);
   });
 
-  it('creates a user-movie entry with the full catalog movie and personal fields', async () => {
+  it('creates a user-movie by exact title with the full catalog movie and personal fields', async () => {
     const catalog = await request(app.getHttpServer())
       .get(`/movies/${IDS.movieA}`)
       .expect(200);
@@ -447,7 +462,7 @@ describe('UserList-Movie module (e2e)', () => {
       .post('/user-movies')
       .set('Authorization', `Bearer ${userToken}`)
       .send({
-        movieId: IDS.movieA,
+        title: 'Movie A',
         rating: 91,
         watchedAt: '2026-02-10T10:00:00.000Z',
         comment: 'Great one',
@@ -470,18 +485,266 @@ describe('UserList-Movie module (e2e)', () => {
       .expect(200, created.body);
   });
 
-  it('enforces one record per (user, movie)', async () => {
+  it('documents exact-title creation and its error responses in Swagger', () => {
+    const document = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder().build(),
+    );
+    const post = document.paths['/user-movies'].post;
+    expect(post?.requestBody).toEqual({
+      required: true,
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/CreateUserMovieDto' },
+        },
+      },
+    });
+    const schema = document.components?.schemas?.CreateUserMovieDto;
+    expect(schema).toEqual({
+      type: 'object',
+      required: ['title'],
+      properties: {
+        title: expect.objectContaining({
+          type: 'string',
+          minLength: 1,
+          pattern: '\\S',
+        }),
+        rating: expect.objectContaining({
+          type: 'integer',
+          nullable: true,
+          minimum: 0,
+          maximum: 100,
+        }),
+        watchedAt: expect.objectContaining({
+          type: 'string',
+          format: 'date-time',
+        }),
+        comment: expect.objectContaining({ type: 'string' }),
+      },
+    });
+    expect(post?.responses).toEqual({
+      '201': expect.objectContaining({
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/UserMovie' },
+          },
+        },
+      }),
+      '404': expect.any(Object),
+      '409': expect.any(Object),
+      '422': expect.any(Object),
+    });
+  });
+
+  it('preserves rating zero and an empty personal comment when creating by title', async () => {
     await request(app.getHttpServer())
       .post('/user-movies')
       .set('Authorization', `Bearer ${userToken}`)
-      .send({ movieId: IDS.movieA, rating: 60 })
+      .send({ title: 'Movie A', rating: 0, comment: '' })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.rating).toBe(0);
+        expect(res.body.comment).toBe('');
+        expect(res.body.watchedAt).toBeNull();
+      });
+    await request(app.getHttpServer())
+      .get('/user-movies')
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toEqual([
+          expect.objectContaining({ rating: 0, comment: '', watchedAt: null }),
+        ]);
+      });
+  });
+
+  it('matches a catalog title with leading, trailing, and internal whitespace verbatim', async () => {
+    const movie = await moviesRepository.save(
+      moviesRepository.create({ title: '  Spaced  Movie\t ' }),
+    );
+    await request(app.getHttpServer())
+      .post('/user-movies')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ title: '  Spaced  Movie\t ' })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.movie.id).toBe(movie.id);
+        expect(res.body.movie.title).toBe('  Spaced  Movie\t ');
+      });
+  });
+
+  it.each([
+    'Missing movie',
+    'movie a',
+    'Movie a',
+    ' Movie A',
+    'Movie A ',
+    'Movie  A',
+    'Movie\tA',
+    'Movie',
+    'Move A',
+    'Spaced  Movie',
+  ])(
+    'returns 404 for nonmatching title %j without creating anything',
+    async (title) => {
+      await expectRejectedWithoutChanges({ title }, 404);
+    },
+  );
+
+  it.each([
+    { movieId: IDS.movieA },
+    { title: 'Movie A', genre: 'Comedy' },
+    { title: 'Movie A', releaseYear: 1999 },
+    { title: 'Movie A', directorIds: [] },
+    { title: 'Movie A', poster: '/uploads/movies/changed.jpg' },
+    { title: 'Movie A', extra: true },
+    { title: 'Movie A', rating: -1 },
+    { title: 'Movie A', rating: 101 },
+    { title: 'Movie A', rating: 90.5 },
+    { title: 'Movie A', rating: 'invalid' },
+    { title: 'Movie A', watchedAt: 'not-a-date' },
+    { title: 'Movie A', comment: 12 },
+  ])(
+    'rejects invalid or forbidden fields %j with 422 and no changes',
+    async (body) => {
+      await expectRejectedWithoutChanges(body, 422);
+    },
+  );
+
+  it('returns 422 for validation errors on request bodies', async () => {
+    await request(app.getHttpServer())
+      .post('/movies')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ title: 'Movie A', extra: true })
+      .expect(422);
+    const created = await request(app.getHttpServer())
+      .post('/user-movies')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ title: 'Movie A' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .put(`/user-movies/${created.body.id}`)
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ rating: 101 })
+      .expect(422);
+  });
+
+  it('returns 404 for invalid resource UUIDs on read and mutation routes', async () => {
+    await request(app.getHttpServer())
+      .get('/user-movies/not-a-uuid')
+      .expect(404);
+    await request(app.getHttpServer())
+      .get('/user/not-a-uuid/movies')
+      .expect(404);
+    for (const token of [userToken, adminToken]) {
+      await request(app.getHttpServer())
+        .put('/user-movies/not-a-uuid')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ rating: 50 })
+        .expect(404);
+      await request(app.getHttpServer())
+        .delete('/user-movies/not-a-uuid')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(404);
+    }
+  });
+
+  it.each([
+    {},
+    { title: '' },
+    { title: ' \t\n ' },
+    { title: null },
+    { title: 123 },
+    { title: true },
+    { title: ['Movie A'] },
+    { title: { value: 'Movie A' } },
+  ])('rejects invalid title %j with 422 and no changes', async (body) => {
+    await expectRejectedWithoutChanges(body, 422);
+  });
+
+  it.each([{ body: [] }, { body: ['Movie A'] }])(
+    'rejects non-object body $body with 422 and no changes',
+    async ({ body }) => {
+      await expectRejectedWithoutChanges(body, 422);
+    },
+  );
+
+  it('rejects a forbidden movieId alongside a valid title with 422', async () => {
+    await expectRejectedWithoutChanges(
+      { title: 'Movie A', movieId: IDS.movieA },
+      422,
+    );
+  });
+
+  it('rejects ambiguous exact titles without changing the catalog or user list', async () => {
+    await moviesRepository.save([
+      moviesRepository.create({ title: 'Ambiguous movie', releaseYear: 2000 }),
+      moviesRepository.create({ title: 'Ambiguous movie', releaseYear: 2020 }),
+    ]);
+    await expectRejectedWithoutChanges({ title: 'Ambiguous movie' }, 409);
+  });
+
+  it('enforces one record per (user, movie)', async () => {
+    const catalog = await request(app.getHttpServer())
+      .get('/movies')
+      .expect(200);
+    const created = await request(app.getHttpServer())
+      .post('/user-movies')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ title: 'Movie A', rating: 60 })
       .expect(201);
 
     await request(app.getHttpServer())
       .post('/user-movies')
       .set('Authorization', `Bearer ${userToken}`)
-      .send({ movieId: IDS.movieA, rating: 80 })
+      .send({ title: 'Movie A', rating: 80 })
       .expect(409);
+    await request(app.getHttpServer())
+      .get('/user-movies')
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(200, [created.body]);
+    await request(app.getHttpServer()).get('/movies').expect(200, catalog.body);
+    await request(app.getHttpServer())
+      .post('/user-movies')
+      .set('Authorization', `Bearer ${otherUserToken}`)
+      .send({ title: 'Movie A' })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.userId).toBe(IDS.otherUser);
+        expect(res.body.movie.id).toBe(IDS.movieA);
+      });
+    await request(app.getHttpServer())
+      .post('/user-movies')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ title: 'Movie A' })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.userId).toBe(IDS.admin);
+      });
+  });
+
+  it('returns 409 for concurrent duplicate additions and preserves one entry', async () => {
+    const results = await Promise.all(
+      Array.from({ length: 32 }, () =>
+        request(app.getHttpServer())
+          .post('/user-movies')
+          .set('Authorization', `Bearer ${userToken}`)
+          .send({ title: 'Movie A' }),
+      ),
+    );
+    expect(results.filter((result) => result.status === 201)).toHaveLength(1);
+    expect(results.filter((result) => result.status === 409)).toHaveLength(31);
+    await request(app.getHttpServer())
+      .get('/user-movies')
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toEqual([
+          expect.objectContaining({
+            movie: expect.objectContaining({ id: IDS.movieA }),
+          }),
+        ]);
+      });
   });
 
   it('applies role matrix for reading current user movie entries', async () => {
@@ -560,7 +823,7 @@ describe('UserList-Movie module (e2e)', () => {
     await request(app.getHttpServer())
       .post('/user-movies')
       .set('Authorization', `Bearer ${guestToken}`)
-      .send({ movieId: IDS.movieA, rating: 10 })
+      .send({ title: 'Movie A', rating: 10 })
       .expect(403);
 
     await request(app.getHttpServer())
@@ -592,7 +855,7 @@ describe('UserList-Movie module (e2e)', () => {
 
     await request(app.getHttpServer())
       .post('/user-movies')
-      .send({ movieId: IDS.movieA, rating: 10 })
+      .send({ title: 'Movie A', rating: 10 })
       .expect(401);
 
     await request(app.getHttpServer())
@@ -768,7 +1031,7 @@ describe('UserList-Movie module (e2e)', () => {
       .post('/user-movies')
       .set('Authorization', `Bearer ${userToken}`)
       .send({
-        movieId: IDS.movieA,
+        title: 'Movie A',
         rating: 77,
         watchedAt: '2026-03-01T10:00:00.000Z',
         comment: 'split model works',

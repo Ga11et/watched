@@ -99,6 +99,7 @@ describe('Authors Module E2E Tests', () => {
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(
       new ValidationPipe({
+        errorHttpStatusCode: 422,
         transform: true,
         whitelist: true,
         forbidNonWhitelisted: false,
@@ -376,12 +377,12 @@ describe('Authors Module E2E Tests', () => {
         });
     });
 
-    it('POST без fullName (пустое тело) может вернуть 400/422', async () => {
+    it('POST без fullName (пустое тело) возвращает 422', async () => {
       const res = await request(app.getHttpServer())
         .post('/authors')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({});
-      expect([400, 422]).toContain(res.status);
+      expect(res.status).toBe(422);
     });
   });
 

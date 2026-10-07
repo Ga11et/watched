@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   INestApplication,
+  HttpStatus,
   MiddlewareConsumer,
   Module,
   NestModule,
@@ -12,7 +13,6 @@ import {
   Post,
   Put,
   RequestMethod,
-  ValidationPipe,
   Get,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -23,6 +23,11 @@ import { UserRole } from '../src/users/entities/user.entity';
 import { JwtPayload, JwtService } from '../src/auth/jwt.service';
 import { AuthMiddleware } from '../src/auth/auth.middleware';
 import { AdminMiddleware } from '../src/auth/admin.middleware';
+import { ApplicationValidationPipe } from '../src/common/application-validation.pipe';
+
+const resourceIdPipe = new ParseUUIDPipe({
+  errorHttpStatusCode: HttpStatus.NOT_FOUND,
+});
 
 const NOT_FOUND_ID = '550e8400-e29b-41d4-a716-446655440000';
 
@@ -34,7 +39,7 @@ class CatalogStubController {
   }
 
   @Get('books/:id')
-  getBook(@Param('id', ParseUUIDPipe) id: string): { id: string } {
+  getBook(@Param('id', resourceIdPipe) id: string): { id: string } {
     if (id === NOT_FOUND_ID) {
       throw new NotFoundException('Book not found');
     }
@@ -48,12 +53,16 @@ class CatalogStubController {
   }
 
   @Put('books/:id')
-  updateBook(@Param('id', ParseUUIDPipe) id: string): { id: string } {
+  updateBook(@Param('id', resourceIdPipe) id: string): {
+    id: string;
+  } {
     return { id };
   }
 
   @Delete('books/:id')
-  removeBook(@Param('id', ParseUUIDPipe) id: string): { id: string } {
+  removeBook(@Param('id', resourceIdPipe) id: string): {
+    id: string;
+  } {
     return { id };
   }
 
@@ -63,7 +72,7 @@ class CatalogStubController {
   }
 
   @Get('movies/:id')
-  getMovie(@Param('id', ParseUUIDPipe) id: string): { id: string } {
+  getMovie(@Param('id', resourceIdPipe) id: string): { id: string } {
     if (id === NOT_FOUND_ID) {
       throw new NotFoundException('Movie not found');
     }
@@ -77,12 +86,16 @@ class CatalogStubController {
   }
 
   @Put('movies/:id')
-  updateMovie(@Param('id', ParseUUIDPipe) id: string): { id: string } {
+  updateMovie(@Param('id', resourceIdPipe) id: string): {
+    id: string;
+  } {
     return { id };
   }
 
   @Delete('movies/:id')
-  removeMovie(@Param('id', ParseUUIDPipe) id: string): { id: string } {
+  removeMovie(@Param('id', resourceIdPipe) id: string): {
+    id: string;
+  } {
     return { id };
   }
 
@@ -92,7 +105,9 @@ class CatalogStubController {
   }
 
   @Get('series/:id')
-  getSeriesById(@Param('id', ParseUUIDPipe) id: string): { id: string } {
+  getSeriesById(@Param('id', resourceIdPipe) id: string): {
+    id: string;
+  } {
     if (id === NOT_FOUND_ID) {
       throw new NotFoundException('Series not found');
     }
@@ -106,12 +121,16 @@ class CatalogStubController {
   }
 
   @Put('series/:id')
-  updateSeries(@Param('id', ParseUUIDPipe) id: string): { id: string } {
+  updateSeries(@Param('id', resourceIdPipe) id: string): {
+    id: string;
+  } {
     return { id };
   }
 
   @Delete('series/:id')
-  removeSeries(@Param('id', ParseUUIDPipe) id: string): { id: string } {
+  removeSeries(@Param('id', resourceIdPipe) id: string): {
+    id: string;
+  } {
     return { id };
   }
 
@@ -121,7 +140,7 @@ class CatalogStubController {
   }
 
   @Get('games/:id')
-  getGame(@Param('id', ParseUUIDPipe) id: string): { id: string } {
+  getGame(@Param('id', resourceIdPipe) id: string): { id: string } {
     if (id === NOT_FOUND_ID) {
       throw new NotFoundException('Game not found');
     }
@@ -135,12 +154,16 @@ class CatalogStubController {
   }
 
   @Put('games/:id')
-  updateGame(@Param('id', ParseUUIDPipe) id: string): { id: string } {
+  updateGame(@Param('id', resourceIdPipe) id: string): {
+    id: string;
+  } {
     return { id };
   }
 
   @Delete('games/:id')
-  removeGame(@Param('id', ParseUUIDPipe) id: string): { id: string } {
+  removeGame(@Param('id', resourceIdPipe) id: string): {
+    id: string;
+  } {
     return { id };
   }
 
@@ -150,7 +173,7 @@ class CatalogStubController {
   }
 
   @Get('authors/:id')
-  getAuthor(@Param('id', ParseUUIDPipe) id: string): { id: string } {
+  getAuthor(@Param('id', resourceIdPipe) id: string): { id: string } {
     if (id === NOT_FOUND_ID) {
       throw new NotFoundException('Author not found');
     }
@@ -164,12 +187,16 @@ class CatalogStubController {
   }
 
   @Put('authors/:id')
-  updateAuthor(@Param('id', ParseUUIDPipe) id: string): { id: string } {
+  updateAuthor(@Param('id', resourceIdPipe) id: string): {
+    id: string;
+  } {
     return { id };
   }
 
   @Delete('authors/:id')
-  removeAuthor(@Param('id', ParseUUIDPipe) id: string): { id: string } {
+  removeAuthor(@Param('id', resourceIdPipe) id: string): {
+    id: string;
+  } {
     return { id };
   }
 
@@ -179,7 +206,9 @@ class CatalogStubController {
   }
 
   @Get('directors/:id')
-  getDirector(@Param('id', ParseUUIDPipe) id: string): { id: string } {
+  getDirector(@Param('id', resourceIdPipe) id: string): {
+    id: string;
+  } {
     if (id === NOT_FOUND_ID) {
       throw new NotFoundException('Director not found');
     }
@@ -193,12 +222,16 @@ class CatalogStubController {
   }
 
   @Put('directors/:id')
-  updateDirector(@Param('id', ParseUUIDPipe) id: string): { id: string } {
+  updateDirector(@Param('id', resourceIdPipe) id: string): {
+    id: string;
+  } {
     return { id };
   }
 
   @Delete('directors/:id')
-  removeDirector(@Param('id', ParseUUIDPipe) id: string): { id: string } {
+  removeDirector(@Param('id', resourceIdPipe) id: string): {
+    id: string;
+  } {
     return { id };
   }
 }
@@ -216,7 +249,7 @@ class UserListsStubController {
   }
 
   @Put('user-books/:id')
-  updateCurrentUserBook(@Param('id', ParseUUIDPipe) id: string): {
+  updateCurrentUserBook(@Param('id', resourceIdPipe) id: string): {
     id: string;
     updated: boolean;
   } {
@@ -224,7 +257,7 @@ class UserListsStubController {
   }
 
   @Delete('user-books/:id')
-  removeCurrentUserBook(@Param('id', ParseUUIDPipe) id: string): {
+  removeCurrentUserBook(@Param('id', resourceIdPipe) id: string): {
     id: string;
     deleted: boolean;
   } {
@@ -237,12 +270,18 @@ class UserListsStubController {
   }
 
   @Get('user-movies/stats')
-  getCurrentUserMovieStats(): { total: number; thisMonth: number; avgRating: null } {
+  getCurrentUserMovieStats(): {
+    total: number;
+    thisMonth: number;
+    avgRating: null;
+  } {
     return { total: 0, thisMonth: 0, avgRating: null };
   }
 
   @Get('user-movies/:id')
-  getCurrentUserMovieById(@Param('id', ParseUUIDPipe) id: string): { id: string } {
+  getCurrentUserMovieById(@Param('id', resourceIdPipe) id: string): {
+    id: string;
+  } {
     return { id };
   }
 
@@ -252,7 +291,7 @@ class UserListsStubController {
   }
 
   @Put('user-movies/:id')
-  updateCurrentUserMovie(@Param('id', ParseUUIDPipe) id: string): {
+  updateCurrentUserMovie(@Param('id', resourceIdPipe) id: string): {
     id: string;
     updated: boolean;
   } {
@@ -260,7 +299,7 @@ class UserListsStubController {
   }
 
   @Delete('user-movies/:id')
-  removeCurrentUserMovie(@Param('id', ParseUUIDPipe) id: string): {
+  removeCurrentUserMovie(@Param('id', resourceIdPipe) id: string): {
     id: string;
     deleted: boolean;
   } {
@@ -278,7 +317,7 @@ class UserListsStubController {
   }
 
   @Put('user-series/:id')
-  updateCurrentUserSeries(@Param('id', ParseUUIDPipe) id: string): {
+  updateCurrentUserSeries(@Param('id', resourceIdPipe) id: string): {
     id: string;
     updated: boolean;
   } {
@@ -286,7 +325,7 @@ class UserListsStubController {
   }
 
   @Delete('user-series/:id')
-  removeCurrentUserSeries(@Param('id', ParseUUIDPipe) id: string): {
+  removeCurrentUserSeries(@Param('id', resourceIdPipe) id: string): {
     id: string;
     deleted: boolean;
   } {
@@ -304,7 +343,7 @@ class UserListsStubController {
   }
 
   @Put('user-games/:id')
-  updateCurrentUserGame(@Param('id', ParseUUIDPipe) id: string): {
+  updateCurrentUserGame(@Param('id', resourceIdPipe) id: string): {
     id: string;
     updated: boolean;
   } {
@@ -312,7 +351,7 @@ class UserListsStubController {
   }
 
   @Delete('user-games/:id')
-  removeCurrentUserGame(@Param('id', ParseUUIDPipe) id: string): {
+  removeCurrentUserGame(@Param('id', resourceIdPipe) id: string): {
     id: string;
     deleted: boolean;
   } {
@@ -330,7 +369,7 @@ class UserListsStubController {
   }
 
   @Put('user-authors/:id')
-  updateCurrentUserAuthor(@Param('id', ParseUUIDPipe) id: string): {
+  updateCurrentUserAuthor(@Param('id', resourceIdPipe) id: string): {
     id: string;
     updated: boolean;
   } {
@@ -338,7 +377,7 @@ class UserListsStubController {
   }
 
   @Delete('user-authors/:id')
-  removeCurrentUserAuthor(@Param('id', ParseUUIDPipe) id: string): {
+  removeCurrentUserAuthor(@Param('id', resourceIdPipe) id: string): {
     id: string;
     deleted: boolean;
   } {
@@ -356,7 +395,7 @@ class UserListsStubController {
   }
 
   @Put('user-directors/:id')
-  updateCurrentUserDirector(@Param('id', ParseUUIDPipe) id: string): {
+  updateCurrentUserDirector(@Param('id', resourceIdPipe) id: string): {
     id: string;
     updated: boolean;
   } {
@@ -364,7 +403,7 @@ class UserListsStubController {
   }
 
   @Delete('user-directors/:id')
-  removeCurrentUserDirector(@Param('id', ParseUUIDPipe) id: string): {
+  removeCurrentUserDirector(@Param('id', resourceIdPipe) id: string): {
     id: string;
     deleted: boolean;
   } {
@@ -372,37 +411,39 @@ class UserListsStubController {
   }
 
   @Get('user/:guid/books')
-  getUserBooksByGuid(@Param('guid', ParseUUIDPipe) guid: string): string[] {
+  getUserBooksByGuid(@Param('guid', resourceIdPipe) guid: string): string[] {
     void guid;
     return [];
   }
 
   @Get('user/:guid/movies')
-  getUserMoviesByGuid(@Param('guid', ParseUUIDPipe) guid: string): string[] {
+  getUserMoviesByGuid(@Param('guid', resourceIdPipe) guid: string): string[] {
     void guid;
     return [];
   }
 
   @Get('user/:guid/series')
-  getUserSeriesByGuid(@Param('guid', ParseUUIDPipe) guid: string): string[] {
+  getUserSeriesByGuid(@Param('guid', resourceIdPipe) guid: string): string[] {
     void guid;
     return [];
   }
 
   @Get('user/:guid/games')
-  getUserGamesByGuid(@Param('guid', ParseUUIDPipe) guid: string): string[] {
+  getUserGamesByGuid(@Param('guid', resourceIdPipe) guid: string): string[] {
     void guid;
     return [];
   }
 
   @Get('user/:guid/authors')
-  getUserAuthorsByGuid(@Param('guid', ParseUUIDPipe) guid: string): string[] {
+  getUserAuthorsByGuid(@Param('guid', resourceIdPipe) guid: string): string[] {
     void guid;
     return [];
   }
 
   @Get('user/:guid/directors')
-  getUserDirectorsByGuid(@Param('guid', ParseUUIDPipe) guid: string): string[] {
+  getUserDirectorsByGuid(
+    @Param('guid', resourceIdPipe) guid: string,
+  ): string[] {
     void guid;
     return [];
   }
@@ -671,13 +712,7 @@ describe('Step 4 auth protection (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(
-      new ValidationPipe({
-        transform: true,
-        whitelist: true,
-        forbidNonWhitelisted: true,
-      }),
-    );
+    app.useGlobalPipes(new ApplicationValidationPipe());
 
     await app.init();
   });
@@ -732,9 +767,9 @@ describe('Step 4 auth protection (e2e)', () => {
       '/user-games/not-a-uuid',
       '/user-authors/not-a-uuid',
       '/user-directors/not-a-uuid',
-    ])('PUT %s returns 400 for invalid id format', async (path) => {
+    ])('PUT %s returns 404 for invalid id format', async (path) => {
       const token = signToken(UserRole.USER, USER_ID);
-      await send('put', path, token, {}).expect(400);
+      await send('put', path, token, {}).expect(404);
     });
   });
 
@@ -761,8 +796,8 @@ describe('Step 4 auth protection (e2e)', () => {
       '/user/not-a-guid/games',
       '/user/not-a-guid/authors',
       '/user/not-a-guid/directors',
-    ])('%s returns 400 for invalid guid format', async (path) => {
-      await send('get', path).expect(400);
+    ])('%s returns 404 for invalid guid format', async (path) => {
+      await send('get', path).expect(404);
     });
   });
 

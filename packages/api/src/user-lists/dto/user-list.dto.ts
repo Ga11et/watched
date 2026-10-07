@@ -10,6 +10,7 @@ import {
   ArrayUnique,
   Max,
   Min,
+  Matches,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -99,11 +100,22 @@ export class UpdateUserBookDto {
 }
 
 export class CreateUserMovieDto {
-  @ApiProperty({ format: 'uuid' })
-  @IsUUID()
-  movieId: string;
+  @ApiProperty({
+    description:
+      'Точное название существующего фильма, с учётом регистра и пробелов',
+    minLength: 1,
+    pattern: '\\S',
+  })
+  @IsString()
+  @Matches(/\S/)
+  title: string;
 
-  @ApiPropertyOptional({ minimum: 0, maximum: 100 })
+  @ApiPropertyOptional({
+    type: 'integer',
+    nullable: true,
+    minimum: 0,
+    maximum: 100,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -111,12 +123,12 @@ export class CreateUserMovieDto {
   @Max(100)
   rating?: number;
 
-  @ApiPropertyOptional({ format: 'date-time' })
+  @ApiPropertyOptional({ format: 'date-time', nullable: true })
   @IsOptional()
   @IsDateString()
   watchedAt?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ nullable: true })
   @IsOptional()
   @IsString()
   comment?: string;

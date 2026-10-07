@@ -5,7 +5,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
   NotFoundException,
-  BadRequestException,
+  UnprocessableEntityException,
   ConflictException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
@@ -530,7 +530,7 @@ describe('UsersService', () => {
 
       await expect(
         service.updateUserProfile('testuser', { username: 'admin' }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(UnprocessableEntityException);
     });
 
     it('should reject duplicate email', async () => {
@@ -539,7 +539,7 @@ describe('UsersService', () => {
 
       await expect(
         service.updateUserProfile('testuser', { email: 'admin@example.com' }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(UnprocessableEntityException);
     });
 
     it('should reject invalid email format', async () => {
@@ -547,7 +547,7 @@ describe('UsersService', () => {
 
       await expect(
         service.updateUserProfile('testuser', { email: 'invalid-email' }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(UnprocessableEntityException);
     });
 
     it('should reject username with invalid characters', async () => {
@@ -555,7 +555,7 @@ describe('UsersService', () => {
 
       await expect(
         service.updateUserProfile('testuser', { username: 'invalid-user!' }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(UnprocessableEntityException);
     });
 
     it('should reject update when user not found', async () => {
@@ -604,7 +604,7 @@ describe('UsersService', () => {
 
       await expect(
         service.adminUpdateUser('testuser', { username: 'admin' }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(UnprocessableEntityException);
     });
   });
 

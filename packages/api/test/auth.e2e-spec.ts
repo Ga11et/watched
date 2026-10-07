@@ -210,6 +210,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(
       new ValidationPipe({
+        errorHttpStatusCode: 422,
         transform: true,
         whitelist: true,
         forbidNonWhitelisted: true,

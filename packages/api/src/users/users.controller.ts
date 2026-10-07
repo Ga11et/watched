@@ -98,8 +98,11 @@ export class UsersController {
     @Request() req: AuthRequest,
     @Query('search') search?: string,
     @Query('role') role?: UserRole,
-    @Query('isActive', new ParseBoolPipe({ optional: true }))
-    isActive?: boolean,
+    @Query(
+      'isActive',
+      new ParseBoolPipe({ optional: true, errorHttpStatusCode: 422 }),
+    )
+    isActive?: boolean | string,
   ): Promise<UserDto[]> {
     if (!req.user) {
       throw new ForbiddenException('Unauthorized');
@@ -109,7 +112,7 @@ export class UsersController {
     const users = await this.usersService.getAllUsers(userRole, {
       search,
       role,
-      isActive,
+      isActive: typeof isActive === 'boolean' ? isActive : undefined,
     });
 
     return users.map((user) => this.usersService['toUserDto'](user));
@@ -263,7 +266,7 @@ export class UsersController {
     description: 'User not found',
   })
   @ApiResponse({
-    status: 400,
+    status: 422,
     description: 'Invalid role',
   })
   async changeUserRole(

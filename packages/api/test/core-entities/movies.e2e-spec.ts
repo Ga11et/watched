@@ -107,6 +107,7 @@ describe('Movies Module E2E Tests', () => {
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(
       new ValidationPipe({
+        errorHttpStatusCode: 422,
         transform: true,
         whitelist: true,
         forbidNonWhitelisted: false,

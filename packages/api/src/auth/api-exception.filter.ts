@@ -13,9 +13,6 @@ interface Violation {
   error: string;
 }
 
-const BAD_REQUEST_STATUS = 400;
-const UNPROCESSABLE_ENTITY_STATUS = 422;
-
 @Catch()
 export class ApiExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
@@ -24,9 +21,8 @@ export class ApiExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
 
     if (exception instanceof HttpException) {
-      const rawStatus = exception.getStatus();
+      const status = exception.getStatus();
       const payload = exception.getResponse();
-      const status = this.resolveStatus(rawStatus, payload, request);
 
       const message = this.resolveMessage(payload);
       const violations = this.resolveViolations(payload, message, request);
@@ -54,28 +50,6 @@ export class ApiExceptionFilter implements ExceptionFilter {
         } satisfies Violation,
       ],
     });
-  }
-
-  private resolveStatus(
-    status: number,
-    payload: string | object,
-    request: Request,
-  ): number {
-    if (status !== BAD_REQUEST_STATUS || typeof payload === 'string') {
-      return status;
-    }
-
-    if (!request.path.startsWith('/user-books')) {
-      return status;
-    }
-
-    const message = (payload as { message?: unknown }).message;
-
-    if (Array.isArray(message) || this.isUuidValidationMessage(message)) {
-      return UNPROCESSABLE_ENTITY_STATUS;
-    }
-
-    return status;
   }
 
   private resolveMessage(payload: string | object): string {
