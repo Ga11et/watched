@@ -80,6 +80,23 @@ export interface Movie extends BaseEntity {
   poster?: string
 }
 
+export interface CatalogMovie extends BaseEntity {
+  title: string
+  genre?: string | null
+  releaseYear?: number | null
+  poster?: string | null
+  directors?: Array<Pick<BaseEntity, 'id'> & { fullName: string }>
+}
+
+export interface UserMovie extends BaseEntity {
+  userId: string
+  movieId: string
+  rating?: number | null
+  watchedAt?: string | null
+  comment?: string | null
+  movie: CatalogMovie
+}
+
 export interface CreateMovieDto {
   title: string
   genre?: string
