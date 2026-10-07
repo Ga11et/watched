@@ -31,10 +31,27 @@
           >
             Фильм в каталоге
           </NuxtLink>
+          <button
+            type="button"
+            :disabled="deleting"
+            :aria-busy="deleting"
+            class="rounded-lg bg-red-600 px-3 py-2 text-white shadow-sm transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+            @click="onDelete"
+          >
+            <span v-if="deleting" role="status">Удаление...</span>
+            <span v-else>Удалить из списка</span>
+          </button>
         </div>
       </div>
 
       <div class="px-6 py-6">
+        <div
+          v-if="deleteError"
+          role="alert"
+          class="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+        >
+          {{ deleteError }}
+        </div>
         <div v-if="pending" role="status" class="text-gray-500">Загрузка...</div>
         <div
           v-else-if="error"
@@ -53,7 +70,10 @@
 
 <script setup lang="ts">
 const route = useRoute()
-const { get } = useUserMovies()
+const router = useRouter()
+const { get, remove } = useUserMovies()
+const deleting = ref(false)
+const deleteError = ref('')
 const id = computed(() => String(route.params.id))
 const {
   data: userMovie,
@@ -65,4 +85,22 @@ const {
   () => get(id.value),
   { server: false },
 )
+
+const onDelete = async () => {
+  if (!userMovie.value || deleting.value) return
+  if (!confirm('Удалить фильм из вашего списка? Фильм в каталоге сохранится.')) return
+
+  const userMovieId = userMovie.value.id
+  deleting.value = true
+  deleteError.value = ''
+  try {
+    await remove(userMovieId)
+    clearNuxtData([`user-movie-${userMovieId}`, 'user-movies'])
+    await router.push('/user-movies')
+  } catch {
+    deleteError.value = 'Не удалось удалить запись фильма. Попробуйте снова.'
+  } finally {
+    deleting.value = false
+  }
+}
 </script>

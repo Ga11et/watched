@@ -904,6 +904,82 @@ describe('UserList-Movie module (e2e)', () => {
       });
   });
 
+  it('deletes only the personal movie record and returns an updated list, including an empty list', async () => {
+    const deleted = await request(app.getHttpServer())
+      .post('/user-movies')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ title: 'Movie A', rating: 80, comment: 'Personal review' })
+      .expect(201);
+    const remaining = await request(app.getHttpServer())
+      .post('/user-movies')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ title: 'Movie B' })
+      .expect(201);
+    const otherUserRecord = await request(app.getHttpServer())
+      .post('/user-movies')
+      .set('Authorization', `Bearer ${otherUserToken}`)
+      .send({ title: 'Movie A', rating: 50 })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .delete(`/user-movies/${deleted.body.id}`)
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(200, { id: deleted.body.id });
+    await request(app.getHttpServer())
+      .get('/user-movies')
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(200, [remaining.body]);
+    await request(app.getHttpServer())
+      .get(`/user-movies/${deleted.body.id}`)
+      .expect(404);
+    await request(app.getHttpServer())
+      .get(`/movies/${IDS.movieA}`)
+      .expect(200, deleted.body.movie);
+    await request(app.getHttpServer())
+      .get(`/user-movies/${otherUserRecord.body.id}`)
+      .expect(200, otherUserRecord.body);
+
+    await request(app.getHttpServer())
+      .delete(`/user-movies/${remaining.body.id}`)
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(200, { id: remaining.body.id });
+    await request(app.getHttpServer())
+      .get('/user-movies')
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(200, []);
+    await request(app.getHttpServer())
+      .get(`/movies/${IDS.movieB}`)
+      .expect(200, remaining.body.movie);
+  });
+
+  it('preserves the record, list, and catalog movie when deletion is rejected', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/user-movies')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ title: 'Movie A', rating: 80, comment: 'Keep this review' })
+      .expect(201);
+
+    for (const token of [undefined, guestToken, otherUserToken]) {
+      const deletion = request(app.getHttpServer()).delete(
+        `/user-movies/${created.body.id}`,
+      );
+      if (token) {
+        deletion.set('Authorization', `Bearer ${token}`);
+      }
+      await deletion.expect(token ? 403 : 401);
+      await request(app.getHttpServer())
+        .get(`/user-movies/${created.body.id}`)
+        .expect(200, created.body);
+      await request(app.getHttpServer())
+        .get('/user-movies')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200, [created.body]);
+      await request(app.getHttpServer())
+        .get(`/movies/${IDS.movieA}`)
+        .expect(200, created.body.movie);
+    }
+  });
+
   it('enforces role behavior for movie mutations', async () => {
     const foreignRecord = await userMoviesRepository.save(
       userMoviesRepository.create({

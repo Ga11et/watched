@@ -33,5 +33,12 @@ export const useUserMovies = () => {
       }),
     )
 
-  return { list, get, create, update }
+  const remove = (id: string) =>
+    nuxtApp.runWithContext(() =>
+      _fetch<{ id: string }>(`${config.public.apiBase}/user-movies/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      }),
+    )
+
+  return { list, get, create, update, remove }
 }
