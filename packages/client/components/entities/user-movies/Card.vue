@@ -31,6 +31,17 @@
         </div>
       </div>
     </template>
+
+    <template #actions>
+      <div class="ml-2 flex shrink-0 flex-col items-end gap-2">
+        <NuxtLink
+          :to="`/user-movies/${userMovie.id}/edit`"
+          class="text-sm text-indigo-700 hover:underline"
+        >
+          Редактировать
+        </NuxtLink>
+      </div>
+    </template>
   </EntitiesCommonCard>
 </template>
 
