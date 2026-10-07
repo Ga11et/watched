@@ -27,7 +27,7 @@
     </div>
     <div class="mt-4">
       <NuxtLink
-        to="/movies"
+        to="/user-movies"
         class="block w-full text-center px-3 py-2 bg-indigo-50 text-indigo-600 text-sm font-medium rounded-md hover:bg-indigo-100 transition-colors"
       >
         Все фильмы

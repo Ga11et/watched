@@ -9,7 +9,7 @@ const {
 } = await useAsyncData('dashboard', async () => {
   try {
     const [allMovies, allGames, allBooks, allSeries] = await Promise.all([
-      _fetch(`${config.public.apiBase}/movies/stats`),
+      _fetch(`${config.public.apiBase}/user-movies/stats`),
       _fetch(`${config.public.apiBase}/games/stats`),
       _fetch(`${config.public.apiBase}/user-books/stats`),
       _fetch(`${config.public.apiBase}/series/stats`),
@@ -77,7 +77,7 @@ const {
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Быстрые действия</h3>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <NuxtLink
-            to="/movies/new"
+            to="/user-movies/new"
             class="flex flex-col items-center p-4 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
           >
             <svg

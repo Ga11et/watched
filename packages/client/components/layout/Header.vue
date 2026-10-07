@@ -44,7 +44,7 @@ interface AddItem {
 }
 
 const navItems: NavItem[] = [
-  { to: '/movies', label: 'Фильмы', iconPath: 'M7 4v16M17 4v16M3 8h4m10 0h4M3 16h4m10 0h4' },
+  { to: '/user-movies', label: 'Фильмы', iconPath: 'M7 4v16M17 4v16M3 8h4m10 0h4M3 16h4m10 0h4' },
   {
     to: '/series',
     label: 'Сериалы',
@@ -72,7 +72,7 @@ const navItems: NavItem[] = [
 
 const addItems: AddItem[] = [
   {
-    to: '/movies/new',
+    to: '/user-movies/new',
     label: '+ Добавить фильм',
     className: 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100',
   },
