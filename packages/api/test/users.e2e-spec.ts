@@ -24,6 +24,7 @@ import { UserSeries } from '../src/user-lists/entities/user-series.entity';
 import { UserGame } from '../src/user-lists/entities/user-game.entity';
 import { Book } from '../src/books/entities/book.entity';
 import { Author } from '../src/authors/entities/author.entity';
+import { Movie } from '../src/movies/entities/movie.entity';
 
 const TEST_DB_NAME = 'watched_test';
 
@@ -596,10 +597,15 @@ describe('Users Module E2E Tests', () => {
           readAt: null,
         }),
       );
+      const moviesRepository =
+        userMoviesRepository.manager.getRepository(Movie);
+      const movie = await moviesRepository.save(
+        moviesRepository.create({ title: 'Test Movie' }),
+      );
       await userMoviesRepository.save(
         userMoviesRepository.create({
           userId: victim.id,
-          movieId: '770e8400-e29b-41d4-a716-446655440001',
+          movieId: movie.id,
           rating: 70,
           comment: null,
         }),

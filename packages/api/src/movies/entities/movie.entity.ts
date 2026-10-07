@@ -5,7 +5,7 @@ import {
   JoinTable,
   ManyToMany,
 } from 'typeorm';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { Director } from '../../directors/entities/director.entity';
 
 @Entity()
@@ -24,28 +24,34 @@ export class Movie {
   @Column()
   title: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Жанр фильма',
     example: 'Научная фантастика, Драма',
+    type: String,
+    nullable: true,
   })
   @Column({ nullable: true, type: 'text' })
   genre: string | null;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Год выпуска фильма',
     example: 2014,
+    type: Number,
+    nullable: true,
   })
   @Column({ nullable: true, type: 'int' })
   releaseYear: number | null;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Постер фильма',
     example: '/uploads/movies/1640995200000-poster.jpg',
+    type: String,
+    nullable: true,
   })
   @Column({ nullable: true, type: 'text' })
   poster: string | null;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Режиссеры фильма',
     type: () => [Director],
   })

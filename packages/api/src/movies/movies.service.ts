@@ -2,9 +2,11 @@ import {
   Injectable,
   UnprocessableEntityException,
   NotFoundException,
+  ConflictException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual, In } from 'typeorm';
+import { Repository, MoreThanOrEqual, In, QueryFailedError } from 'typeorm';
 import { Movie } from './entities/movie.entity';
 import { CreateMovieDto } from './dto/create-movie.dto';
 import { UpdateMovieDto } from './dto/update-movie.dto';
@@ -12,6 +14,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { isUuid } from '../common/utils/uuid.util';
 import { Director } from '../directors/entities/director.entity';
+import { UserMovie } from '../user-lists/entities/user-movie.entity';
 
 @Injectable()
 export class MoviesService {
@@ -22,6 +25,8 @@ export class MoviesService {
     private moviesRepository: Repository<Movie>,
     @InjectRepository(Director)
     private directorsRepository: Repository<Director>,
+    @InjectRepository(UserMovie)
+    private userMoviesRepository: Repository<UserMovie>,
   ) {
     if (!fs.existsSync(this.uploadPath)) {
       fs.mkdirSync(this.uploadPath, { recursive: true });
@@ -82,12 +87,7 @@ export class MoviesService {
     }
 
     if (sortBy) {
-      const validSortFields = [
-        'title',
-        'genre',
-        'releaseYear',
-        'createdAt',
-      ];
+      const validSortFields = ['title', 'genre', 'releaseYear', 'createdAt'];
       if (validSortFields.includes(sortBy)) {
         queryBuilder.orderBy(`movie.${sortBy}`, sortOrder || 'ASC');
       }
@@ -170,9 +170,10 @@ export class MoviesService {
     if (directors !== undefined) {
       const targetDirectorIds = directors.map((director) => director.id);
       const movieWithRelations = await this.findOne(savedMovie.id);
-      const currentDirectorIds = movieWithRelations.directors?.map((director) => {
-        return director.id;
-      }) || [];
+      const currentDirectorIds =
+        movieWithRelations.directors?.map((director) => {
+          return director.id;
+        }) || [];
 
       const directorIdsToRemove = currentDirectorIds.filter((directorId) => {
         return !targetDirectorIds.includes(directorId);
@@ -200,6 +201,26 @@ export class MoviesService {
 
   async remove(id: string): Promise<void> {
     const movie = await this.findOne(id);
+    const isUsed = await this.userMoviesRepository.existsBy({ movieId: id });
+    if (isUsed) {
+      throw new ConflictException(
+        'Фильм используется в пользовательских списках',
+      );
+    }
+
+    try {
+      await this.moviesRepository.delete(id);
+    } catch (error: unknown) {
+      const message = 'Не удалось удалить фильм';
+      if (
+        error instanceof QueryFailedError &&
+        'code' in error &&
+        error.code === '23503'
+      ) {
+        throw new ConflictException(message, { cause: error });
+      }
+      throw new InternalServerErrorException(message, { cause: error });
+    }
 
     if (movie.poster) {
       const posterPath = path.join(process.cwd(), movie.poster);
@@ -207,8 +228,6 @@ export class MoviesService {
         fs.unlinkSync(posterPath);
       }
     }
-
-    await this.moviesRepository.delete(id);
   }
 
   private async getDirectorsByIds(directorIds?: string[]): Promise<Director[]> {
@@ -269,7 +288,9 @@ export class MoviesService {
     };
   }
 
-  private async getUserMoviesAverageRating(): Promise<{ avgRating?: string } | undefined> {
+  private async getUserMoviesAverageRating(): Promise<
+    { avgRating?: string } | undefined
+  > {
     try {
       return await this.moviesRepository.manager
         .createQueryBuilder()

@@ -187,6 +187,10 @@ export class MoviesController {
     status: 404,
     description: 'Фильм не найден',
   })
+  @ApiResponse({
+    status: 409,
+    description: 'Фильм используется в пользовательских списках',
+  })
   async remove(@Param('id') id: string): Promise<void> {
     return this.moviesService.remove(id);
   }

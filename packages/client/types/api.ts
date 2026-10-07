@@ -71,30 +71,18 @@ export interface BookStats {
 // Фильмы
 export interface Movie extends BaseEntity {
   title: string
-  genre?: string
-  directorId?: string
-  rating?: number // 0-100
-  watchedAt?: string
-  comment?: string
-  releaseYear?: number
-  poster?: string
-}
-
-export interface CatalogMovie extends BaseEntity {
-  title: string
-  genre?: string | null
-  releaseYear?: number | null
-  poster?: string | null
-  directors?: Array<Pick<BaseEntity, 'id'> & { fullName: string }>
+  genre: string | null
+  releaseYear: number | null
+  poster: string | null
+  directors: Director[]
 }
 
 export interface UserMovie extends BaseEntity {
   userId: string
-  movieId: string
-  rating?: number | null
-  watchedAt?: string | null
-  comment?: string | null
-  movie: CatalogMovie
+  rating: number | null // 0-100
+  watchedAt: string | null
+  comment: string | null
+  movie: Movie
 }
 
 export interface CreateMovieDto {
@@ -169,10 +157,9 @@ export interface SeriesStats {
 
 // Режиссёры
 export interface Director extends BaseEntity {
-  name: string
-  bio?: string
-  birthYear?: number
-  country?: string
+  fullName: string
+  photo: string | null
+  comment: string | null
 }
 
 export interface CreateDirectorDto {

@@ -16,6 +16,7 @@ import { AuthModule } from '../../src/auth/auth.module';
 import { AuthMiddleware } from '../../src/auth/auth.middleware';
 import { JwtService } from '../../src/auth/jwt.service';
 import { DirectorsModule } from '../../src/directors/directors.module';
+import { Director } from '../../src/directors/entities/director.entity';
 import { Movie } from '../../src/movies/entities/movie.entity';
 import { MoviesModule } from '../../src/movies/movies.module';
 import { UserListsModule } from '../../src/user-lists/user-lists.module';
@@ -46,6 +47,20 @@ const IDS = {
   movieB: '250e8400-e29b-41d4-a716-446655440002',
   unknownRecord: '250e8400-e29b-41d4-a716-446655449999',
 };
+
+const MOVIE_READ_ROUTES = [
+  { name: 'current user list', path: () => '/user-movies', isList: true },
+  {
+    name: 'record by id',
+    path: (id: string) => `/user-movies/${id}`,
+    isList: false,
+  },
+  {
+    name: 'user list by guid',
+    path: () => `/user/${IDS.user}/movies`,
+    isList: true,
+  },
+];
 
 @Module({
   imports: [
@@ -171,10 +186,30 @@ describe('UserList-Movie module (e2e)', () => {
     otherUserToken = jwtService.generateToken(otherUser);
     guestToken = jwtService.generateToken(guestUser);
 
+    const directorsRepository = moduleFixture.get<Repository<Director>>(
+      getRepositoryToken(Director),
+    );
+    const directors = await directorsRepository.save([
+      directorsRepository.create({
+        fullName: 'Director A',
+        photo: '/uploads/directors/a.jpg',
+        comment: 'Catalog biography',
+      }),
+      directorsRepository.create({
+        fullName: 'Director B',
+        photo: null,
+        comment: null,
+      }),
+    ]);
+
     await moviesRepository.save([
       moviesRepository.create({
         id: IDS.movieA,
         title: 'Movie A',
+        genre: 'Drama',
+        releaseYear: 2020,
+        poster: '/uploads/movies/a.jpg',
+        directors,
       }),
       moviesRepository.create({
         id: IDS.movieB,
@@ -193,8 +228,222 @@ describe('UserList-Movie module (e2e)', () => {
     }
   });
 
-  it('creates a user-movie entry with personal fields', async () => {
+  it.each(MOVIE_READ_ROUTES)(
+    'returns the full catalog movie in the $name without movieId',
+    async ({ path, isList }) => {
+      const created = await request(app.getHttpServer())
+        .post('/user-movies')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          movieId: IDS.movieA,
+          rating: 91,
+          watchedAt: '2026-02-10T10:00:00.000Z',
+          comment: 'Personal review',
+        })
+        .expect(201);
+
+      const catalog = await request(app.getHttpServer())
+        .get(`/movies/${IDS.movieA}`)
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .get(path(created.body.id))
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200)
+        .expect((res) => {
+          const expected = {
+            id: created.body.id,
+            userId: IDS.user,
+            rating: 91,
+            watchedAt: '2026-02-10T10:00:00.000Z',
+            comment: 'Personal review',
+            createdAt: expect.any(String),
+            updatedAt: expect.any(String),
+            movie: {
+              id: IDS.movieA,
+              title: 'Movie A',
+              genre: 'Drama',
+              releaseYear: 2020,
+              poster: '/uploads/movies/a.jpg',
+              createdAt: expect.any(String),
+              updatedAt: expect.any(String),
+              directors: expect.arrayContaining([
+                {
+                  id: expect.any(String),
+                  fullName: 'Director A',
+                  photo: '/uploads/directors/a.jpg',
+                  comment: 'Catalog biography',
+                  createdAt: expect.any(String),
+                  updatedAt: expect.any(String),
+                },
+                {
+                  id: expect.any(String),
+                  fullName: 'Director B',
+                  photo: null,
+                  comment: null,
+                  createdAt: expect.any(String),
+                  updatedAt: expect.any(String),
+                },
+              ]),
+            },
+          };
+          expect(res.body).toEqual(isList ? [expected] : expected);
+          const record = isList ? res.body[0] : res.body;
+          expect(record.movie).toEqual(catalog.body);
+          expect(record.movie.directors).toHaveLength(2);
+        });
+
+      const updated = await request(app.getHttpServer())
+        .put(`/user-movies/${created.body.id}`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ rating: 92 })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.movie).toEqual(catalog.body);
+          expect(res.body).not.toHaveProperty('movieId');
+          expect(res.body.rating).toBe(92);
+          expect(res.body.comment).toBe('Personal review');
+          expect(res.body.watchedAt).toBe('2026-02-10T10:00:00.000Z');
+        });
+      await request(app.getHttpServer())
+        .get(`/user-movies/${created.body.id}`)
+        .expect(200, updated.body);
+    },
+  );
+
+  it.each(MOVIE_READ_ROUTES)(
+    'preserves null fields and an empty directors array in the $name',
+    async ({ path, isList }) => {
+      const created = await request(app.getHttpServer())
+        .post('/user-movies')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ movieId: IDS.movieB })
+        .expect(201);
+
+      await request(app.getHttpServer())
+        .get(path(created.body.id))
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200)
+        .expect((res) => {
+          const expected = {
+            id: created.body.id,
+            userId: IDS.user,
+            rating: null,
+            watchedAt: null,
+            comment: null,
+            createdAt: expect.any(String),
+            updatedAt: expect.any(String),
+            movie: {
+              id: IDS.movieB,
+              title: 'Movie B',
+              genre: null,
+              releaseYear: null,
+              poster: null,
+              createdAt: expect.any(String),
+              updatedAt: expect.any(String),
+              directors: [],
+            },
+          };
+          expect(res.body).toEqual(isList ? [expected] : expected);
+          expect(created.body).toEqual(expected);
+        });
+      await request(app.getHttpServer())
+        .put(`/user-movies/${created.body.id}`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ rating: 0, comment: '' })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body).toEqual({
+            ...created.body,
+            rating: 0,
+            comment: '',
+            updatedAt: expect.any(String),
+          });
+        });
+    },
+  );
+
+  it('keeps current user entries newest first when loading multiple catalog movies', async () => {
+    const records = await userMoviesRepository.save([
+      userMoviesRepository.create({
+        userId: IDS.user,
+        movieId: IDS.movieA,
+        rating: 0,
+        comment: '',
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      }),
+      userMoviesRepository.create({
+        userId: IDS.user,
+        movieId: IDS.movieB,
+        createdAt: new Date('2026-02-01T00:00:00.000Z'),
+      }),
+    ]);
+
     await request(app.getHttpServer())
+      .get('/user-movies')
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toEqual([
+          expect.objectContaining({
+            id: records[1].id,
+            movie: expect.objectContaining({ id: IDS.movieB, directors: [] }),
+          }),
+          expect.objectContaining({
+            id: records[0].id,
+            rating: 0,
+            comment: '',
+            movie: expect.objectContaining({ id: IDS.movieA }),
+          }),
+        ]);
+      });
+  });
+
+  it('keeps lists by guid public and scoped to the requested user', async () => {
+    await userMoviesRepository.save([
+      userMoviesRepository.create({ userId: IDS.user, movieId: IDS.movieA }),
+      userMoviesRepository.create({
+        userId: IDS.otherUser,
+        movieId: IDS.movieB,
+      }),
+    ]);
+
+    for (const token of [undefined, userToken, guestToken]) {
+      const get = request(app.getHttpServer()).get(
+        `/user/${IDS.otherUser}/movies`,
+      );
+      if (token) {
+        get.set('Authorization', `Bearer ${token}`);
+      }
+      await get.expect(200).expect((res) => {
+        expect(res.body).toEqual([
+          expect.objectContaining({
+            userId: IDS.otherUser,
+            movie: expect.objectContaining({ id: IDS.movieB }),
+          }),
+        ]);
+      });
+    }
+  });
+
+  it('returns empty movie lists for users with no entries or an unknown guid', async () => {
+    await request(app.getHttpServer())
+      .get('/user-movies')
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(200, []);
+    await request(app.getHttpServer())
+      .get(`/user/${IDS.user}/movies`)
+      .expect(200, []);
+    await request(app.getHttpServer())
+      .get(`/user/${IDS.unknownRecord}/movies`)
+      .expect(200, []);
+  });
+
+  it('creates a user-movie entry with the full catalog movie and personal fields', async () => {
+    const catalog = await request(app.getHttpServer())
+      .get(`/movies/${IDS.movieA}`)
+      .expect(200);
+    const created = await request(app.getHttpServer())
       .post('/user-movies')
       .set('Authorization', `Bearer ${userToken}`)
       .send({
@@ -205,12 +454,20 @@ describe('UserList-Movie module (e2e)', () => {
       })
       .expect(201)
       .expect((res) => {
-        expect(res.body.userId).toBe(IDS.user);
-        expect(res.body.movieId).toBe(IDS.movieA);
-        expect(res.body.rating).toBe(91);
-        expect(res.body.comment).toBe('Great one');
-        expect(res.body.watchedAt).toEqual(expect.any(String));
+        expect(res.body).toEqual({
+          id: expect.any(String),
+          userId: IDS.user,
+          movie: catalog.body,
+          rating: 91,
+          comment: 'Great one',
+          watchedAt: '2026-02-10T10:00:00.000Z',
+          createdAt: expect.any(String),
+          updatedAt: expect.any(String),
+        });
       });
+    await request(app.getHttpServer())
+      .get(`/user-movies/${created.body.id}`)
+      .expect(200, created.body);
   });
 
   it('enforces one record per (user, movie)', async () => {
@@ -250,7 +507,7 @@ describe('UserList-Movie module (e2e)', () => {
         expect(res.body[0]).toEqual(
           expect.objectContaining({
             userId: IDS.user,
-            movieId: IDS.movieA,
+            movie: expect.objectContaining({ id: IDS.movieA }),
             rating: 75,
           }),
         );
@@ -367,7 +624,7 @@ describe('UserList-Movie module (e2e)', () => {
           expect.objectContaining({
             id: foreignRecord.id,
             userId: IDS.otherUser,
-            movieId: IDS.movieB,
+            movie: expect.objectContaining({ id: IDS.movieB }),
             rating: 66,
             comment: 'foreign movie entry',
             watchedAt: expect.any(String),
@@ -460,23 +717,29 @@ describe('UserList-Movie module (e2e)', () => {
   });
 
   it('preserves split-model schema and ownership boundaries for movies', async () => {
-    const movieColumns = (await dataSource.query(`
+    const movieColumns = await dataSource.query<
+      Array<{ column_name: string }>
+    >(`
       SELECT "column_name"
       FROM "information_schema"."columns"
       WHERE "table_schema" = 'public' AND "table_name" = 'movie'
-    `)) as Array<{ column_name: string }>;
-    const movieColumnNames = new Set(movieColumns.map((row) => row.column_name));
+    `);
+    const movieColumnNames = new Set(
+      movieColumns.map((row) => row.column_name),
+    );
 
     expect(movieColumnNames.has('rating')).toBe(false);
     expect(movieColumnNames.has('watchedAt')).toBe(false);
     expect(movieColumnNames.has('comment')).toBe(false);
     expect(movieColumnNames.has('directorId')).toBe(false);
 
-    const userMovieColumns = (await dataSource.query(`
+    const userMovieColumns = await dataSource.query<
+      Array<{ column_name: string }>
+    >(`
       SELECT "column_name"
       FROM "information_schema"."columns"
       WHERE "table_schema" = 'public' AND "table_name" = 'user_movies'
-    `)) as Array<{ column_name: string }>;
+    `);
     const userMovieColumnNames = new Set(
       userMovieColumns.map((row) => row.column_name),
     );
@@ -487,11 +750,13 @@ describe('UserList-Movie module (e2e)', () => {
     expect(userMovieColumnNames.has('watchedAt')).toBe(true);
     expect(userMovieColumnNames.has('comment')).toBe(true);
 
-    const movieDirectorColumns = (await dataSource.query(`
+    const movieDirectorColumns = await dataSource.query<
+      Array<{ column_name: string }>
+    >(`
       SELECT "column_name"
       FROM "information_schema"."columns"
       WHERE "table_schema" = 'public' AND "table_name" = 'movie_directors'
-    `)) as Array<{ column_name: string }>;
+    `);
     const movieDirectorColumnNames = new Set(
       movieDirectorColumns.map((row) => row.column_name),
     );
@@ -518,7 +783,7 @@ describe('UserList-Movie module (e2e)', () => {
         expect(res.body).toEqual([
           expect.objectContaining({
             userId: IDS.user,
-            movieId: IDS.movieA,
+            movie: expect.objectContaining({ id: IDS.movieA }),
             rating: 77,
             comment: 'split model works',
           }),

@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToMany } from 'typeorm';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiHideProperty, ApiProperty } from '@nestjs/swagger';
 import { Movie } from '../../movies/entities/movie.entity';
 
 @Entity()
@@ -18,16 +18,20 @@ export class Director {
   @Column()
   fullName: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'URL фотографии режиссера',
     example: '/uploads/directors/1640995200000-photo.jpg',
+    type: String,
+    nullable: true,
   })
   @Column({ nullable: true, type: 'text' })
   photo: string | null;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Комментарий к режиссеру',
     example: 'Американский кинорежиссер, сценарист, продюсер и актер',
+    type: String,
+    nullable: true,
   })
   @Column({ nullable: true, type: 'text' })
   comment: string | null;
@@ -46,10 +50,7 @@ export class Director {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
 
-  @ApiPropertyOptional({
-    description: 'Фильмы режиссера (many-to-many)',
-    type: () => [Movie],
-  })
+  @ApiHideProperty()
   @ManyToMany(() => Movie, (movie) => movie.directors)
   moviesManyToMany: Movie[];
 }

@@ -2,11 +2,12 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, MoreThanOrEqual, Repository } from 'typeorm';
+import { In, MoreThanOrEqual, QueryFailedError, Repository } from 'typeorm';
 import { UserRole } from '../users/entities/user.entity';
 import { UserBook } from './entities/user-book.entity';
 import { UserMovie } from './entities/user-movie.entity';
@@ -32,6 +33,8 @@ export interface Actor {
   id: string;
   role: UserRole;
 }
+
+type UserMovieResponse = Omit<UserMovie, 'movieId'>;
 
 @Injectable()
 export class UserListsService {
@@ -235,21 +238,50 @@ export class UserListsService {
     return { id };
   }
 
-  getCurrentUserMovies(userId: string): Promise<UserMovie[]> {
-    return this.userMoviesRepository.find({
+  async getCurrentUserMovies(userId: string): Promise<UserMovieResponse[]> {
+    const records = await this.userMoviesRepository.find({
       where: { userId },
       order: { createdAt: 'DESC' },
     });
+    return this.withCatalogMovies(records);
   }
 
-  async getUserMovieById(id: string): Promise<UserMovie> {
+  private async withCatalogMovies(
+    records: UserMovie[],
+  ): Promise<UserMovieResponse[]> {
+    if (!records.length) {
+      return [];
+    }
+
+    const movies = await this.moviesRepository.find({
+      where: { id: In([...new Set(records.map((record) => record.movieId))]) },
+      relations: { directors: true },
+    });
+    const moviesById = new Map(movies.map((movie) => [movie.id, movie]));
+
+    return records.map(({ movieId, ...record }) => {
+      const movie = moviesById.get(movieId);
+      if (!movie) {
+        throw new Error(
+          `UserMovie ${record.id} references missing Movie ${movieId}`,
+        );
+      }
+      return {
+        ...record,
+        movie: { ...movie, directors: movie.directors ?? [] },
+      };
+    });
+  }
+
+  async getUserMovieById(id: string): Promise<UserMovieResponse> {
     const movie = await this.userMoviesRepository.findOne({ where: { id } });
 
     if (!movie) {
       throw new NotFoundException('UserMovie not found');
     }
 
-    return movie;
+    const [record] = await this.withCatalogMovies([movie]);
+    return record;
   }
 
   async getUserMovieStats(
@@ -287,7 +319,7 @@ export class UserListsService {
   async createCurrentUserMovie(
     actor: Actor,
     dto: CreateUserMovieDto,
-  ): Promise<UserMovie> {
+  ): Promise<UserMovieResponse> {
     this.ensureCanMutate(actor);
 
     const movie = await this.moviesRepository.findOne({
@@ -312,14 +344,27 @@ export class UserListsService {
       comment: dto.comment ?? null,
     });
 
-    return this.userMoviesRepository.save(entity);
+    try {
+      const saved = await this.userMoviesRepository.save(entity);
+      return this.getUserMovieById(saved.id);
+    } catch (error: unknown) {
+      const message = 'Не удалось добавить фильм в пользовательский список';
+      if (
+        error instanceof QueryFailedError &&
+        'code' in error &&
+        error.code === '23503'
+      ) {
+        throw new NotFoundException(message, { cause: error });
+      }
+      throw new InternalServerErrorException(message, { cause: error });
+    }
   }
 
   async updateCurrentUserMovie(
     id: string,
     actor: Actor,
     dto: UpdateUserMovieDto,
-  ): Promise<UserMovie> {
+  ): Promise<UserMovieResponse> {
     this.ensureCanMutate(actor);
 
     const entity = await this.userMoviesRepository.findOne({ where: { id } });
@@ -339,7 +384,8 @@ export class UserListsService {
       entity.comment = dto.comment;
     }
 
-    return this.userMoviesRepository.save(entity);
+    const saved = await this.userMoviesRepository.save(entity);
+    return this.getUserMovieById(saved.id);
   }
 
   async removeCurrentUserMovie(
@@ -511,8 +557,11 @@ export class UserListsService {
     });
   }
 
-  getUserMoviesByGuid(guid: string): Promise<UserMovie[]> {
-    return this.userMoviesRepository.find({ where: { userId: guid } });
+  async getUserMoviesByGuid(guid: string): Promise<UserMovieResponse[]> {
+    const records = await this.userMoviesRepository.find({
+      where: { userId: guid },
+    });
+    return this.withCatalogMovies(records);
   }
 
   getUserSeriesByGuid(guid: string): Promise<UserSeries[]> {
