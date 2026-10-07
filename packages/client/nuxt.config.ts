@@ -9,7 +9,7 @@ export default defineNuxtConfig({
   imports: {
     dirs: ['utils/fetch/*'],
   },
-  modules: ['@nuxtjs/tailwindcss', '@vueuse/nuxt'],
+  modules: ['@nuxtjs/tailwindcss', '@vueuse/nuxt', '@nuxt/eslint'],
   runtimeConfig: {
     public: {
       apiBase: 'http://localhost:33010', // Your NestJS server URL
