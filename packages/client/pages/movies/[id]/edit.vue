@@ -128,76 +128,19 @@
               </div>
             </div>
 
-            <div class="flex gap-2">
-              <UiSelect
-                v-model="form.directorId"
-                :options="directorOptions"
-                label="Режиссёр"
-                placeholder="Выберите режиссёра"
-                class="flex-1"
-              />
-              <NuxtLink
-                :to="`/movies/directors/new?redirectTo=${encodeURIComponent(`/movies/${route.params.id}/edit`)}`"
-                class="mt-7 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-                Новый
-              </NuxtLink>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label for="rating" class="block text-sm font-medium text-gray-700"
-                  >Оценка (0-100)</label
-                >
-                <input
-                  id="rating"
-                  v-model.number="form.rating"
-                  type="number"
-                  min="0"
-                  max="100"
-                  class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                  placeholder="например, 85"
-                />
-              </div>
-              <div>
-                <label for="watchedAt" class="block text-sm font-medium text-gray-700"
-                  >Дата просмотра</label
-                >
-                <input
-                  id="watchedAt"
-                  v-model="form.watchedAt"
-                  type="date"
-                  class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label for="comment" class="block text-sm font-medium text-gray-700"
-                >Комментарий</label
-              >
-              <textarea
-                id="comment"
-                v-model="form.comment"
-                rows="3"
-                class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                placeholder="Ваши впечатления от фильма"
-              ></textarea>
-            </div>
+            <EntitiesMoviesInputsDirectors
+              v-model="form.directorIds"
+              :error="errors.directorIds"
+              :disabled="submitting"
+            />
+            <p
+              v-if="movie?.directors.length && !form.directorIds.length"
+              class="-mt-4 text-sm text-amber-700"
+              role="status"
+            >
+              Снятие всех режиссёров пока не поддерживается: при сохранении прежние связи останутся.
+              Можно заменить список или удалить отдельных режиссёров, оставив хотя бы одного.
+            </p>
           </div>
         </div>
 
@@ -250,6 +193,8 @@
 </template>
 
 <script setup lang="ts">
+import type { Movie } from '~/types/api'
+
 const route = useRoute()
 const config = useRuntimeConfig()
 
@@ -263,66 +208,31 @@ const tmdbError = ref('')
 interface MovieForm {
   title: string
   genre: string
-  directorId: string
-  watchedAt: string
-  rating: number | undefined
+  directorIds: string[]
   releaseYear: number | undefined
-  comment: string
 }
 
 const form = ref<MovieForm>({
   title: '',
   genre: '',
-  directorId: '',
-  watchedAt: '',
-  rating: undefined,
+  directorIds: [],
   releaseYear: undefined,
-  comment: '',
 })
 
 const posterFile = ref<File | null>(null)
 const posterPreview = ref<string | null>(null)
-
-const directorOptions = computed(() => [
-  { value: '', label: 'Выберите режиссёра' },
-  ...(directors.value?.map((d) => ({ value: d.id, label: d.fullName })) || []),
-])
-
-const { data: directors } = await useAsyncData<{ id: string; fullName: string }[]>(
-  'directors-list-edit',
-  async () => {
-    try {
-      return await _fetch(`${config.public.apiBase}/directors`)
-    } catch {
-      return []
-    }
-  },
-)
 
 const { data: movie, pending } = await useAsyncData(
   `movie-edit-${route.params.id}`,
   async () => {
     try {
       loadError.value = ''
-      const data = await _fetch<{
-        id: string
-        title: string
-        genre?: string | null
-        directorId?: string | null
-        rating?: number | null
-        watchedAt?: string | null
-        comment?: string | null
-        releaseYear?: number | null
-        poster?: string | null
-      }>(`${config.public.apiBase}/movies/${route.params.id}`)
+      const data = await _fetch<Movie>(`${config.public.apiBase}/movies/${route.params.id}`)
 
       form.value.title = data.title || ''
       form.value.genre = data.genre || ''
-      form.value.directorId = data.directorId || ''
-      form.value.watchedAt = data.watchedAt ? String(data.watchedAt).slice(0, 10) : ''
-      form.value.rating = typeof data.rating === 'number' ? data.rating : undefined
+      form.value.directorIds = data.directors.map((director) => director.id)
       form.value.releaseYear = typeof data.releaseYear === 'number' ? data.releaseYear : undefined
-      form.value.comment = data.comment || ''
       if (data.poster) {
         posterPreview.value = `${config.public.apiBase}${data.poster}`
       }
@@ -443,16 +353,9 @@ const onSubmit = async () => {
     if (form.value.genre?.trim()) {
       formData.append('genre', form.value.genre.trim())
     }
-    if (form.value.directorId) {
-      formData.append('directorId', form.value.directorId)
+    for (const directorId of form.value.directorIds) {
+      formData.append('directorIds[]', directorId)
     }
-    if (typeof form.value.rating === 'number') {
-      formData.append('rating', String(form.value.rating))
-    }
-    if (form.value.watchedAt) {
-      formData.append('watchedAt', form.value.watchedAt)
-    }
-    formData.append('comment', form.value.comment?.trim() || '')
     if (typeof form.value.releaseYear === 'number') {
       formData.append('releaseYear', String(form.value.releaseYear))
     }
