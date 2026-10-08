@@ -68,35 +68,19 @@
           </svg>
           <span class="text-gray-500 line-clamp-1">{{ movie.genre }}</span>
         </div>
-        <div class="flex items-center" v-if="movie.watchedAt">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-4 w-4 mr-2 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-            />
-          </svg>
-          <UiDateDisplay :date="movie.watchedAt" />
-        </div>
-        <div v-if="movie.rating != null" class="flex items-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-4 w-4 mr-2 text-gray-400"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
-            />
-          </svg>
-          {{ movie.rating }}/100
+        <div>
+          <span>Режиссёры: </span>
+          <div v-if="movie.directors.length" class="flex flex-wrap gap-x-2 gap-y-1">
+            <NuxtLink
+              v-for="director in movie.directors"
+              :key="director.id"
+              :to="`/movies/directors/${director.id}`"
+              class="text-indigo-600 hover:text-indigo-900"
+            >
+              {{ director.fullName }}
+            </NuxtLink>
+          </div>
+          <span v-else>—</span>
         </div>
         <div v-if="movie.releaseYear" class="text-xs text-gray-500">
           Год выхода: {{ movie.releaseYear }}
@@ -107,16 +91,7 @@
 </template>
 
 <script setup lang="ts">
-interface Movie {
-  id: string
-  title: string
-  genre?: string | null
-  poster?: string | null
-  watchedAt?: string | null
-  rating?: number | null
-  releaseYear?: number | null
-  directorId?: string | null
-}
+import type { Movie } from '~/types/api'
 
 const { movie } = defineProps<{ movie: Movie }>()
 

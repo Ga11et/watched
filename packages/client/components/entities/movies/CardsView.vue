@@ -4,11 +4,11 @@
       <EntitiesCommonCardsSorter
         :sort-by="sortBy"
         :sort-order="sortOrder"
-        :options="sortOptions"
+        :options="movieSortOptions"
         :search-query="searchQuery"
         search-placeholder="Найти фильм..."
         @update-sorting="handleSortUpdate"
-        @update:searchQuery="handleSearchUpdate"
+        @update:search-query="handleSearchUpdate"
       />
     </div>
     <TransitionGroup name="cards-list" tag="div" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -18,17 +18,14 @@
 </template>
 
 <script setup lang="ts">
-interface Movie {
-  id: string
-  title: string
-  genre?: string | null
-  poster?: string | null
-  watchedAt?: string | null
-  comment?: string | null
-  rating?: number | null
-  releaseYear?: number | null
-  directorId?: string | null
-}
+import type { Movie, SortableMovieFields } from '~/types/api'
+
+const movieSortOptions: { value: SortableMovieFields; label: string }[] = [
+  { value: 'title', label: 'По названию' },
+  { value: 'genre', label: 'По жанру' },
+  { value: 'releaseYear', label: 'По году выхода' },
+  { value: 'createdAt', label: 'По дате добавления' },
+]
 
 interface Props {
   movies: Movie[]
@@ -37,19 +34,11 @@ interface Props {
   searchQuery?: string
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 const emit = defineEmits<{
   'update-sorting': [sortBy: string]
   'update:searchQuery': [value: string]
 }>()
-
-const sortOptions = [
-  { value: 'title', label: 'По названию' },
-  { value: 'genre', label: 'По жанру' },
-  { value: 'rating', label: 'По рейтингу' },
-  { value: 'watchedAt', label: 'По дате просмотра' },
-  { value: 'releaseYear', label: 'По году выхода' },
-]
 
 const handleSortUpdate = (sortBy: string) => {
   emit('update-sorting', sortBy)

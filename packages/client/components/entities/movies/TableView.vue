@@ -12,20 +12,30 @@
       </NuxtLink>
     </template>
 
+    <template #cell-directors="{ item }">
+      <div v-if="item.directors.length" class="flex flex-wrap gap-x-2 gap-y-1">
+        <NuxtLink
+          v-for="director in item.directors"
+          :key="director.id"
+          :to="`/movies/directors/${director.id}`"
+          class="font-medium text-indigo-700 hover:underline"
+        >
+          {{ director.fullName }}
+        </NuxtLink>
+      </div>
+      <span v-else>—</span>
+    </template>
+
     <template #cell-genre="{ item }">
       {{ item.genre ?? '—' }}
     </template>
 
-    <template #cell-rating="{ item }">
-      {{ item.rating != null ? `${item.rating}/100` : '—' }}
-    </template>
-
-    <template #cell-watchedAt="{ item }">
-      <UiDateDisplay :date="item.watchedAt" />
-    </template>
-
     <template #cell-releaseYear="{ item }">
       {{ item.releaseYear ?? '—' }}
+    </template>
+
+    <template #cell-createdAt="{ item }">
+      <UiDateDisplay :date="item.createdAt" />
     </template>
 
     <template #cell-actions="{ item }">
@@ -43,18 +53,7 @@
 
 <script setup lang="ts">
 import type { TableColumn } from '~/components/ui/Table.vue'
-
-interface Movie {
-  id: string
-  title: string
-  genre?: string | null
-  poster?: string | null
-  watchedAt?: string | null
-  comment?: string | null
-  rating?: number | null
-  releaseYear?: number | null
-  directorId?: string | null
-}
+import type { Movie } from '~/types/api'
 
 interface Props {
   movies: Movie[]
@@ -62,17 +61,17 @@ interface Props {
   sortOrder?: 'ASC' | 'DESC'
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 const emit = defineEmits<{
   'update-sorting': [sortBy: string]
 }>()
 
 const columns: TableColumn[] = [
   { key: 'title', label: 'Название', sortable: true },
+  { key: 'directors', label: 'Режиссёры' },
   { key: 'genre', label: 'Жанр', sortable: true },
-  { key: 'rating', label: 'Рейтинг', sortable: true },
-  { key: 'watchedAt', label: 'Дата просмотра', sortable: true },
   { key: 'releaseYear', label: 'Год выхода', sortable: true },
+  { key: 'createdAt', label: 'Добавлен', sortable: true },
   { key: 'actions', label: 'Действия', align: 'right' as const },
 ]
 

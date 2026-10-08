@@ -64,55 +64,7 @@
           {{ error }}
         </div>
         <div v-else-if="!director" class="text-gray-500">Режиссёр не найден.</div>
-        <div v-else class="flex gap-6">
-          <div class="flex-shrink-0">
-            <div v-if="director.photo" class="w-32 h-40 rounded-lg overflow-hidden">
-              <img
-                :src="`${config.public.apiBase}${director.photo}`"
-                :alt="director.fullName"
-                class="w-full h-full object-cover"
-              />
-            </div>
-            <div v-else class="w-32 h-40 rounded-lg bg-gray-100 flex items-center justify-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-12 w-12 text-gray-300"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                />
-              </svg>
-            </div>
-          </div>
-          <div class="flex-1 space-y-4">
-            <div>
-              <div class="text-sm text-gray-500">ФИО</div>
-              <div class="text-base text-gray-900 font-medium">{{ director.fullName }}</div>
-            </div>
-            <div>
-              <div class="text-sm text-gray-500">Комментарий</div>
-              <div class="text-base text-gray-900 whitespace-pre-line">
-                {{ director.comment || '—' }}
-              </div>
-            </div>
-            <div class="grid grid-cols-2 gap-4 text-sm text-gray-500">
-              <div>
-                <div class="tracking-wide">Создано</div>
-                <div class="text-gray-900 m-0"><UiDateDisplay :date="director.createdAt" /></div>
-              </div>
-              <div>
-                <div class="tracking-wide">Обновлено</div>
-                <div class="text-gray-900 m-0"><UiDateDisplay :date="director.updatedAt" /></div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <EntitiesDirectorsOutputsDetails v-else :director="director" />
       </div>
     </div>
 
@@ -135,7 +87,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { Director, Movie } from '~/types/api'
+
 const route = useRoute()
 const router = useRouter()
 const config = useRuntimeConfig()
@@ -145,9 +99,10 @@ const deleting = ref(false)
 const { data: director, pending } = await useAsyncData(`director-${route.params.id}`, async () => {
   try {
     error.value = ''
-    return await _fetch(`${config.public.apiBase}/directors/${route.params.id}`)
+    return await _fetch<Director>(`${config.public.apiBase}/directors/${route.params.id}`)
   } catch (e) {
-    error.value = e?.data?.message || 'Не удалось загрузить режиссёра'
+    const err = e as { data?: { message?: string } }
+    error.value = err?.data?.message || 'Не удалось загрузить режиссёра'
     return null
   }
 })
@@ -156,7 +111,7 @@ const { data: directorMovies } = await useAsyncData(
   `director-movies-${route.params.id}`,
   async () => {
     try {
-      return await _fetch(`${config.public.apiBase}/movies`, {
+      return await _fetch<Movie[]>(`${config.public.apiBase}/movies`, {
         params: { directorId: route.params.id },
       })
     } catch {
@@ -173,7 +128,8 @@ const onDelete = async () => {
     await _fetch(`${config.public.apiBase}/directors/${route.params.id}`, { method: 'DELETE' })
     router.push('/movies/directors')
   } catch (e) {
-    error.value = e?.data?.message || 'Не удалось удалить режиссёра'
+    const err = e as { data?: { message?: string } }
+    error.value = err?.data?.message || 'Не удалось удалить режиссёра'
   } finally {
     deleting.value = false
   }

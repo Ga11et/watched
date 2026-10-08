@@ -256,13 +256,7 @@ export interface DashboardData {
 
 // Сортировка
 export type SortOrder = 'ASC' | 'DESC'
-export type SortableMovieFields =
-  | 'title'
-  | 'genre'
-  | 'rating'
-  | 'watchedAt'
-  | 'releaseYear'
-  | 'createdAt'
+export type SortableMovieFields = 'title' | 'genre' | 'releaseYear' | 'createdAt'
 export type SortableGameFields = 'title' | 'rating' | 'completionDate' | 'createdAt'
 export type SortableSeriesFields = 'title' | 'genre' | 'rating' | 'watchedAt' | 'createdAt'
 export type SortableBookFields =

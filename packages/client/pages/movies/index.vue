@@ -65,7 +65,7 @@
         :sort-order="sortOrder"
         :search-query="searchQuery"
         @update-sorting="updateSorting"
-        @update:searchQuery="updateSearchQuery"
+        @update:search-query="updateSearchQuery"
       />
       <EntitiesMoviesTableView
         v-else
@@ -79,13 +79,12 @@
 </template>
 
 <script setup lang="ts">
+import type { Movie, SortableMovieFields } from '~/types/api'
+
+const sortFields: SortableMovieFields[] = ['title', 'genre', 'releaseYear', 'createdAt']
+
 const error = ref<string>('')
 const config = useRuntimeConfig()
-
-interface SortOptions {
-  value: string
-  label: string
-}
 
 const viewMode = useCookie<'cards' | 'table'>('watched_movies_view_mode', {
   default: () => 'cards',
@@ -93,7 +92,7 @@ const viewMode = useCookie<'cards' | 'table'>('watched_movies_view_mode', {
 })
 
 const sortBy = useCookie<string>('watched_movies_sort_by', {
-  default: () => 'watchedAt',
+  default: () => 'createdAt',
   sameSite: 'lax',
 })
 
@@ -102,26 +101,29 @@ const sortOrder = useCookie<'ASC' | 'DESC'>('watched_movies_sort_order', {
   sameSite: 'lax',
 })
 
+watch(
+  [sortBy, sortOrder],
+  () => {
+    if (!sortFields.some((field) => field === sortBy.value)) {
+      sortBy.value = 'createdAt'
+      sortOrder.value = 'DESC'
+    } else if (sortOrder.value !== 'ASC' && sortOrder.value !== 'DESC') {
+      sortOrder.value = 'DESC'
+    }
+  },
+  { immediate: true, flush: 'sync' },
+)
+
 const searchQuery = ref('')
 
 const updateSorting = (newSortBy: string): void => {
+  if (!sortFields.some((field) => field === newSortBy)) return
   if (sortBy.value === newSortBy) {
     sortOrder.value = sortOrder.value === 'ASC' ? 'DESC' : 'ASC'
   } else {
     sortBy.value = newSortBy
     sortOrder.value = 'ASC'
   }
-}
-
-interface Movie {
-  id: string
-  title: string
-  genre?: string
-  rating?: number
-  watchedAt?: string
-  releaseYear?: number
-  createdAt: string
-  updatedAt: string
 }
 
 const { data: movies } = await useAsyncData<Movie[]>(
