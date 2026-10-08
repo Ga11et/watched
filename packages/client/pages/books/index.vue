@@ -66,14 +66,26 @@ const viewMode = useCookie<'cards' | 'table'>('watched_books_view_mode', {
   sameSite: 'lax',
 })
 
-const sortBy = useCookie('watched_books_sort_by', {
-  default: () => 'createdAt',
-  sameSite: 'lax',
+const sortFields = ['title', 'genre', 'publishYear', 'createdAt'] as const
+const legacyCookieOptions = { readonly: true as const, decode: decodeURIComponent }
+const legacySortBy = useCookie<string | null>('watched_books_sort_by', legacyCookieOptions)
+const legacySortOrder = useCookie<string | null>('watched_books_sort_order', legacyCookieOptions)
+const migratedSortBy = legacySortBy.value === 'publishedYear' ? 'publishYear' : legacySortBy.value
+const cookieOptions = { sameSite: 'lax' as const, path: '/', maxAge: 60 * 60 * 24 * 365 }
+
+const sortBy = useCookie<string>('watched_book_catalogue_sort_by', {
+  ...cookieOptions,
+  default: () => sortFields.find((field) => field === migratedSortBy) ?? 'createdAt',
 })
 
-const sortOrder = useCookie<'ASC' | 'DESC'>('watched_books_sort_order', {
-  default: () => 'DESC',
-  sameSite: 'lax',
+const sortOrder = useCookie<'ASC' | 'DESC'>('watched_book_catalogue_sort_order', {
+  ...cookieOptions,
+  default: () => (legacySortOrder.value === 'ASC' ? 'ASC' : 'DESC'),
+})
+
+watchEffect(() => {
+  if (!sortFields.some((field) => field === sortBy.value)) sortBy.value = 'createdAt'
+  if (sortOrder.value !== 'ASC' && sortOrder.value !== 'DESC') sortOrder.value = 'DESC'
 })
 
 const searchQuery = ref('')
@@ -82,26 +94,15 @@ const searchQuery = ref('')
 const error = ref<string>('')
 const config = useRuntimeConfig()
 
-const { data: books, pending: loading } = await useAsyncData<Book[]>(
-  'books',
-  async () => {
-    try {
-      error.value = ''
-      return await _fetch<Book[]>(`${config.public.apiBase}/books`, {
-        params: {
-          sortBy: sortBy.value,
-          sortOrder: sortOrder.value,
-        },
-      })
-    } catch {
-      error.value = 'Не удалось загрузить книги'
-      return []
-    }
-  },
-  {
-    watch: [sortBy, sortOrder],
-  },
-)
+const { data: books, pending: loading } = await useAsyncData<Book[]>('books', async () => {
+  try {
+    error.value = ''
+    return await _fetch<Book[]>(`${config.public.apiBase}/books`)
+  } catch {
+    error.value = 'Не удалось загрузить книги'
+    return []
+  }
+})
 
 // 4. Вычисляемые свойства
 const breadcrumbItems = computed(() => [
@@ -109,23 +110,49 @@ const breadcrumbItems = computed(() => [
   { label: 'Справочник: книги' },
 ])
 
+type SortValue = string | number | null | undefined
+type SortValueType = 'string' | 'number' | 'date'
+
+const collator = new Intl.Collator('ru')
+const normalizeSortValue = (value: SortValue, type: SortValueType): string | number | null => {
+  if (value == null || (typeof value === 'string' && !value.trim())) return null
+  if (type === 'string') return String(value)
+  const numericValue = type === 'date' ? Date.parse(String(value)) : Number(value)
+  return Number.isFinite(numericValue) ? numericValue : null
+}
+
 const filteredBooks = computed(() => {
   const list = books.value || []
   const query = searchQuery.value.trim().toLowerCase()
 
-  if (!query) {
-    return list
-  }
-
-  return list.filter((book) => {
+  const filtered = list.filter((book) => {
     const title = (book.title || '').toLowerCase()
     const author = (book.authors?.[0]?.fullName || '').toLowerCase()
-    return title.includes(query) || author.includes(query)
+    return !query || title.includes(query) || author.includes(query)
+  })
+  const field = sortFields.find((field) => field === sortBy.value) ?? 'createdAt'
+  const type = field === 'publishYear' ? 'number' : field === 'createdAt' ? 'date' : 'string'
+  const direction = sortOrder.value === 'ASC' ? 1 : -1
+  return filtered.sort((left, right) => {
+    const a = normalizeSortValue(left[field], type)
+    const b = normalizeSortValue(right[field], type)
+    let comparison = 0
+    if (a == null) comparison = b == null ? 0 : 1
+    else if (b == null) comparison = -1
+    else {
+      comparison =
+        direction *
+        (typeof a === 'string' && typeof b === 'string'
+          ? collator.compare(a, b)
+          : Number(a) - Number(b))
+    }
+    return comparison || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
   })
 })
 
 // 5. Методы
 const updateSorting = (newSortBy: string): void => {
+  if (!sortFields.some((field) => field === newSortBy)) return
   if (sortBy.value === newSortBy) {
     sortOrder.value = sortOrder.value === 'ASC' ? 'DESC' : 'ASC'
   } else {

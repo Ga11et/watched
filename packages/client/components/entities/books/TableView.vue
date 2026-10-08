@@ -12,14 +12,17 @@
       </NuxtLink>
     </template>
 
-    <template #cell-author.fullName="{ item }">
-      <NuxtLink
-        v-if="item.author"
-        :to="`/books/authors/${item.author.id}`"
-        class="font-medium text-indigo-700 hover:underline"
-      >
-        {{ item.author.fullName }}
-      </NuxtLink>
+    <template #cell-authors="{ item }">
+      <div v-if="item.authors?.length" class="flex flex-wrap gap-x-2 gap-y-1">
+        <NuxtLink
+          v-for="author in item.authors"
+          :key="author.id"
+          :to="`/books/authors/${author.id}`"
+          class="font-medium text-indigo-700 hover:underline"
+        >
+          {{ author.fullName }}
+        </NuxtLink>
+      </div>
       <span v-else>—</span>
     </template>
 
@@ -27,16 +30,8 @@
       {{ item.genre ?? '—' }}
     </template>
 
-    <template #cell-publishedYear="{ item }">
-      {{ item.publishedYear ?? '—' }}
-    </template>
-
-    <template #cell-rating="{ item }">
-      {{ item.rating != null ? `${item.rating}/10` : '—' }}
-    </template>
-
-    <template #cell-readAt="{ item }">
-      <UiDateDisplay :date="item.readAt" />
+    <template #cell-publishYear="{ item }">
+      {{ item.publishYear ?? '—' }}
     </template>
 
     <template #cell-createdAt="{ item }">
@@ -65,18 +60,16 @@ interface Props {
   sortOrder?: 'ASC' | 'DESC'
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 const emit = defineEmits<{
   'update-sorting': [sortBy: string]
 }>()
 
 const columns = [
   { key: 'title', label: 'Название', sortable: true },
-  { key: 'author.fullName', label: 'Автор', sortable: true },
+  { key: 'authors', label: 'Авторы' },
   { key: 'genre', label: 'Жанр', sortable: true },
-  { key: 'publishedYear', label: 'Год издания' },
-  { key: 'rating', label: 'Рейтинг', sortable: true },
-  { key: 'readAt', label: 'Дата прочтения', sortable: true },
+  { key: 'publishYear', label: 'Год издания', sortable: true },
   { key: 'createdAt', label: 'Добавлена', sortable: true },
   { key: 'actions', label: 'Действия', align: 'right' as const },
 ]

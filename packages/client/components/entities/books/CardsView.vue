@@ -32,7 +32,7 @@ interface Props {
   searchQuery?: string
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 
 const emit = defineEmits<{
   deleted: [id: string]
@@ -42,9 +42,8 @@ const emit = defineEmits<{
 
 const sortOptions = [
   { value: 'title', label: 'По названию' },
-  { value: 'author.fullName', label: 'По автору' },
   { value: 'genre', label: 'По жанру' },
-  { value: 'publishedYear', label: 'По году издания' },
+  { value: 'publishYear', label: 'По году издания' },
   { value: 'createdAt', label: 'По дате добавления' },
 ]
 
