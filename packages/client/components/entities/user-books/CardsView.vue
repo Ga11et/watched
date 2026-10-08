@@ -37,7 +37,6 @@ const emit = defineEmits<{
 
 const sortOptions = [
   { value: 'book.title', label: 'По названию' },
-  { value: 'book.author.fullName', label: 'По автору' },
   { value: 'book.genre', label: 'По жанру' },
   { value: 'book.publishYear', label: 'По году издания' },
   { value: 'rating', label: 'По рейтингу' },

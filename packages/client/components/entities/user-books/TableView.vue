@@ -7,22 +7,22 @@
     @update-sorting="handleSortUpdate"
   >
     <template #cell-book.title="{ item }">
-      <NuxtLink
-        :to="`/user-books/${item.id}`"
-        class="font-medium text-indigo-700 hover:underline"
-      >
+      <NuxtLink :to="`/user-books/${item.id}`" class="font-medium text-indigo-700 hover:underline">
         {{ item.book.title }}
       </NuxtLink>
     </template>
 
-    <template #cell-book.author.fullName="{ item }">
-      <NuxtLink
-        v-if="item.book.author"
-        :to="`/books/authors/${item.book.author.id}`"
-        class="font-medium text-indigo-700 hover:underline"
-      >
-        {{ item.book.author.fullName }}
-      </NuxtLink>
+    <template #cell-book.authors="{ item }">
+      <div v-if="item.book.authors?.length" class="flex flex-wrap gap-x-2 gap-y-1">
+        <NuxtLink
+          v-for="author in item.book.authors"
+          :key="author.id"
+          :to="`/books/authors/${author.id}`"
+          class="font-medium text-indigo-700 hover:underline"
+        >
+          {{ author.fullName }}
+        </NuxtLink>
+      </div>
       <span v-else>—</span>
     </template>
 
@@ -76,7 +76,7 @@ const emit = defineEmits<{
 
 const columns = [
   { key: 'book.title', label: 'Название', sortable: true },
-  { key: 'book.author.fullName', label: 'Автор', sortable: true },
+  { key: 'book.authors', label: 'Авторы' },
   { key: 'book.genre', label: 'Жанр', sortable: true },
   { key: 'book.publishYear', label: 'Год издания', sortable: true },
   { key: 'rating', label: 'Рейтинг', sortable: true },
