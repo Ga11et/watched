@@ -31,6 +31,8 @@
 </template>
 
 <script setup lang="ts">
+import type { TableColumn } from '~/components/ui/Table.vue'
+
 interface Director {
   id: string
   fullName: string
@@ -49,7 +51,7 @@ const emit = defineEmits<{
   'update-sorting': [sortBy: string]
 }>()
 
-const columns = [
+const columns: TableColumn[] = [
   { key: 'fullName', label: 'ФИО', sortable: true },
   { key: 'createdAt', label: 'Дата добавления', sortable: true },
   { key: 'actions', label: 'Действия', align: 'right' as const },

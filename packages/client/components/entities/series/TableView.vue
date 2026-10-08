@@ -58,6 +58,8 @@
 </template>
 
 <script setup lang="ts">
+import type { TableColumn } from '~/components/ui/Table.vue'
+
 interface Series {
   id: string
   title: string
@@ -78,12 +80,12 @@ interface Props {
   sortOrder?: 'ASC' | 'DESC'
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 const emit = defineEmits<{
   'update-sorting': [sortBy: string]
 }>()
 
-const columns = [
+const columns: TableColumn[] = [
   { key: 'title', label: 'Название', sortable: true },
   { key: 'genres', label: 'Жанры', sortable: false },
   { key: 'country', label: 'Страна', sortable: true },

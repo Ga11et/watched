@@ -42,6 +42,8 @@
 </template>
 
 <script setup lang="ts">
+import type { TableColumn } from '~/components/ui/Table.vue'
+
 interface Movie {
   id: string
   title: string
@@ -65,7 +67,7 @@ const emit = defineEmits<{
   'update-sorting': [sortBy: string]
 }>()
 
-const columns = [
+const columns: TableColumn[] = [
   { key: 'title', label: 'Название', sortable: true },
   { key: 'genre', label: 'Жанр', sortable: true },
   { key: 'rating', label: 'Рейтинг', sortable: true },

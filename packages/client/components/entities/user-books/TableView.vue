@@ -6,13 +6,13 @@
     :sort-order="sortOrder"
     @update-sorting="handleSortUpdate"
   >
-    <template #cell-book.title="{ item }">
+    <template #cell-title="{ item }">
       <NuxtLink :to="`/user-books/${item.id}`" class="font-medium text-indigo-700 hover:underline">
         {{ item.book.title }}
       </NuxtLink>
     </template>
 
-    <template #cell-book.authors="{ item }">
+    <template #cell-authors="{ item }">
       <div v-if="item.book.authors?.length" class="flex flex-wrap gap-x-2 gap-y-1">
         <NuxtLink
           v-for="author in item.book.authors"
@@ -26,11 +26,11 @@
       <span v-else>—</span>
     </template>
 
-    <template #cell-book.genre="{ item }">
+    <template #cell-genre="{ item }">
       {{ item.book.genre ?? '—' }}
     </template>
 
-    <template #cell-book.publishYear="{ item }">
+    <template #cell-publishYear="{ item }">
       {{ item.book.publishYear ?? '—' }}
     </template>
 
@@ -60,6 +60,7 @@
 </template>
 
 <script setup lang="ts">
+import type { TableColumn } from '~/components/ui/Table.vue'
 import type { UserBook } from '~/types/api'
 
 interface Props {
@@ -74,11 +75,11 @@ const emit = defineEmits<{
   'update-sorting': [sortBy: string]
 }>()
 
-const columns = [
-  { key: 'book.title', label: 'Название', sortable: true },
-  { key: 'book.authors', label: 'Авторы' },
-  { key: 'book.genre', label: 'Жанр', sortable: true },
-  { key: 'book.publishYear', label: 'Год издания', sortable: true },
+const columns: TableColumn[] = [
+  { key: 'title', sortKey: 'book.title', label: 'Название', sortable: true },
+  { key: 'authors', label: 'Авторы' },
+  { key: 'genre', sortKey: 'book.genre', label: 'Жанр', sortable: true },
+  { key: 'publishYear', sortKey: 'book.publishYear', label: 'Год издания', sortable: true },
   { key: 'rating', label: 'Рейтинг', sortable: true },
   { key: 'readAt', label: 'Дата прочтения', sortable: true },
   { key: 'createdAt', label: 'Добавлена', sortable: true },

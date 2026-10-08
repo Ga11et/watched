@@ -12,7 +12,7 @@
               column.sortable ? 'cursor-pointer hover:bg-gray-100' : '',
               column.align === 'right' ? 'text-right' : 'text-left',
             ]"
-            @click="column.sortable ? handleSort(column.key) : null"
+            @click="column.sortable ? handleSort(column) : null"
           >
             <div
               class="flex items-center gap-1 whitespace-nowrap"
@@ -23,7 +23,7 @@
                 v-if="column.sortable"
                 class="inline-block w-4 h-4 flex items-center justify-start"
               >
-                <span v-if="sortBy === column.key" class="text-gray-700">
+                <span v-if="sortBy === getSortKey(column)" class="text-gray-700">
                   <svg
                     v-if="sortOrder === 'ASC'"
                     class="h-4 w-4"
@@ -66,7 +66,7 @@
             :class="['px-4 py-3', column.align === 'right' ? 'text-right' : '']"
           >
             <slot :name="`cell-${column.key}`" :item="item">
-              {{ item[column.key] }}
+              {{ item[column.key as keyof T] }}
             </slot>
           </td>
         </tr>
@@ -75,27 +75,46 @@
   </div>
 </template>
 
-<script setup lang="ts">
-interface Column {
+<script lang="ts">
+export interface TableColumn {
   key: string
+  sortKey?: string
   label: string
   sortable?: boolean
   align?: 'left' | 'right'
 }
+</script>
 
+<script setup lang="ts" generic="T extends { id: string | number }">
 interface Props {
-  columns: Column[]
-  items: any[]
+  columns: TableColumn[]
+  items: T[]
   sortBy?: string
   sortOrder?: 'ASC' | 'DESC'
 }
 
 const props = defineProps<Props>()
+defineSlots<{
+  [name: `cell-${string}`]: (props: { item: T }) => unknown
+}>()
 const emit = defineEmits<{
   'update-sorting': [sortBy: string]
 }>()
 
-const handleSort = (columnKey: string) => {
-  emit('update-sorting', columnKey)
+const columns = computed(() => {
+  const keys = new Set<string>()
+  for (const column of props.columns) {
+    if (column.key.includes('.') || keys.has(column.key)) {
+      throw new Error(`UiTable column key must be unique and dot-free: ${column.key}`)
+    }
+    keys.add(column.key)
+  }
+  return props.columns
+})
+
+const getSortKey = (column: TableColumn): string => column.sortKey ?? column.key
+
+const handleSort = (column: TableColumn) => {
+  emit('update-sorting', getSortKey(column))
 }
 </script>

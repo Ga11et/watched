@@ -5,11 +5,5 @@ export default withNuxt(
   {
     ignores: ['.nuxt/**', '.output/**', 'dist/**', 'coverage/**'],
   },
-  {
-    files: ['**/*.vue'],
-    rules: {
-      'vue/valid-v-slot': ['error', { allowModifiers: true }],
-    },
-  },
   eslintConfigPrettier,
 )

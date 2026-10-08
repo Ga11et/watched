@@ -38,6 +38,8 @@
 </template>
 
 <script setup lang="ts">
+import type { TableColumn } from '~/components/ui/Table.vue'
+
 interface Game {
   id: string
   title: string
@@ -53,12 +55,12 @@ interface Props {
   sortOrder?: 'ASC' | 'DESC'
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 const emit = defineEmits<{
   'update-sorting': [sortBy: string]
 }>()
 
-const columns = [
+const columns: TableColumn[] = [
   { key: 'title', label: 'Название', sortable: true },
   { key: 'completionDate', label: 'Дата прохождения', sortable: true },
   { key: 'playTimeHours', label: 'Время (ч)', sortable: true },

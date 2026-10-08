@@ -52,6 +52,7 @@
 </template>
 
 <script setup lang="ts">
+import type { TableColumn } from '~/components/ui/Table.vue'
 import type { Book } from '~/types/api'
 
 interface Props {
@@ -65,7 +66,7 @@ const emit = defineEmits<{
   'update-sorting': [sortBy: string]
 }>()
 
-const columns = [
+const columns: TableColumn[] = [
   { key: 'title', label: 'Название', sortable: true },
   { key: 'authors', label: 'Авторы' },
   { key: 'genre', label: 'Жанр', sortable: true },

@@ -6,13 +6,13 @@
     :sort-order="sortOrder"
     @update-sorting="$emit('update-sorting', $event)"
   >
-    <template #cell-movie.title="{ item }">
+    <template #cell-title="{ item }">
       <NuxtLink :to="`/user-movies/${item.id}`" class="font-medium text-indigo-700 hover:underline">
         {{ item.movie.title }}
       </NuxtLink>
     </template>
 
-    <template #cell-movie.directors="{ item }">
+    <template #cell-directors="{ item }">
       <div v-if="item.movie.directors?.length" class="flex flex-wrap gap-2">
         <NuxtLink
           v-for="director in item.movie.directors"
@@ -26,11 +26,11 @@
       <span v-else>—</span>
     </template>
 
-    <template #cell-movie.genre="{ item }">
+    <template #cell-genre="{ item }">
       {{ item.movie.genre ?? '—' }}
     </template>
 
-    <template #cell-movie.releaseYear="{ item }">
+    <template #cell-releaseYear="{ item }">
       {{ item.movie.releaseYear ?? '—' }}
     </template>
 
@@ -48,10 +48,7 @@
 
     <template #cell-actions="{ item }">
       <div class="flex justify-end gap-2">
-        <NuxtLink
-          :to="`/user-movies/${item.id}/edit`"
-          class="text-indigo-700 hover:underline"
-        >
+        <NuxtLink :to="`/user-movies/${item.id}/edit`" class="text-indigo-700 hover:underline">
           Редактировать
         </NuxtLink>
       </div>
@@ -60,6 +57,7 @@
 </template>
 
 <script setup lang="ts">
+import type { TableColumn } from '~/components/ui/Table.vue'
 import type { UserMovie } from '~/types/api'
 
 defineProps<{
@@ -70,11 +68,11 @@ defineProps<{
 
 defineEmits<{ 'update-sorting': [sortBy: string] }>()
 
-const columns = [
-  { key: 'movie.title', label: 'Название', sortable: true },
-  { key: 'movie.directors', label: 'Режиссёры' },
-  { key: 'movie.genre', label: 'Жанр' },
-  { key: 'movie.releaseYear', label: 'Год выхода' },
+const columns: TableColumn[] = [
+  { key: 'title', sortKey: 'movie.title', label: 'Название', sortable: true },
+  { key: 'directors', label: 'Режиссёры' },
+  { key: 'genre', label: 'Жанр' },
+  { key: 'releaseYear', label: 'Год выхода' },
   { key: 'rating', label: 'Оценка', sortable: true },
   { key: 'watchedAt', label: 'Дата просмотра', sortable: true },
   { key: 'createdAt', label: 'Добавлен', sortable: true },

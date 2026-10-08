@@ -33,6 +33,7 @@
 </template>
 
 <script setup lang="ts">
+import type { TableColumn } from '~/components/ui/Table.vue'
 import type { Author } from '~/types/api'
 
 interface Props {
@@ -46,7 +47,7 @@ const emit = defineEmits<{
   'update-sorting': [sortBy: string]
 }>()
 
-const columns = [
+const columns: TableColumn[] = [
   { key: 'fullName', label: 'Имя', sortable: true },
   { key: 'createdAt', label: 'Добавлен', sortable: true },
   { key: 'actions', label: 'Действия', align: 'right' as const },
