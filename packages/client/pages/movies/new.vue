@@ -1,12 +1,6 @@
 <template>
   <div class="mx-auto max-w-7xl">
-    <LayoutBreadcrumbs
-      :items="[
-        { label: 'Главная', to: '/' },
-        { label: 'Фильмы', to: '/movies' },
-        { label: 'Добавление' },
-      ]"
-    />
+    <LayoutBreadcrumbs :items="breadcrumbItems" />
 
     <div class="rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div class="border-b border-gray-100 px-6 py-5 flex items-center justify-between">
@@ -68,76 +62,11 @@
               </div>
             </div>
 
-            <div class="flex gap-2">
-              <UiSelect
-                v-model="form.directorId"
-                :options="directorOptions"
-                label="Режиссёр"
-                placeholder="Выберите режиссёра"
-                class="flex-1"
-              />
-              <NuxtLink
-                :to="`/movies/directors/new?redirectTo=${encodeURIComponent('/movies/new')}`"
-                class="mt-7 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-                Новый
-              </NuxtLink>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label for="rating" class="block text-sm font-medium text-gray-700"
-                  >Оценка (0-100)</label
-                >
-                <input
-                  id="rating"
-                  v-model.number="form.rating"
-                  type="number"
-                  min="0"
-                  max="100"
-                  class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                  placeholder="например, 85"
-                />
-              </div>
-              <div>
-                <label for="watchedAt" class="block text-sm font-medium text-gray-700"
-                  >Дата просмотра</label
-                >
-                <input
-                  id="watchedAt"
-                  v-model="form.watchedAt"
-                  type="date"
-                  class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label for="comment" class="block text-sm font-medium text-gray-700"
-                >Комментарий</label
-              >
-              <textarea
-                id="comment"
-                v-model="form.comment"
-                rows="3"
-                class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                placeholder="Ваши впечатления от фильма"
-              ></textarea>
-            </div>
+            <EntitiesMoviesInputsDirectors
+              v-model="form.directorIds"
+              :error="errors.directorIds"
+              :disabled="submitting"
+            />
           </div>
         </div>
 
@@ -150,7 +79,7 @@
           </NuxtLink>
           <button
             type="submit"
-            :disabled="submitting"
+            :disabled="submitting || restoringPoster"
             class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <svg
@@ -194,7 +123,6 @@ import type { TmdbMovie } from '~/types/api'
 
 // Конфигурация
 const config = useRuntimeConfig()
-const router = useRouter()
 
 // Состояние
 const submitting = ref(false)
@@ -204,11 +132,7 @@ const errors = ref<Record<string, string>>({})
 // Файлы и превью
 const posterFile = ref<File | null>(null)
 const posterPreview = ref<string | null>(null)
-
-// Загрузка данных
-const { data: directors } = await useFetch<{ id: string; fullName: string }[]>(
-  `${useRuntimeConfig().public.apiBase}/directors`,
-)
+const restoringPoster = ref(false)
 
 // Вычисляемые свойства
 const breadcrumbItems = computed(() => [
@@ -217,24 +141,20 @@ const breadcrumbItems = computed(() => [
   { label: 'Добавление' },
 ])
 
-const directorOptions = computed(() => [
-  { value: '', label: 'Выберите режиссёра' },
-  ...(directors.value || []).map((d) => ({ value: d.id, label: d.fullName })),
-])
-
 // Данные формы
-const form = reactive({
+const form = reactive<{ genre: string; directorIds: string[]; releaseYear?: number }>({
   genre: '',
-  directorId: '',
-  watchedAt: new Date().toISOString().split('T')[0],
-  rating: undefined as number | undefined,
-  releaseYear: undefined as number | undefined,
-  comment: '',
+  directorIds: [],
+  releaseYear: undefined,
 })
 
 const tmdbMovie = ref<TmdbMovie | null>(null)
 const manualTitle = ref('')
+const draftLoaded = ref(false)
+const draftCleared = ref(false)
+let restoredTmdbMovie: TmdbMovie | null = null
 
+// Загрузка данных
 // Load form data from localStorage on mount
 onMounted(() => {
   const savedData = localStorage.getItem('movieFormDraft')
@@ -242,16 +162,18 @@ onMounted(() => {
     try {
       const parsed = JSON.parse(savedData)
       form.genre = parsed.genre || ''
-      form.directorId = parsed.directorId || ''
-      form.watchedAt = parsed.watchedAt || new Date().toISOString().split('T')[0]
-      form.rating = parsed.rating
+      form.directorIds = Array.isArray(parsed.directorIds)
+        ? parsed.directorIds
+        : parsed.directorId
+          ? [parsed.directorId]
+          : []
       form.releaseYear = parsed.releaseYear
-      form.comment = parsed.comment || ''
       manualTitle.value = parsed.manualTitle || ''
 
       // Restore TMDB movie data if available
       if (parsed.tmdbMovie) {
         tmdbMovie.value = parsed.tmdbMovie
+        restoredTmdbMovie = tmdbMovie.value
       }
 
       // Restore poster preview if available
@@ -262,29 +184,72 @@ onMounted(() => {
       console.error('Failed to parse saved form data:', e)
     }
   }
+  draftLoaded.value = true
+})
+
+watch(posterFile, (file) => {
+  if (!file || !posterPreview.value?.startsWith('blob:')) return
+
+  const preview = posterPreview.value
+  const reader = new FileReader()
+  reader.onload = () => {
+    if (posterFile.value === file && posterPreview.value === preview) {
+      posterPreview.value = String(reader.result)
+      URL.revokeObjectURL(preview)
+    }
+  }
+  reader.readAsDataURL(file)
+})
+
+watch(posterPreview, async (preview) => {
+  restoringPoster.value = false
+  delete errors.value.poster
+  if (!preview || posterFile.value) return
+
+  restoringPoster.value = true
+  try {
+    const response = await fetch(preview)
+    if (!response.ok) throw new Error('Failed to fetch saved poster')
+    const blob = await response.blob()
+    if (posterPreview.value === preview && !posterFile.value) {
+      posterFile.value = new File([blob], 'poster', { type: blob.type })
+    }
+  } catch (e) {
+    console.error('Failed to restore poster:', e)
+    if (posterPreview.value === preview) {
+      errors.value.poster = 'Не удалось восстановить постер. Загрузите его повторно.'
+    }
+  } finally {
+    if (posterPreview.value === preview) restoringPoster.value = false
+  }
 })
 
 // Save form data to localStorage when it changes
 watch(
-  [form, manualTitle, tmdbMovie, posterPreview],
+  [form, manualTitle, tmdbMovie, posterPreview, draftLoaded],
   () => {
+    if (!draftLoaded.value || draftCleared.value) return
+
     const dataToSave = {
       genre: form.genre,
-      directorId: form.directorId,
-      watchedAt: form.watchedAt,
-      rating: form.rating,
+      directorIds: form.directorIds,
       releaseYear: form.releaseYear,
-      comment: form.comment,
-      manualTitle: manualTitle,
-      tmdbMovie: tmdbMovie,
-      posterPreview: posterPreview,
+      manualTitle: manualTitle.value,
+      tmdbMovie: tmdbMovie.value,
+      posterPreview: posterPreview.value,
     }
-    localStorage.setItem('movieFormDraft', JSON.stringify(dataToSave))
+    try {
+      localStorage.setItem('movieFormDraft', JSON.stringify(dataToSave))
+    } catch (e) {
+      console.error('Failed to save form draft:', e)
+    }
   },
   { deep: true },
 )
 
 watch(tmdbMovie, async (newMovie) => {
+  if (newMovie === restoredTmdbMovie) return
+
   if (newMovie) {
     if (newMovie.release_date) {
       form.releaseYear = parseInt(newMovie.release_date.slice(0, 4), 10)
@@ -326,7 +291,7 @@ watch(tmdbMovie, async (newMovie) => {
 })
 
 const onSubmit = async () => {
-  if (submitting.value) return
+  if (submitting.value || restoringPoster.value) return
 
   try {
     submitting.value = true
@@ -344,17 +309,8 @@ const onSubmit = async () => {
     if (form.genre?.trim()) {
       formData.append('genre', form.genre.trim())
     }
-    if (form.directorId) {
-      formData.append('directorId', form.directorId)
-    }
-    if (typeof form.rating === 'number') {
-      formData.append('rating', String(form.rating))
-    }
-    if (form.watchedAt) {
-      formData.append('watchedAt', form.watchedAt)
-    }
-    if (form.comment?.trim()) {
-      formData.append('comment', form.comment.trim())
+    for (const directorId of form.directorIds) {
+      formData.append('directorIds[]', directorId)
     }
     if (typeof form.releaseYear === 'number') {
       formData.append('releaseYear', String(form.releaseYear))
@@ -369,6 +325,7 @@ const onSubmit = async () => {
     })
 
     // Clear localStorage after successful submission
+    draftCleared.value = true
     localStorage.removeItem('movieFormDraft')
 
     navigateTo('/movies')

@@ -68,6 +68,7 @@ export interface TmdbMovie {
 
 interface Props {
   modelValue?: TmdbMovie | null
+  manualQuery?: string
   label?: string
   placeholder?: string
   error?: string
@@ -77,6 +78,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: null,
+  manualQuery: '',
   label: '',
   placeholder: 'Введите название фильма',
   error: '',
@@ -90,7 +92,7 @@ const emit = defineEmits<{
 }>()
 
 const containerRef = ref<HTMLElement | null>(null)
-const query = ref(props.modelValue?.title ?? '')
+const query = ref(props.modelValue?.title ?? props.manualQuery)
 const suggestions = ref<TmdbMovie[]>([])
 const showSuggestions = ref(false)
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
@@ -100,6 +102,15 @@ watch(
   (newVal) => {
     if (newVal) {
       query.value = newVal.title
+    }
+  },
+)
+
+watch(
+  () => props.manualQuery,
+  (newVal) => {
+    if (!props.modelValue) {
+      query.value = newVal
     }
   },
 )
@@ -129,6 +140,9 @@ const searchMovies = async (searchQuery: string) => {
 }
 
 const onSearchInput = () => {
+  if (props.modelValue && query.value !== props.modelValue.title) {
+    emit('update:modelValue', null)
+  }
   emit('update:manualQuery', query.value)
   if (searchTimeout) clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {

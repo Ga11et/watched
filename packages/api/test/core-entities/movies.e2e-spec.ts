@@ -310,6 +310,38 @@ describe('Movies Module E2E Tests', () => {
         });
     });
 
+    it('POST multipart сохраняет всех выбранных режиссёров', async () => {
+      const created = await request(app.getHttpServer())
+        .post('/movies')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .field('title', 'Совместный фильм')
+        .field('directorIds[]', testDirector.id)
+        .field('directorIds[]', secondDirector.id)
+        .expect(201);
+
+      expect(created.body.directors).toHaveLength(2);
+      expect(created.body.directors).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: testDirector.id }),
+          expect.objectContaining({ id: secondDirector.id }),
+        ]),
+      );
+
+      await request(app.getHttpServer())
+        .get(`/movies/${created.body.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.directors).toHaveLength(2);
+          expect(res.body.directors).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({ id: testDirector.id }),
+              expect.objectContaining({ id: secondDirector.id }),
+            ]),
+          );
+        });
+    });
+
     it('POST с legacy directorId не создает связь с режиссёром', () => {
       return request(app.getHttpServer())
         .post('/movies')

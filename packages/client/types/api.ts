@@ -101,10 +101,7 @@ export interface UpdateUserMovieDto {
 export interface CreateMovieDto {
   title: string
   genre?: string
-  directorId?: string
-  rating?: number
-  watchedAt?: string
-  comment?: string
+  directorIds?: string[]
   releaseYear?: number
 }
 
