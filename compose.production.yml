@@ -3,6 +3,7 @@ name: watched-production
 services:
   db:
     image: postgres:16-alpine
+    pull_policy: never
     restart: unless-stopped
     env_file:
       - .env.production.api.local

@@ -19,10 +19,21 @@ require_env_file() {
 require_local_images() {
   for image in "$@"; do
     if ! docker image inspect "$image" >/dev/null 2>&1; then
-      echo "Missing $image. Run pnpm prod:build first." >&2
+      echo "Missing $image. Run: bash \"$ROOT_DIR/scripts/production.sh\" build" >&2
       exit 1
     fi
   done
+}
+
+stop_stack() {
+  local status=$?
+  trap - EXIT INT TERM
+  if [[ -n "${compose_pid:-}" ]]; then
+    kill "$compose_pid" 2>/dev/null || true
+    wait "$compose_pid" 2>/dev/null || true
+  fi
+  compose stop || status=1
+  exit "$status"
 }
 
 case "${1:-}" in
@@ -49,11 +60,27 @@ case "${1:-}" in
   start)
     require_env_file
     require_local_images watched-api:local watched-client:local postgres:16-alpine
-    if ! compose up -d --no-build --pull never \
-      --wait --wait-timeout 60; then
-      compose logs --tail 20 api client
+    compose config --quiet
+    trap stop_stack EXIT
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+    compose up -d --no-build --pull never \
+      --wait --wait-timeout 60 &
+    compose_pid=$!
+    if ! wait "$compose_pid"; then
+      compose_pid=
+      echo "Production startup failed. Check required values in .env.production.api.local and .env.production.client.local." >&2
+      echo "If migrations are missing or pending, run: bash \"$ROOT_DIR/scripts/production.sh\" migrate" >&2
+      compose ps --all || true
+      compose logs --tail 50 || true
       exit 1
     fi
+    compose_pid=
+    printf 'Frontend: http://127.0.0.1:33000\nAPI: http://127.0.0.1:33010\nSwagger: http://127.0.0.1:33010/api\nPress Ctrl+C to stop the production stack.\n'
+    compose logs --follow --tail 50 &
+    compose_pid=$!
+    wait "$compose_pid"
+    compose_pid=
     ;;
   stop)
     require_env_file
