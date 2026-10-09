@@ -10,6 +10,14 @@ interface BaseEntity {
   updatedAt: string
 }
 
+export interface User extends BaseEntity {
+  username: string | null
+  email: string | null
+  name: string
+  role: 'ADMIN' | 'USER' | 'GUEST'
+  isActive: boolean
+}
+
 // Авторы
 export interface Author extends BaseEntity {
   fullName: string

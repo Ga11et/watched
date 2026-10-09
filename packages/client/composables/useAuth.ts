@@ -1,17 +1,8 @@
-interface AuthUser {
-  id: string
-  username: string | null
-  email: string | null
-  name: string
-  role: 'ADMIN' | 'USER' | 'GUEST'
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
-}
+import type { User } from '~/types/api'
 
 interface AuthResponse {
   token: string
-  user: AuthUser
+  user: User
 }
 
 interface RegisterPayload {
@@ -58,7 +49,7 @@ export const useAuth = () => {
   })
 
   const token = useState<string | null>('auth:token', () => tokenCookie.value ?? null)
-  const user = useState<AuthUser | null>('auth:user', () => null)
+  const user = useState<User | null>('auth:user', () => null)
   const initialized = useState<boolean>('auth:initialized', () => false)
 
   const persistToken = () => {
@@ -79,11 +70,7 @@ export const useAuth = () => {
     }
 
     try {
-      const me = await request<AuthUser>(`/auth/me`, {
-        headers: {
-          Authorization: `Bearer ${token.value}`,
-        },
-      })
+      const me = await request<User>('/auth/me')
 
       user.value = me
     } catch {
@@ -103,7 +90,7 @@ export const useAuth = () => {
   }
 
   const login = async (payload: LoginPayload) => {
-    const response = await request<AuthResponse>(`/auth/login`, {
+    const response = await request<AuthResponse>('/auth/login', {
       method: 'POST',
       body: payload,
     })
@@ -113,7 +100,7 @@ export const useAuth = () => {
   }
 
   const register = async (payload: RegisterPayload) => {
-    const response = await request<AuthResponse>(`/auth/register`, {
+    const response = await request<AuthResponse>('/auth/register', {
       method: 'POST',
       body: payload,
     })
