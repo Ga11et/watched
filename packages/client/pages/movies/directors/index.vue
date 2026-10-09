@@ -63,6 +63,7 @@ interface Director {
   updatedAt: string
 }
 
+const { request } = useApiRequest()
 const error = ref<string>('')
 
 const viewMode = useCookie<'cards' | 'table'>('watched_directors_view_mode', {
@@ -96,7 +97,7 @@ const { data: directors } = await useAsyncData<Director[]>(
   async () => {
     try {
       error.value = ''
-      return await _fetch<Director[]>(`${useRuntimeConfig().public.apiBase}/directors`, {
+      return await request<Director[]>(`/directors`, {
         params: {
           sortBy: sortBy.value,
           sortOrder: sortOrder.value,

@@ -78,14 +78,14 @@ const sortOrder = useCookie<'ASC' | 'DESC'>('watched_publishers_sort_order', {
 const searchQuery = ref('')
 
 const error = ref<string>('')
-const config = useRuntimeConfig()
+const { request } = useApiRequest()
 
 const { data: publishers, pending: loading } = await useAsyncData<Publisher[]>(
   'publishers',
   async () => {
     try {
       error.value = ''
-      return await _fetch<Publisher[]>(`${config.public.apiBase}/publishers`, {
+      return await request<Publisher[]>(`/publishers`, {
         params: {
           sortBy: sortBy.value,
           sortOrder: sortOrder.value,

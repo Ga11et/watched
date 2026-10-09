@@ -143,6 +143,7 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
+const { request } = useApiRequest()
 const config = useRuntimeConfig()
 
 const loading = ref(true)
@@ -211,7 +212,7 @@ const loadGame = async () => {
   loading.value = true
   error.value = ''
   try {
-    const data = await _fetch<GameApiResponse>(`${config.public.apiBase}/games/${props.gameId}`)
+    const data = await request<GameApiResponse>(`/games/${props.gameId}`)
     form.title = data.title || ''
     form.completionDate = data.completionDate ? String(data.completionDate).slice(0, 10) : ''
     form.playTimeHours = typeof data.playTimeHours === 'number' ? data.playTimeHours : undefined
@@ -293,7 +294,7 @@ const onSubmit = async () => {
       formData.append('removeCover', 'true')
     }
 
-    await _fetch(`${config.public.apiBase}/games/${props.gameId}`, {
+    await request(`/games/${props.gameId}`, {
       method: 'PUT',
       body: formData,
     })

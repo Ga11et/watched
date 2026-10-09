@@ -168,6 +168,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<Emits>()
+const { request } = useApiRequest()
 const config = useRuntimeConfig()
 
 const searchQuery = ref(props.modelValue?.title ?? '')
@@ -229,7 +230,7 @@ const fetchLocalBooks = async (query: string): Promise<UserBookSearchResult[]> =
   if (!term) return []
 
   try {
-    const books = await _fetch<Book[]>(`${config.public.apiBase}/books`, {
+    const books = await request<Book[]>(`/books`, {
       params: {
         search: term,
         limit: 5,

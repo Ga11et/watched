@@ -11,7 +11,7 @@ interface User {
 }
 
 const route = useRoute()
-const config = useRuntimeConfig()
+const { request } = useApiRequest()
 
 const identifier = computed(() => String(route.params.identifier ?? ''))
 
@@ -23,7 +23,7 @@ const {
   () => `user-${identifier.value}`,
   async () => {
     if (!identifier.value) return null
-    return _fetch<User>(`${config.public.apiBase}/users/${identifier.value}`)
+    return request<User>(`/users/${identifier.value}`)
   },
   {
     watch: [identifier],

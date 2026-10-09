@@ -69,7 +69,7 @@
 import type { GoogleBook } from '~/components/integrations/google-books.service'
 import type { Author } from '~/types/api'
 
-const config = useRuntimeConfig()
+const { request } = useApiRequest()
 const router = useRouter()
 const submitting = ref(false)
 const error = ref('')
@@ -183,7 +183,7 @@ const onSubmit = async () => {
       formData.append('cover', coverFile.value)
     }
 
-    await _fetch(`${config.public.apiBase}/books`, {
+    await request(`/books`, {
       method: 'POST',
       body: formData,
     })

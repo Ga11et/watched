@@ -233,6 +233,7 @@
 <script setup lang="ts">
 import type { TmdbSeries } from '~/types/api'
 
+const { request } = useApiRequest()
 const config = useRuntimeConfig()
 const error = ref('')
 const errors = ref<Record<string, string>>({})
@@ -304,7 +305,7 @@ watch(tmdbSeries, async (newSeries) => {
     // Fetch genres from TMDB
     if (newSeries.genre_ids && newSeries.genre_ids.length > 0) {
       try {
-        const response = await _fetch<{ genres: { id: number; name: string }[] }>(
+        const response = await $fetch<{ genres: { id: number; name: string }[] }>(
           `https://api.themoviedb.org/3/genre/tv/list`,
           {
             params: {
@@ -398,7 +399,7 @@ const onSubmit = async () => {
       formData.append('poster', posterFile.value)
     }
 
-    await _fetch(`${config.public.apiBase}/series`, {
+    await request(`/series`, {
       method: 'POST',
       body: formData,
     })

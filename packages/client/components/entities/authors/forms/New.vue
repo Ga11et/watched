@@ -52,7 +52,7 @@
 <script setup lang="ts">
 import type { TmdbPerson } from '~/types/api'
 
-const config = useRuntimeConfig()
+const { request } = useApiRequest()
 const route = useRoute()
 
 const submitting = ref(false)
@@ -125,7 +125,7 @@ const onSubmit = async () => {
       formData.append('photo', photoFile.value)
     }
 
-    await _fetch(`${config.public.apiBase}/authors`, {
+    await request(`/authors`, {
       method: 'POST',
       body: formData,
     })

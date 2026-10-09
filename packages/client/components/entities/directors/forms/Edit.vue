@@ -85,6 +85,7 @@ import type { Director } from '~/types/api'
 
 const props = defineProps<{ directorId: string }>()
 const emit = defineEmits<{ 'title-loaded': [title: string] }>()
+const { request } = useApiRequest()
 const config = useRuntimeConfig()
 
 const loadError = ref('')
@@ -109,7 +110,7 @@ const { data: director, pending: loading } = useAsyncData(
   async () => {
     try {
       loadError.value = ''
-      return await _fetch<Director>(`${config.public.apiBase}/directors/${props.directorId}`)
+      return await request<Director>(`/directors/${props.directorId}`)
     } catch (e) {
       const err = e as { data?: { message?: string } }
       loadError.value = err.data?.message || 'Не удалось загрузить режиссёра'
@@ -159,7 +160,7 @@ const onSubmit = async () => {
       formData.append('removePhoto', 'true')
     }
 
-    await _fetch(`${config.public.apiBase}/directors/${props.directorId}`, {
+    await request(`/directors/${props.directorId}`, {
       method: 'PUT',
       body: formData,
     })

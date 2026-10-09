@@ -90,7 +90,7 @@
 <script setup lang="ts">
 import type { Game } from '~/types/api'
 
-const config = useRuntimeConfig()
+const { request } = useApiRequest()
 
 const error = ref('')
 
@@ -116,7 +116,7 @@ const { data: games, pending: loading } = await useAsyncData<Game[]>(
   async () => {
     try {
       error.value = ''
-      return await _fetch<Game[]>(`${config.public.apiBase}/games`, {
+      return await request<Game[]>(`/games`, {
         params: {
           sortBy: sortBy.value,
           sortOrder: sortOrder.value,

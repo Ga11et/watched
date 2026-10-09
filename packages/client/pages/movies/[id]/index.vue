@@ -74,12 +74,12 @@ import type { Movie } from '~/types/api'
 
 const route = useRoute()
 const router = useRouter()
-const config = useRuntimeConfig()
+const { request } = useApiRequest()
 const error = ref('')
 const deleting = ref(false)
 
 const { data: movie, pending } = await useAsyncData(`movie-${route.params.id}`, async () => {
-  return await _fetch<Movie>(`${config.public.apiBase}/movies/${route.params.id}`)
+  return await request<Movie>(`/movies/${route.params.id}`)
 })
 
 const onDelete = async () => {
@@ -87,7 +87,7 @@ const onDelete = async () => {
   if (!confirm('Удалить этот фильм? Это действие нельзя отменить.')) return
   deleting.value = true
   try {
-    await _fetch(`${config.public.apiBase}/movies/${route.params.id}`, { method: 'DELETE' })
+    await request(`/movies/${route.params.id}`, { method: 'DELETE' })
     router.push('/movies')
   } catch (e: any) {
     error.value = e?.data?.message || 'Не удалось удалить фильм'

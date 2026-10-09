@@ -36,7 +36,7 @@ withDefaults(defineProps<{ error?: string; disabled?: boolean }>(), {
 })
 
 const model = defineModel<string[]>({ default: () => [] })
-const config = useRuntimeConfig()
+const { request } = useApiRequest()
 const route = useRoute()
 const searchQuery = ref('')
 
@@ -44,9 +44,7 @@ const {
   data: directors,
   status,
   error: loadError,
-} = await useAsyncData('movie-director-options', () =>
-  _fetch<Director[]>(`${config.public.apiBase}/directors`),
-)
+} = await useAsyncData('movie-director-options', () => request<Director[]>(`/directors`))
 
 const directorOptions = computed(() =>
   (directors.value || []).map((director) => ({

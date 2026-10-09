@@ -85,6 +85,12 @@ export interface UserMovie extends BaseEntity {
   movie: Movie
 }
 
+export interface UserMovieStats {
+  total: number
+  thisMonth: number
+  avgRating: number | null
+}
+
 export interface CreateUserMovieDto {
   title: string
   rating?: number | null

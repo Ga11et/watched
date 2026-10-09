@@ -84,7 +84,7 @@ import type { Movie, SortableMovieFields } from '~/types/api'
 const sortFields: SortableMovieFields[] = ['title', 'genre', 'releaseYear', 'createdAt']
 
 const error = ref<string>('')
-const config = useRuntimeConfig()
+const { request } = useApiRequest()
 
 const viewMode = useCookie<'cards' | 'table'>('watched_movies_view_mode', {
   default: () => 'cards',
@@ -131,7 +131,7 @@ const { data: movies } = await useAsyncData<Movie[]>(
   async () => {
     try {
       error.value = ''
-      return await _fetch<Movie[]>(`${config.public.apiBase}/movies`, {
+      return await request<Movie[]>(`/movies`, {
         params: {
           sortBy: sortBy.value,
           sortOrder: sortOrder.value,

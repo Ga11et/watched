@@ -79,6 +79,7 @@ const emit = defineEmits<{
   'name-loaded': [name: string]
 }>()
 
+const { request } = useApiRequest()
 const config = useRuntimeConfig()
 const router = useRouter()
 
@@ -116,7 +117,7 @@ const { data: author, pending: loading } = useAsyncData(
   async () => {
     try {
       loadError.value = ''
-      return await _fetch<AuthorData>(`${config.public.apiBase}/authors/${props.authorId}`)
+      return await request<AuthorData>(`/authors/${props.authorId}`)
     } catch (e: any) {
       loadError.value = e?.data?.message || 'Не удалось загрузить автора'
       return null
@@ -195,7 +196,7 @@ const onSubmit = async () => {
       formData.append('removePhoto', 'true')
     }
 
-    await _fetch(`${config.public.apiBase}/authors/${props.authorId}`, {
+    await request(`/authors/${props.authorId}`, {
       method: 'PUT',
       body: formData,
     })

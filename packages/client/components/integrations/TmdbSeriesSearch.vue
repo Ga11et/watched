@@ -119,7 +119,7 @@ const searchSeries = async (searchQuery: string) => {
   }
 
   try {
-    const response = await _fetch<{ results: TmdbSeries[] }>(
+    const response = await $fetch<{ results: TmdbSeries[] }>(
       `https://api.themoviedb.org/3/search/tv`,
       {
         params: {

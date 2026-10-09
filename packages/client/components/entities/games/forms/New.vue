@@ -87,6 +87,7 @@
 import type { IGDBGame } from '~/components/integrations/igdb-games.service'
 
 const router = useRouter()
+const { request } = useApiRequest()
 const submitting = ref(false)
 const error = ref('')
 const errors = ref<Record<string, string>>({})
@@ -170,7 +171,6 @@ const onSubmit = async () => {
   }
   submitting.value = true
   try {
-    const config = useRuntimeConfig()
     const formData = new FormData()
 
     formData.append('title', form.title.trim())
@@ -203,7 +203,7 @@ const onSubmit = async () => {
       formData.append('cover', coverFile.value)
     }
 
-    await _fetch(`${config.public.apiBase}/games`, {
+    await request(`/games`, {
       method: 'POST',
       body: formData,
     })

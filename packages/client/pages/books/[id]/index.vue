@@ -53,12 +53,12 @@ import type { Book } from '~/types/api'
 
 const route = useRoute()
 const router = useRouter()
-const config = useRuntimeConfig()
+const { request } = useApiRequest()
 const error = ref('')
 const deleting = ref(false)
 
 const { data: book, pending } = await useAsyncData(`book-${route.params.id}`, async () => {
-  return await _fetch<Book>(`${config.public.apiBase}/books/${route.params.id}`)
+  return await request<Book>(`/books/${route.params.id}`)
 })
 
 const onDelete = async () => {
@@ -66,7 +66,7 @@ const onDelete = async () => {
   if (!confirm('Удалить эту книгу? Это действие нельзя отменить.')) return
   deleting.value = true
   try {
-    await _fetch(`${config.public.apiBase}/books/${route.params.id}`, { method: 'DELETE' })
+    await request(`/books/${route.params.id}`, { method: 'DELETE' })
     router.push('/books')
   } catch (e: any) {
     error.value = e?.data?.message || 'Не удалось удалить книгу'

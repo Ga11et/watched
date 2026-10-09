@@ -10,14 +10,14 @@ interface User {
   updatedAt: string
 }
 
-const config = useRuntimeConfig()
+const { request } = useApiRequest()
 
 const {
   data: users,
   pending,
   error,
 } = await useAsyncData<User[]>('users-list', () => {
-  return _fetch<User[]>(`${config.public.apiBase}/users`)
+  return request<User[]>(`/users`)
 })
 
 const formatDate = (value: string): string => {

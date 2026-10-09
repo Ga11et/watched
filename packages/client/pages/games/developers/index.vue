@@ -78,14 +78,14 @@ const sortOrder = useCookie<'ASC' | 'DESC'>('watched_developers_sort_order', {
 const searchQuery = ref('')
 
 const error = ref<string>('')
-const config = useRuntimeConfig()
+const { request } = useApiRequest()
 
 const { data: developers, pending: loading } = await useAsyncData<Developer[]>(
   'developers',
   async () => {
     try {
       error.value = ''
-      return await _fetch<Developer[]>(`${config.public.apiBase}/developers`, {
+      return await request<Developer[]>(`/developers`, {
         params: {
           sortBy: sortBy.value,
           sortOrder: sortOrder.value,

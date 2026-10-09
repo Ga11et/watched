@@ -155,12 +155,12 @@ const emit = defineEmits<{
 
 const router = useRouter()
 const route = useRoute()
-const config = useRuntimeConfig()
+const { request } = useApiRequest()
 
 const { data: userBook, pending: loading } = useAsyncData(
   `user-book-edit-${route.params.id}`,
   async () => {
-    return _fetch<UserBook>(`${config.public.apiBase}/user-books/${route.params.id}`)
+    return request<UserBook>(`/user-books/${route.params.id}`)
   },
   { server: false },
 )
@@ -215,7 +215,7 @@ const onSubmit = async () => {
     body['readAt'] = form.readAt
     body['comment'] = form.comment?.trim()
 
-    await _fetch(`${config.public.apiBase}/user-books/${props.userBookId}`, {
+    await request(`/user-books/${props.userBookId}`, {
       method: 'PUT',
       body,
     })

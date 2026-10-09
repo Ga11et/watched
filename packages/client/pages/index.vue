@@ -1,5 +1,6 @@
 <script setup>
-const config = useRuntimeConfig()
+const { request } = useApiRequest()
+const { stats: movieStats } = useUserMovies()
 
 // Fetch dashboard data
 const {
@@ -9,10 +10,10 @@ const {
 } = await useAsyncData('dashboard', async () => {
   try {
     const [allMovies, allGames, allBooks, allSeries] = await Promise.all([
-      _fetch(`${config.public.apiBase}/user-movies/stats`),
-      _fetch(`${config.public.apiBase}/games/stats`),
-      _fetch(`${config.public.apiBase}/user-books/stats`),
-      _fetch(`${config.public.apiBase}/series/stats`),
+      movieStats(),
+      request(`/games/stats`),
+      request(`/user-books/stats`),
+      request(`/series/stats`),
     ])
 
     return {

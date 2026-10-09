@@ -112,6 +112,7 @@ const emit = defineEmits<{
   'title-loaded': [title: string]
 }>()
 
+const { request } = useApiRequest()
 const config = useRuntimeConfig()
 const router = useRouter()
 
@@ -146,7 +147,7 @@ const { data: book, pending: loading } = useAsyncData(
   async () => {
     try {
       loadError.value = ''
-      return await _fetch<Book>(`${config.public.apiBase}/books/${props.bookId}`)
+      return await request<Book>(`/books/${props.bookId}`)
     } catch (e: any) {
       loadError.value = e?.data?.message || 'Не удалось загрузить книгу'
       return null
@@ -266,7 +267,7 @@ const onSubmit = async () => {
       formData.append('removeCover', 'true')
     }
 
-    await _fetch(`${config.public.apiBase}/books/${props.bookId}`, {
+    await request(`/books/${props.bookId}`, {
       method: 'PUT',
       body: formData,
     })
