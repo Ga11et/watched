@@ -24,6 +24,7 @@ import { UsersModule } from './users/users.module';
 import { AuthMiddleware } from './auth/auth.middleware';
 import { AdminMiddleware } from './auth/admin.middleware';
 import { ApiExceptionFilter } from './auth/api-exception.filter';
+import { getDatabaseOptions } from './database/database.config';
 
 @Module({
   imports: [
@@ -31,16 +32,7 @@ import { ApiExceptionFilter } from './auth/api-exception.filter';
       rootPath: join(process.cwd(), 'uploads'),
       serveRoot: '/uploads',
     }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST || '127.0.0.1',
-      port: +(process.env.DB_PORT || 5433),
-      username: process.env.DB_USER || 'watched',
-      password: process.env.DB_PASSWORD || 'watched',
-      database: process.env.DB_NAME || 'watched',
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true, // In development only
-    }),
+    TypeOrmModule.forRoot(getDatabaseOptions()),
     GamesModule,
     DirectorsModule,
     MoviesModule,

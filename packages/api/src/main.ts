@@ -2,10 +2,29 @@ import { NestFactory } from '@nestjs/core';
 import { ApplicationValidationPipe } from './common/application-validation.pipe';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { requireMigrations } from './database/require-migrations';
 
 import 'dotenv/config';
 
+function validateProductionEnv(): void {
+  for (const name of [
+    'JWT_SECRET',
+    'JWT_ALGORITHM',
+    'JWT_EXPIRES_IN',
+    'CORS_ORIGIN',
+  ]) {
+    if (!process.env[name]?.trim()) {
+      throw new Error(`${name} is required in production`);
+    }
+  }
+}
+
 async function bootstrap() {
+  if (process.env.NODE_ENV === 'production') {
+    validateProductionEnv();
+    await requireMigrations();
+  }
+
   const app = await NestFactory.create(AppModule);
 
   // Enable global validation
