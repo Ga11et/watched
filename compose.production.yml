@@ -5,7 +5,7 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     env_file:
-      - .env.production.local
+      - .env.production.api.local
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -18,7 +18,7 @@ services:
     image: watched-api:local
     pull_policy: never
     env_file:
-      - .env.production.local
+      - .env.production.api.local
     ports:
       - '127.0.0.1:33010:33010'
     volumes:
@@ -33,6 +33,25 @@ services:
       retries: 20
     depends_on:
       db:
+        condition: service_healthy
+
+  client:
+    image: watched-client:local
+    pull_policy: never
+    env_file:
+      - .env.production.client.local
+    ports:
+      - '127.0.0.1:33000:33000'
+    healthcheck:
+      test: >-
+        node -e "fetch('http://127.0.0.1:33000/login')
+        .then(r => process.exit(r.ok ? 0 : 1))
+        .catch(() => process.exit(1))"
+      interval: 2s
+      timeout: 3s
+      retries: 5
+    depends_on:
+      api:
         condition: service_healthy
 
 volumes:

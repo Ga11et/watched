@@ -3,7 +3,6 @@ WORKDIR /workspace
 RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/api/package.json packages/api/package.json
-COPY packages/client/package.json packages/client/package.json
 RUN pnpm --filter api install --prod --frozen-lockfile --ignore-scripts
 
 FROM dependencies AS build

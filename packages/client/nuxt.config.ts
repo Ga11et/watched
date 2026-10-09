@@ -11,8 +11,9 @@ export default defineNuxtConfig({
   },
   modules: ['@nuxtjs/tailwindcss', '@vueuse/nuxt', '@nuxt/eslint'],
   runtimeConfig: {
+    apiBase: '',
     public: {
-      apiBase: 'http://localhost:33010', // Your NestJS server URL
+      apiBase: '', // Your NestJS server URL
       tmdbApiKey: '',
       rawgApiKey: '',
     },

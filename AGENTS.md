@@ -4,12 +4,17 @@
 
 - Перед изменениями в `packages/client/` прочитайте [правило проверки фронтенда](docs/rules/frontend-verification.md).
 
-## Production API
+## Production
 
-- Локальная runtime-конфигурация: скопируйте `.env.production.example` в
-  `.env.production.local`, заполните `POSTGRES_PASSWORD` и `JWT_SECRET`. Храните файл локально.
-- Первый запуск: `pnpm prod:build`, отдельно `docker pull postgres:16-alpine`,
-  затем `pnpm prod:migrate` и `pnpm prod:start`.
+- Локальная runtime-конфигурация API и БД: скопируйте `.env.production.api.example` в
+  `.env.production.api.local`, заполните `POSTGRES_PASSWORD` и `JWT_SECRET`.
+  Для клиента скопируйте `.env.production.client.example` в `.env.production.client.local`.
+  Храните оба локальных файла вне Git; Compose передаёт их сервисам через `env_file`.
+- Первый запуск: `pnpm prod:build`, затем `pnpm prod:migrate` и `pnpm prod:start`.
+  Сборка подготавливает образы API, Nuxt и PostgreSQL, не запуская сервисы.
+- Фронтенд: `http://127.0.0.1:33000`; прямой API и Swagger: `http://127.0.0.1:33010`.
+  Браузер обращается к API напрямую; SSR через `_fetch` использует внутренний адрес `http://api:33010`.
+  `CORS_ORIGIN` должен совпадать с origin фронтенда (`http://127.0.0.1:33000`).
 - Миграции и запуск используют только локальные образы. `pnpm prod:stop` сохраняет volumes.
 
 ## Модули

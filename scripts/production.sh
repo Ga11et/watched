@@ -8,33 +8,38 @@ compose() {
 }
 
 require_env_file() {
-  if [[ ! -f "$ROOT_DIR/.env.production.local" ]]; then
-    echo "Create .env.production.local from .env.production.example and set POSTGRES_PASSWORD and JWT_SECRET." >&2
-    exit 1
-  fi
+  for file in .env.production.api.local .env.production.client.local; do
+    if [[ ! -f "$ROOT_DIR/$file" ]]; then
+      echo "Create $file from ${file%.local}.example before running production services." >&2
+      exit 1
+    fi
+  done
 }
 
 require_local_images() {
-  if ! docker image inspect watched-api:local >/dev/null 2>&1; then
-    echo "Missing watched-api:local. Run pnpm prod:build first." >&2
-    exit 1
-  fi
-  if ! docker image inspect postgres:16-alpine >/dev/null 2>&1; then
-    echo "Missing postgres:16-alpine. Run docker pull postgres:16-alpine first." >&2
-    exit 1
-  fi
+  for image in "$@"; do
+    if ! docker image inspect "$image" >/dev/null 2>&1; then
+      echo "Missing $image. Run pnpm prod:build first." >&2
+      exit 1
+    fi
+  done
 }
 
 case "${1:-}" in
   build)
-    docker build \
-      -f "$ROOT_DIR/Dockerfile.api" \
-      -t watched-api:local \
-      "$ROOT_DIR"
+    for service in api client; do
+      docker build \
+        -f "$ROOT_DIR/Dockerfile.$service" \
+        -t "watched-$service:local" \
+        "$ROOT_DIR"
+    done
+    if ! docker image inspect postgres:16-alpine >/dev/null 2>&1; then
+      docker pull postgres:16-alpine
+    fi
     ;;
   migrate)
     require_env_file
-    require_local_images
+    require_local_images watched-api:local postgres:16-alpine
     compose up -d --no-build --pull never \
       --wait --wait-timeout 60 db
     compose run --rm --no-deps --pull never api \
@@ -43,10 +48,10 @@ case "${1:-}" in
     ;;
   start)
     require_env_file
-    require_local_images
+    require_local_images watched-api:local watched-client:local postgres:16-alpine
     if ! compose up -d --no-build --pull never \
       --wait --wait-timeout 60; then
-      compose logs --tail 20 api
+      compose logs --tail 20 api client
       exit 1
     fi
     ;;

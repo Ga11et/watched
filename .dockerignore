@@ -7,6 +7,11 @@
 **/.env*
 **/uploads
 backups
+**/pgdata
+**/postgres-data
+**/.local
+**/.config
+**/.cache
 **/*.sql
 **/*.dump
 **/*.pem
