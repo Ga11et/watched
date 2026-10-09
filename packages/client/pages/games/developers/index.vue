@@ -34,7 +34,10 @@
       ></div>
     </div>
 
-    <UiEmpty v-else-if="!developers?.length" entity-name="разработчик" />
+    <UiEmpty
+      v-else-if="!developers?.length"
+      message="Разработчиков пока нет. Добавьте своего первого разработчика!"
+    />
 
     <Transition name="fade" mode="out-in">
       <EntitiesDevelopersCardsView

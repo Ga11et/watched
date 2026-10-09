@@ -28,7 +28,10 @@
       </div>
     </div>
 
-    <UiEmpty v-if="!directors?.length" entity-name="режиссёр" />
+    <UiEmpty
+      v-if="!directors?.length"
+      message="Режиссёров пока нет. Добавьте своего первого режиссёра!"
+    />
 
     <Transition name="fade" mode="out-in">
       <EntitiesDirectorsCardsView
@@ -38,7 +41,7 @@
         :sort-order="sortOrder"
         :search-query="searchQuery"
         @update-sorting="updateSorting"
-        @update:searchQuery="updateSearchQuery"
+        @update:search-query="updateSearchQuery"
       />
       <EntitiesDirectorsTableView
         v-else

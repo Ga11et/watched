@@ -164,7 +164,9 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: null,
+  manualQuery: '',
   placeholder: 'Поиск книги...',
+  error: '',
 })
 
 const emit = defineEmits<Emits>()
@@ -206,7 +208,7 @@ watch(
 const mapLocalBook = (book: Book): UserBookSearchResult => ({
   id: book.id,
   title: book.title,
-  authors: book.author?.fullName ? [book.author.fullName] : [],
+  authors: book.authors?.map((author) => author.fullName) ?? [],
   description: book.comment || undefined,
   cover: book.cover || undefined,
   publishedDate: book.publishYear ? String(book.publishYear) : undefined,

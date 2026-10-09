@@ -15,7 +15,7 @@
           <h1 class="text-xl md:text-2xl font-semibold text-gray-900">
             {{ director?.fullName || 'Режиссёр' }}
           </h1>
-          <p class="mt-1 text-sm text-gray-500" v-if="director">Детали режиссёра</p>
+          <p v-if="director" class="mt-1 text-sm text-gray-500">Детали режиссёра</p>
         </div>
         <div class="flex items-center gap-3">
           <NuxtLink
@@ -25,9 +25,9 @@
             Редактировать
           </NuxtLink>
           <button
-            @click="onDelete"
             :disabled="deleting"
             class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-white shadow-sm transition hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed"
+            @click="onDelete"
           >
             <svg
               v-if="deleting"

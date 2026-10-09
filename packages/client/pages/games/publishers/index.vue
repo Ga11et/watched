@@ -34,7 +34,10 @@
       ></div>
     </div>
 
-    <UiEmpty v-else-if="!publishers?.length" entity-name="издатель" />
+    <UiEmpty
+      v-else-if="!publishers?.length"
+      message="Издателей пока нет. Добавьте своего первого издателя!"
+    />
 
     <Transition name="fade" mode="out-in">
       <EntitiesPublishersCardsView
