@@ -83,7 +83,7 @@
 import type { TmdbMovie } from '~/types/api'
 
 // Конфигурация
-const { request } = useApiRequest()
+const moviesApi = useMovies()
 const config = useRuntimeConfig()
 
 // Состояние
@@ -280,10 +280,7 @@ const onSubmit = async () => {
       formData.append('poster', posterFile.value)
     }
 
-    await request(`/movies`, {
-      method: 'POST',
-      body: formData,
-    })
+    await moviesApi.create(formData)
 
     // Clear localStorage after successful submission
     draftCleared.value = true

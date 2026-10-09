@@ -55,18 +55,9 @@
 </template>
 
 <script setup lang="ts">
-interface Director {
-  id: string
-  fullName: string
-  country?: string
-  birthYear?: number
-  biography?: string
-  photo?: string
-  createdAt: string
-  updatedAt: string
-}
+import type { Director } from '~/types/api'
 
-const { request } = useApiRequest()
+const directorsApi = useDirectors()
 const error = ref<string>('')
 
 const viewMode = useCookie<'cards' | 'table'>('watched_directors_view_mode', {
@@ -100,11 +91,9 @@ const { data: directors } = await useAsyncData<Director[]>(
   async () => {
     try {
       error.value = ''
-      return await request<Director[]>(`/directors`, {
-        params: {
-          sortBy: sortBy.value,
-          sortOrder: sortOrder.value,
-        },
+      return await directorsApi.list({
+        sortBy: sortBy.value,
+        sortOrder: sortOrder.value,
       })
     } catch {
       error.value = 'Не удалось загрузить режиссёров'

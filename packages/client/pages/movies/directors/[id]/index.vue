@@ -88,18 +88,17 @@
 </template>
 
 <script setup lang="ts">
-import type { Director, Movie } from '~/types/api'
-
 const route = useRoute()
 const router = useRouter()
-const { request } = useApiRequest()
+const directorsApi = useDirectors()
+const moviesApi = useMovies()
 const error = ref('')
 const deleting = ref(false)
 
 const { data: director, pending } = await useAsyncData(`director-${route.params.id}`, async () => {
   try {
     error.value = ''
-    return await request<Director>(`/directors/${route.params.id}`)
+    return await directorsApi.get(String(route.params.id))
   } catch (e) {
     const err = e as { data?: { message?: string } }
     error.value = err?.data?.message || 'Не удалось загрузить режиссёра'
@@ -111,9 +110,7 @@ const { data: directorMovies } = await useAsyncData(
   `director-movies-${route.params.id}`,
   async () => {
     try {
-      return await request<Movie[]>(`/movies`, {
-        params: { directorId: route.params.id },
-      })
+      return await moviesApi.list({ directorId: String(route.params.id) })
     } catch {
       return []
     }
@@ -125,7 +122,7 @@ const onDelete = async () => {
   if (!confirm('Удалить этого режиссёра? Это действие нельзя отменить.')) return
   deleting.value = true
   try {
-    await request(`/directors/${route.params.id}`, { method: 'DELETE' })
+    await directorsApi.remove(String(route.params.id))
     router.push('/movies/directors')
   } catch (e) {
     const err = e as { data?: { message?: string } }

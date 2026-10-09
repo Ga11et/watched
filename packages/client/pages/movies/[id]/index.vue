@@ -70,16 +70,14 @@
 </template>
 
 <script setup lang="ts">
-import type { Movie } from '~/types/api'
-
 const route = useRoute()
 const router = useRouter()
-const { request } = useApiRequest()
+const moviesApi = useMovies()
 const error = ref('')
 const deleting = ref(false)
 
 const { data: movie, pending } = await useAsyncData(`movie-${route.params.id}`, async () => {
-  return await request<Movie>(`/movies/${route.params.id}`)
+  return await moviesApi.get(String(route.params.id))
 })
 
 const onDelete = async () => {
@@ -87,7 +85,7 @@ const onDelete = async () => {
   if (!confirm('Удалить этот фильм? Это действие нельзя отменить.')) return
   deleting.value = true
   try {
-    await request(`/movies/${route.params.id}`, { method: 'DELETE' })
+    await moviesApi.remove(String(route.params.id))
     router.push('/movies')
   } catch (e: unknown) {
     const err = e as { data?: { message?: string } }

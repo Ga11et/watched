@@ -109,11 +109,9 @@
 </template>
 
 <script setup lang="ts">
-import type { Movie } from '~/types/api'
-
 const props = defineProps<{ movieId: string }>()
 const emit = defineEmits<{ 'title-loaded': [title: string] }>()
-const { request } = useApiRequest()
+const moviesApi = useMovies()
 const config = useRuntimeConfig()
 const router = useRouter()
 
@@ -151,7 +149,7 @@ const { data: movie, pending: loading } = useAsyncData(
   async () => {
     try {
       loadError.value = ''
-      return await request<Movie>(`/movies/${props.movieId}`)
+      return await moviesApi.get(props.movieId)
     } catch (e) {
       const err = e as { data?: { message?: string } }
       loadError.value = err.data?.message || 'Не удалось загрузить фильм'
@@ -296,10 +294,7 @@ const onSubmit = async () => {
       formData.append('removePoster', 'true')
     }
 
-    await request(`/movies/${props.movieId}`, {
-      method: 'PUT',
-      body: formData,
-    })
+    await moviesApi.update(props.movieId, formData)
 
     await router.push(`/movies/${props.movieId}`)
   } catch (e) {
