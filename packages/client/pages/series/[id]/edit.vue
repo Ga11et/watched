@@ -297,6 +297,7 @@
 
 <script setup lang="ts">
 const route = useRoute()
+const { request } = useApiRequest()
 const config = useRuntimeConfig()
 
 const loadError = ref('')
@@ -325,7 +326,7 @@ const { data: series, pending } = await useAsyncData(
   async () => {
     try {
       loadError.value = ''
-      const data = await _fetch<{
+      const data = await request<{
         id: string
         title: string
         genres?: string | null
@@ -336,7 +337,7 @@ const { data: series, pending } = await useAsyncData(
         watchedAt?: string | null
         comment?: string | null
         poster?: string | null
-      }>(`${config.public.apiBase}/series/${route.params.id}`)
+      }>(`/series/${route.params.id}`)
 
       form.value.title = data.title || ''
       form.value.genres = data.genres || ''
@@ -409,7 +410,7 @@ const onSubmit = async () => {
       formData.append('removePoster', 'true')
     }
 
-    await _fetch(`${config.public.apiBase}/series/${route.params.id}`, {
+    await request(`/series/${route.params.id}`, {
       method: 'PUT',
       body: formData,
     })
@@ -462,7 +463,7 @@ const loadFromTmdb = async () => {
   tmdbError.value = ''
 
   try {
-    const response = await _fetch<TmdbSearchResponse>(`https://api.themoviedb.org/3/search/tv`, {
+    const response = await $fetch<TmdbSearchResponse>(`https://api.themoviedb.org/3/search/tv`, {
       params: {
         api_key: config.public.tmdbApiKey,
         query: form.value.title.trim(),
@@ -481,7 +482,7 @@ const loadFromTmdb = async () => {
       // Fetch genres from TMDB
       if (series.genre_ids && series.genre_ids.length > 0) {
         try {
-          const genresResponse = await _fetch<TmdbGenresResponse>(
+          const genresResponse = await $fetch<TmdbGenresResponse>(
             `https://api.themoviedb.org/3/genre/tv/list`,
             {
               params: {

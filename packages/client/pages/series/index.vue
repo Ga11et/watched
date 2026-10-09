@@ -74,7 +74,7 @@
 
 <script setup>
 const error = ref('')
-const config = useRuntimeConfig()
+const { request } = useApiRequest()
 
 const viewMode = useCookie('watched_series_view_mode', {
   default: () => 'cards',
@@ -107,7 +107,7 @@ const { data: series } = await useAsyncData(
   async () => {
     try {
       error.value = ''
-      return await _fetch(`${config.public.apiBase}/series`, {
+      return await request(`/series`, {
         params: {
           sortBy: sortBy.value,
           sortOrder: sortOrder.value,

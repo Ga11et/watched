@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent="onSubmit" class="px-6 py-6">
+  <form class="px-6 py-6" @submit.prevent="onSubmit">
     <div class="flex gap-6">
       <UiPhotoUpload
         v-model="coverFile"
@@ -69,7 +69,7 @@
 import type { GoogleBook } from '~/components/integrations/google-books.service'
 import type { Author } from '~/types/api'
 
-const config = useRuntimeConfig()
+const { request } = useApiRequest()
 const router = useRouter()
 const submitting = ref(false)
 const error = ref('')
@@ -183,15 +183,19 @@ const onSubmit = async () => {
       formData.append('cover', coverFile.value)
     }
 
-    await _fetch(`${config.public.apiBase}/books`, {
+    await request(`/books`, {
       method: 'POST',
       body: formData,
     })
 
     await router.push('/books')
-  } catch (e: any) {
-    const base = e?.data?.message || e?.message || 'Произошла ошибка при создании книги'
-    const violations = e?.data?.violations
+  } catch (e: unknown) {
+    const err = e as {
+      message?: string
+      data?: { message?: string; violations?: Array<{ field: string; message: string }> }
+    }
+    const base = err?.data?.message || err?.message || 'Произошла ошибка при создании книги'
+    const violations = err?.data?.violations
     if (Array.isArray(violations) && violations.length) {
       violations.forEach((v) => {
         errors.value[v.field] = v.message

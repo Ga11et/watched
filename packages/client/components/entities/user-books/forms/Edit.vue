@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent="onSubmit" class="px-6 py-6">
+  <form class="px-6 py-6" @submit.prevent="onSubmit">
     <div v-if="loading" class="text-center py-6 text-gray-500">Загрузка...</div>
 
     <div
@@ -24,7 +24,7 @@
           <template #author>
             <div>
               <div class="text-sm text-gray-500">Автор</div>
-              <div class="mt-1 flex flex-wrap gap-2" v-if="userBook.book.authors?.length">
+              <div v-if="userBook.book.authors?.length" class="mt-1 flex flex-wrap gap-2">
                 <NuxtLink
                   v-for="author in userBook.book.authors"
                   :key="author.id"
@@ -155,12 +155,12 @@ const emit = defineEmits<{
 
 const router = useRouter()
 const route = useRoute()
-const config = useRuntimeConfig()
+const { request } = useApiRequest()
 
 const { data: userBook, pending: loading } = useAsyncData(
   `user-book-edit-${route.params.id}`,
   async () => {
-    return _fetch<UserBook>(`${config.public.apiBase}/user-books/${route.params.id}`)
+    return request<UserBook>(`/user-books/${route.params.id}`)
   },
   { server: false },
 )
@@ -215,15 +215,19 @@ const onSubmit = async () => {
     body['readAt'] = form.readAt
     body['comment'] = form.comment?.trim()
 
-    await _fetch(`${config.public.apiBase}/user-books/${props.userBookId}`, {
+    await request(`/user-books/${props.userBookId}`, {
       method: 'PUT',
       body,
     })
 
     await router.push(`/user-books/${props.userBookId}`)
-  } catch (e: any) {
-    const base = e?.data?.message || e?.message || 'Произошла ошибка при обновлении книги'
-    const violations = e?.data?.violations
+  } catch (e: unknown) {
+    const err = e as {
+      message?: string
+      data?: { message?: string; violations?: Array<{ field: string; message: string }> }
+    }
+    const base = err?.data?.message || err?.message || 'Произошла ошибка при обновлении книги'
+    const violations = err?.data?.violations
 
     if (Array.isArray(violations) && violations.length) {
       violations.forEach((v) => {

@@ -47,7 +47,7 @@
         :sort-order="sortOrder"
         :search-query="searchQuery"
         @update-sorting="updateSorting"
-        @update:searchQuery="updateSearchQuery"
+        @update:search-query="updateSearchQuery"
       />
       <EntitiesAuthorsTableView
         v-else
@@ -84,14 +84,14 @@ const searchQuery = ref('')
 
 // 3. Загрузка данных
 const error = ref<string>('')
-const config = useRuntimeConfig()
+const { request } = useApiRequest()
 
 const { data: authors, pending: loading } = await useAsyncData<Author[]>(
   'authors',
   async () => {
     try {
       error.value = ''
-      return await _fetch<Author[]>(`${config.public.apiBase}/authors`, {
+      return await request<Author[]>(`/authors`, {
         params: {
           sortBy: sortBy.value,
           sortOrder: sortOrder.value,
@@ -124,11 +124,6 @@ const filteredAuthors = computed(() => {
 
   return list.filter((author) => (author.fullName || '').toLowerCase().includes(query))
 })
-
-const sortOptions = [
-  { value: 'fullName', label: 'По имени' },
-  { value: 'createdAt', label: 'По дате добавления' },
-]
 
 // 5. Методы
 const updateSorting = (newSortBy: string): void => {

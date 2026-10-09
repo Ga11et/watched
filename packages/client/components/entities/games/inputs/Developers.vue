@@ -52,7 +52,7 @@ const emit = defineEmits<{
   'update:modelValue': [value: string[]]
 }>()
 
-const config = useRuntimeConfig()
+const { request } = useApiRequest()
 const route = useRoute()
 
 const searchQuery = ref('')
@@ -84,7 +84,7 @@ const syncSelectedOptions = async (ids?: string[]) => {
     resolvingSelected.value = true
     try {
       const loadedItems = await Promise.all(
-        missingIds.map((id) => _fetch<Developer>(`${config.public.apiBase}/developers/${id}`)),
+        missingIds.map((id) => request<Developer>(`/developers/${id}`)),
       )
 
       loadedItems.forEach((developer) => {
@@ -128,7 +128,7 @@ watch(searchQuery, (query) => {
 
   searchTimeout = setTimeout(async () => {
     try {
-      const results = await _fetch<Developer[]>(`${config.public.apiBase}/developers/search`, {
+      const results = await request<Developer[]>(`/developers/search`, {
         params: { q: query.trim() },
       })
 

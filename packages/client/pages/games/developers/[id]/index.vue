@@ -90,6 +90,7 @@
 <script setup lang="ts">
 const route = useRoute()
 const router = useRouter()
+const { request } = useApiRequest()
 const error = ref('')
 const deleting = ref(false)
 
@@ -114,9 +115,7 @@ interface Developer {
 const { data: developer, pending } = await useAsyncData(
   `developer-${route.params.id}`,
   async () => {
-    return await _fetch<Developer>(
-      `${useRuntimeConfig().public.apiBase}/developers/${route.params.id}`,
-    )
+    return await request<Developer>(`/developers/${route.params.id}`)
   },
 )
 
@@ -125,7 +124,7 @@ const onDelete = async () => {
   if (!confirm('Удалить этого разработчика? Это действие нельзя отменить.')) return
   deleting.value = true
   try {
-    await _fetch(`${useRuntimeConfig().public.apiBase}/developers/${route.params.id}`, {
+    await request(`/developers/${route.params.id}`, {
       method: 'DELETE',
     })
     router.push('/games/developers')

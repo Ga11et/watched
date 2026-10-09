@@ -121,6 +121,7 @@
 
 <script setup lang="ts">
 const route = useRoute()
+const { request } = useApiRequest()
 const config = useRuntimeConfig()
 
 const loadError = ref('')
@@ -146,14 +147,14 @@ const { data: publisher, pending } = await useAsyncData(
   async () => {
     try {
       loadError.value = ''
-      const data = await _fetch<{
+      const data = await request<{
         id: string
         fullName: string
         comment?: string | null
         photo?: string | null
         createdAt: string
         updatedAt: string
-      }>(`${config.public.apiBase}/publishers/${route.params.id}`)
+      }>(`/publishers/${route.params.id}`)
 
       form.value.fullName = data.fullName || ''
       form.value.comment = data.comment || ''
@@ -193,7 +194,7 @@ const onSubmit = async () => {
       formData.append('removePhoto', 'true')
     }
 
-    await _fetch(`${config.public.apiBase}/publishers/${route.params.id}`, {
+    await request(`/publishers/${route.params.id}`, {
       method: 'PUT',
       body: formData,
     })

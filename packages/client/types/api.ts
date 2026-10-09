@@ -10,6 +10,14 @@ interface BaseEntity {
   updatedAt: string
 }
 
+export interface User extends BaseEntity {
+  username: string | null
+  email: string | null
+  name: string
+  role: 'ADMIN' | 'USER' | 'GUEST'
+  isActive: boolean
+}
+
 // Авторы
 export interface Author extends BaseEntity {
   fullName: string
@@ -83,6 +91,12 @@ export interface UserMovie extends BaseEntity {
   watchedAt: string | null
   comment: string | null
   movie: Movie
+}
+
+export interface UserMovieStats {
+  total: number
+  thisMonth: number
+  avgRating: number | null
 }
 
 export interface CreateUserMovieDto {

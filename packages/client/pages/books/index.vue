@@ -44,7 +44,7 @@
         :sort-order="sortOrder"
         :search-query="searchQuery"
         @update-sorting="updateSorting"
-        @update:searchQuery="updateSearchQuery"
+        @update:search-query="updateSearchQuery"
       />
       <EntitiesBooksTableView
         v-else
@@ -59,6 +59,8 @@
 
 <script setup lang="ts">
 import type { Book } from '~/types/api'
+
+const { request } = useApiRequest()
 
 // 2. Конфигурация и состояние
 const viewMode = useCookie<'cards' | 'table'>('watched_books_view_mode', {
@@ -92,12 +94,11 @@ const searchQuery = ref('')
 
 // 3. Загрузка данных
 const error = ref<string>('')
-const config = useRuntimeConfig()
 
 const { data: books, pending: loading } = await useAsyncData<Book[]>('books', async () => {
   try {
     error.value = ''
-    return await _fetch<Book[]>(`${config.public.apiBase}/books`)
+    return await request<Book[]>(`/books`)
   } catch {
     error.value = 'Не удалось загрузить книги'
     return []

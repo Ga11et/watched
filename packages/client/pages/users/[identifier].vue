@@ -1,17 +1,8 @@
 <script setup lang="ts">
-interface User {
-  id: string
-  username: string | null
-  email: string | null
-  name: string
-  role: 'ADMIN' | 'USER' | 'GUEST'
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
-}
+import type { User } from '~/types/api'
 
 const route = useRoute()
-const config = useRuntimeConfig()
+const { get } = useUsers()
 
 const identifier = computed(() => String(route.params.identifier ?? ''))
 
@@ -23,7 +14,7 @@ const {
   () => `user-${identifier.value}`,
   async () => {
     if (!identifier.value) return null
-    return _fetch<User>(`${config.public.apiBase}/users/${identifier.value}`)
+    return get(identifier.value)
   },
   {
     watch: [identifier],

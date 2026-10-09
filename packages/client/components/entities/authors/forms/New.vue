@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent="onSubmit" class="px-6 py-6">
+  <form class="px-6 py-6" @submit.prevent="onSubmit">
     <div class="flex gap-6">
       <UiPhotoUpload
         v-model="photoFile"
@@ -52,7 +52,7 @@
 <script setup lang="ts">
 import type { TmdbPerson } from '~/types/api'
 
-const config = useRuntimeConfig()
+const { request } = useApiRequest()
 const route = useRoute()
 
 const submitting = ref(false)
@@ -125,16 +125,20 @@ const onSubmit = async () => {
       formData.append('photo', photoFile.value)
     }
 
-    await _fetch(`${config.public.apiBase}/authors`, {
+    await request(`/authors`, {
       method: 'POST',
       body: formData,
     })
 
     const redirectTo = route.query.redirectTo as string
     navigateTo(redirectTo || '/books/authors')
-  } catch (e: any) {
-    const base = e?.data?.message || e?.message || 'Произошла ошибка при создании автора'
-    const violations = e?.data?.violations
+  } catch (e: unknown) {
+    const err = e as {
+      message?: string
+      data?: { message?: string; violations?: Array<{ field: string; message: string }> }
+    }
+    const base = err?.data?.message || err?.message || 'Произошла ошибка при создании автора'
+    const violations = err?.data?.violations
     if (Array.isArray(violations) && violations.length) {
       violations.forEach((v) => {
         errors.value[v.field] = v.message

@@ -90,6 +90,7 @@
 <script setup lang="ts">
 const route = useRoute()
 const router = useRouter()
+const { request } = useApiRequest()
 const error = ref('')
 const deleting = ref(false)
 
@@ -114,9 +115,7 @@ interface Publisher {
 const { data: publisher, pending } = await useAsyncData(
   `publisher-${route.params.id}`,
   async () => {
-    return await _fetch<Publisher>(
-      `${useRuntimeConfig().public.apiBase}/publishers/${route.params.id}`,
-    )
+    return await request<Publisher>(`/publishers/${route.params.id}`)
   },
 )
 
@@ -125,7 +124,7 @@ const onDelete = async () => {
   if (!confirm('Удалить этого издателя? Это действие нельзя отменить.')) return
   deleting.value = true
   try {
-    await _fetch(`${useRuntimeConfig().public.apiBase}/publishers/${route.params.id}`, {
+    await request(`/publishers/${route.params.id}`, {
       method: 'DELETE',
     })
     router.push('/games/publishers')

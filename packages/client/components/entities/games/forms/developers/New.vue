@@ -80,7 +80,7 @@ interface FormRowConfig {
   fields: FormFieldConfig[]
 }
 
-const config = useRuntimeConfig()
+const { request } = useApiRequest()
 const route = useRoute()
 
 const submitting = ref(false)
@@ -164,7 +164,7 @@ const onSubmit = async () => {
 
     const payload = preparePayload()
 
-    await _fetch(`${config.public.apiBase}/developers`, {
+    await request(`/developers`, {
       method: 'POST',
       body: payload,
     })

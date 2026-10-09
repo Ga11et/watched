@@ -15,7 +15,7 @@
           <h1 class="text-xl md:text-2xl font-semibold text-gray-900">
             {{ author?.fullName || 'Автор' }}
           </h1>
-          <p class="mt-1 text-sm text-gray-500" v-if="author">Детали автора</p>
+          <p v-if="author" class="mt-1 text-sm text-gray-500">Детали автора</p>
         </div>
         <div class="flex items-center gap-3">
           <NuxtLink
@@ -25,9 +25,9 @@
             Редактировать
           </NuxtLink>
           <button
-            @click="onDelete"
             :disabled="deleting"
             class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-white shadow-sm transition hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed"
+            @click="onDelete"
           >
             <span>Удалить</span>
           </button>
@@ -54,12 +54,12 @@ import type { Author } from '~/types/api'
 
 const route = useRoute()
 const router = useRouter()
-const config = useRuntimeConfig()
+const { request } = useApiRequest()
 const error = ref('')
 const deleting = ref(false)
 
 const { data: author, pending } = await useAsyncData(`author-${route.params.id}`, async () => {
-  return await _fetch<Author>(`${config.public.apiBase}/authors/${route.params.id}`)
+  return await request<Author>(`/authors/${route.params.id}`)
 })
 
 const onDelete = async () => {
@@ -67,10 +67,11 @@ const onDelete = async () => {
   if (!confirm('Удалить этого автора? Это действие нельзя отменить.')) return
   deleting.value = true
   try {
-    await _fetch(`${config.public.apiBase}/authors/${route.params.id}`, { method: 'DELETE' })
+    await request(`/authors/${route.params.id}`, { method: 'DELETE' })
     router.push('/books/authors')
-  } catch (e: any) {
-    error.value = e?.data?.message || 'Не удалось удалить автора'
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string } }
+    error.value = err?.data?.message || 'Не удалось удалить автора'
   } finally {
     deleting.value = false
   }

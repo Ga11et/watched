@@ -155,6 +155,7 @@
 <script setup>
 const route = useRoute()
 const router = useRouter()
+const { request } = useApiRequest()
 const config = useRuntimeConfig()
 const error = ref('')
 const deleting = ref(false)
@@ -162,7 +163,7 @@ const deleting = ref(false)
 const { data: series, pending } = await useAsyncData(`series-${route.params.id}`, async () => {
   try {
     error.value = ''
-    return await _fetch(`${config.public.apiBase}/series/${route.params.id}`)
+    return await request(`/series/${route.params.id}`)
   } catch (e) {
     error.value = e?.data?.message || 'Не удалось загрузить сериал'
     return null
@@ -174,7 +175,7 @@ const onDelete = async () => {
   if (!confirm('Удалить этот сериал? Это действие нельзя отменить.')) return
   deleting.value = true
   try {
-    await _fetch(`${config.public.apiBase}/series/${route.params.id}`, { method: 'DELETE' })
+    await request(`/series/${route.params.id}`, { method: 'DELETE' })
     router.push('/series')
   } catch (e) {
     error.value = e?.data?.message || 'Не удалось удалить сериал'

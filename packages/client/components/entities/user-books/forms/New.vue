@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent="onSubmit" class="px-6 py-6">
+  <form class="px-6 py-6" @submit.prevent="onSubmit">
     <div class="flex gap-6">
       <UiPhotoUpload
         v-model="coverFile"
@@ -29,32 +29,32 @@
 
         <template #authorId>
           <EntitiesUserBooksInputsAuthors
-            :disabled="isLocal"
             v-model="coreBookForm.authors"
+            :disabled="isLocal"
             :error="errors.authors"
           />
         </template>
 
         <template #genre>
           <EntitiesUserBooksInputsGanre
-            :disabled="isLocal"
             v-model="coreBookForm.genre"
+            :disabled="isLocal"
             :error="errors.genre"
           />
         </template>
 
         <template #pageCount>
           <EntitiesUserBooksInputsPages
-            :disabled="isLocal"
             v-model="coreBookForm.pageCount"
+            :disabled="isLocal"
             :error="errors.pageCount"
           />
         </template>
 
         <template #publishYear>
           <EntitiesUserBooksInputsPublished
-            :disabled="isLocal"
             v-model="coreBookForm.publishYear"
+            :disabled="isLocal"
             :error="errors.publishYear"
           />
         </template>
@@ -102,6 +102,7 @@
 import type { Author, Book } from '~/types/api'
 import type { GoogleBook } from '~/components/integrations/google-books.service'
 
+const { request } = useApiRequest()
 const config = useRuntimeConfig()
 const router = useRouter()
 const submitting = ref(false)
@@ -260,15 +261,19 @@ const onSubmit = async () => {
       formData.append('publishYear', coreBookForm.publishYear.toString())
     }
 
-    await _fetch(`${config.public.apiBase}/user-books`, {
+    await request(`/user-books`, {
       method: 'POST',
       body: formData,
     })
 
     await router.push('/user-books')
-  } catch (e: any) {
-    const base = e?.data?.message || e?.message || 'Не удалось создать книгу'
-    const violations = e?.data?.violations
+  } catch (e: unknown) {
+    const err = e as {
+      message?: string
+      data?: { message?: string; violations?: Array<{ field: string; message: string }> }
+    }
+    const base = err?.data?.message || err?.message || 'Не удалось создать книгу'
+    const violations = err?.data?.violations
     if (Array.isArray(violations) && violations.length) {
       violations.forEach((v) => {
         errors.value[v.field] = v.message

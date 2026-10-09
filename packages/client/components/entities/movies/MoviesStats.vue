@@ -37,14 +37,10 @@
 </template>
 
 <script setup lang="ts">
-interface MovieStats {
-  total: number
-  thisMonth: number
-  avgRating?: number
-}
+import type { UserMovieStats } from '~/types/api'
 
 interface Props {
-  stats: MovieStats
+  stats: UserMovieStats
 }
 
 defineProps<Props>()

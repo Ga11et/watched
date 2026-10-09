@@ -109,10 +109,9 @@
 </template>
 
 <script setup lang="ts">
-import type { Movie } from '~/types/api'
-
 const props = defineProps<{ movieId: string }>()
 const emit = defineEmits<{ 'title-loaded': [title: string] }>()
+const moviesApi = useMovies()
 const config = useRuntimeConfig()
 const router = useRouter()
 
@@ -150,7 +149,7 @@ const { data: movie, pending: loading } = useAsyncData(
   async () => {
     try {
       loadError.value = ''
-      return await _fetch<Movie>(`${config.public.apiBase}/movies/${props.movieId}`)
+      return await moviesApi.get(props.movieId)
     } catch (e) {
       const err = e as { data?: { message?: string } }
       loadError.value = err.data?.message || 'Не удалось загрузить фильм'
@@ -204,7 +203,7 @@ const loadFromTmdb = async () => {
   tmdbError.value = ''
 
   try {
-    const response = await _fetch<TmdbSearchResponse>(`https://api.themoviedb.org/3/search/movie`, {
+    const response = await $fetch<TmdbSearchResponse>(`https://api.themoviedb.org/3/search/movie`, {
       params: {
         api_key: config.public.tmdbApiKey,
         query: form.value.title.trim(),
@@ -222,7 +221,7 @@ const loadFromTmdb = async () => {
       }
       if (movie.genre_ids && movie.genre_ids.length > 0) {
         try {
-          const genresResponse = await _fetch<TmdbGenresResponse>(
+          const genresResponse = await $fetch<TmdbGenresResponse>(
             `https://api.themoviedb.org/3/genre/movie/list`,
             {
               params: {
@@ -295,10 +294,7 @@ const onSubmit = async () => {
       formData.append('removePoster', 'true')
     }
 
-    await _fetch(`${config.public.apiBase}/movies/${props.movieId}`, {
-      method: 'PUT',
-      body: formData,
-    })
+    await moviesApi.update(props.movieId, formData)
 
     await router.push(`/movies/${props.movieId}`)
   } catch (e) {

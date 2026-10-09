@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent="onSubmit" class="px-6 py-6">
+  <form class="px-6 py-6" @submit.prevent="onSubmit">
     <div class="flex gap-6">
       <UiPhotoUpload
         v-model="coverFile"
@@ -143,6 +143,7 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
+const { request } = useApiRequest()
 const config = useRuntimeConfig()
 
 const loading = ref(true)
@@ -211,7 +212,7 @@ const loadGame = async () => {
   loading.value = true
   error.value = ''
   try {
-    const data = await _fetch<GameApiResponse>(`${config.public.apiBase}/games/${props.gameId}`)
+    const data = await request<GameApiResponse>(`/games/${props.gameId}`)
     form.title = data.title || ''
     form.completionDate = data.completionDate ? String(data.completionDate).slice(0, 10) : ''
     form.playTimeHours = typeof data.playTimeHours === 'number' ? data.playTimeHours : undefined
@@ -227,8 +228,9 @@ const loadGame = async () => {
     }
 
     emit('title-loaded', form.title)
-  } catch (e: any) {
-    error.value = e?.data?.message || e?.message || 'Не удалось загрузить игру'
+  } catch (e: unknown) {
+    const err = e as { message?: string; data?: { message?: string } }
+    error.value = err?.data?.message || err?.message || 'Не удалось загрузить игру'
   } finally {
     loading.value = false
   }
@@ -293,15 +295,19 @@ const onSubmit = async () => {
       formData.append('removeCover', 'true')
     }
 
-    await _fetch(`${config.public.apiBase}/games/${props.gameId}`, {
+    await request(`/games/${props.gameId}`, {
       method: 'PUT',
       body: formData,
     })
 
     router.push(`/games/${props.gameId}`)
-  } catch (e: any) {
-    const base = e?.data?.message || e?.message || 'Не удалось сохранить изменения'
-    const violations = e?.data?.violations
+  } catch (e: unknown) {
+    const err = e as {
+      message?: string
+      data?: { message?: string; violations?: Array<{ field: string; message: string }> }
+    }
+    const base = err?.data?.message || err?.message || 'Не удалось сохранить изменения'
+    const violations = err?.data?.violations
 
     if (Array.isArray(violations) && violations.length) {
       violations.forEach((v) => {
