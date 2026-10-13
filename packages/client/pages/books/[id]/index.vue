@@ -49,16 +49,14 @@
 </template>
 
 <script setup lang="ts">
-import type { Book } from '~/types/api'
-
 const route = useRoute()
 const router = useRouter()
-const { request } = useApiRequest()
+const { get, remove } = useBooks()
 const error = ref('')
 const deleting = ref(false)
 
 const { data: book, pending } = await useAsyncData(`book-${route.params.id}`, async () => {
-  return await request<Book>(`/books/${route.params.id}`)
+  return await get(String(route.params.id))
 })
 
 const onDelete = async () => {
@@ -66,7 +64,7 @@ const onDelete = async () => {
   if (!confirm('Удалить эту книгу? Это действие нельзя отменить.')) return
   deleting.value = true
   try {
-    await request(`/books/${route.params.id}`, { method: 'DELETE' })
+    await remove(String(route.params.id))
     router.push('/books')
   } catch (e: unknown) {
     const err = e as { data?: { message?: string } }

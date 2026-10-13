@@ -170,7 +170,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<Emits>()
-const { request } = useApiRequest()
+const { search } = useBooks()
 const config = useRuntimeConfig()
 
 const searchQuery = ref(props.modelValue?.title ?? '')
@@ -232,12 +232,7 @@ const fetchLocalBooks = async (query: string): Promise<UserBookSearchResult[]> =
   if (!term) return []
 
   try {
-    const books = await request<Book[]>(`/books`, {
-      params: {
-        search: term,
-        limit: 5,
-      },
-    })
+    const books = await search(term, 5)
     return books.map(mapLocalBook)
   } catch {
     return []

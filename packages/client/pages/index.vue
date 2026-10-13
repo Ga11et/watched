@@ -1,6 +1,7 @@
 <script setup>
 const { request } = useApiRequest()
 const { stats: movieStats } = useUserMovies()
+const { stats: bookStats } = useUserBooks()
 
 // Fetch dashboard data
 const {
@@ -12,7 +13,7 @@ const {
     const [allMovies, allGames, allBooks, allSeries] = await Promise.all([
       movieStats(),
       request(`/games/stats`),
-      request(`/user-books/stats`),
+      bookStats(),
       request(`/series/stats`),
     ])
 

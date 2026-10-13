@@ -21,8 +21,8 @@ export interface User extends BaseEntity {
 // Авторы
 export interface Author extends BaseEntity {
   fullName: string
-  photo?: string
-  comment?: string
+  photo?: string | null
+  comment?: string | null
 }
 
 // Разработчики
@@ -56,6 +56,18 @@ export interface UserBook extends BaseEntity {
   readAt?: string | null
   comment?: string | null
   book: Book
+}
+
+export interface UpdateUserBookDto {
+  rating?: number
+  readAt?: string
+  comment?: string
+}
+
+export interface UserBookStats {
+  total: number
+  thisMonth: number
+  avgRating: number | null
 }
 
 export interface CreateBookDto {

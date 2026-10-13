@@ -52,7 +52,7 @@
 <script setup lang="ts">
 import type { TmdbPerson } from '~/types/api'
 
-const { request } = useApiRequest()
+const { create } = useAuthors()
 const route = useRoute()
 
 const submitting = ref(false)
@@ -125,10 +125,7 @@ const onSubmit = async () => {
       formData.append('photo', photoFile.value)
     }
 
-    await request(`/authors`, {
-      method: 'POST',
-      body: formData,
-    })
+    await create(formData)
 
     const redirectTo = route.query.redirectTo as string
     navigateTo(redirectTo || '/books/authors')

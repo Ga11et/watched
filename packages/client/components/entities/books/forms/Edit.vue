@@ -100,7 +100,7 @@
 
 <script setup lang="ts">
 import type { GoogleBook } from '~/components/integrations/google-books.service'
-import type { Author, Book } from '~/types/api'
+import type { Author } from '~/types/api'
 
 interface Props {
   bookId: string
@@ -112,7 +112,7 @@ const emit = defineEmits<{
   'title-loaded': [title: string]
 }>()
 
-const { request } = useApiRequest()
+const { get, update } = useBooks()
 const config = useRuntimeConfig()
 const router = useRouter()
 
@@ -147,7 +147,7 @@ const { data: book, pending: loading } = useAsyncData(
   async () => {
     try {
       loadError.value = ''
-      return await request<Book>(`/books/${props.bookId}`)
+      return await get(props.bookId)
     } catch (e: unknown) {
       const err = e as { data?: { message?: string } }
       loadError.value = err?.data?.message || 'Не удалось загрузить книгу'
@@ -268,10 +268,7 @@ const onSubmit = async () => {
       formData.append('removeCover', 'true')
     }
 
-    await request(`/books/${props.bookId}`, {
-      method: 'PUT',
-      body: formData,
-    })
+    await update(props.bookId, formData)
 
     await router.push(`/books/${props.bookId}`)
   } catch (e: unknown) {

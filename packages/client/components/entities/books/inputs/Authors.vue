@@ -49,7 +49,7 @@ withDefaults(defineProps<Props>(), {
 
 const model = defineModel<Author[]>({ default: () => [] })
 
-const { request } = useApiRequest()
+const { search } = useAuthors()
 const route = useRoute()
 
 const searchQuery = ref('')
@@ -93,9 +93,7 @@ watch(
 const fetchAuthors = async (query: string) => {
   loading.value = true
   try {
-    const results = await request<Author[]>(`/authors/search`, {
-      params: { q: query },
-    })
+    const results = await search(query)
 
     results.forEach((a) => authorMap.set(a.id, a))
 

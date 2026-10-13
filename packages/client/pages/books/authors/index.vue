@@ -84,18 +84,16 @@ const searchQuery = ref('')
 
 // 3. Загрузка данных
 const error = ref<string>('')
-const { request } = useApiRequest()
+const { list } = useAuthors()
 
 const { data: authors, pending: loading } = await useAsyncData<Author[]>(
   'authors',
   async () => {
     try {
       error.value = ''
-      return await request<Author[]>(`/authors`, {
-        params: {
-          sortBy: sortBy.value,
-          sortOrder: sortOrder.value,
-        },
+      return await list({
+        sortBy: sortBy.value,
+        sortOrder: sortOrder.value,
       })
     } catch {
       error.value = 'Не удалось загрузить авторов'

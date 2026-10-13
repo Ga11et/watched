@@ -102,7 +102,7 @@
 import type { Author, Book } from '~/types/api'
 import type { GoogleBook } from '~/components/integrations/google-books.service'
 
-const { request } = useApiRequest()
+const { create } = useUserBooks()
 const config = useRuntimeConfig()
 const router = useRouter()
 const submitting = ref(false)
@@ -261,10 +261,7 @@ const onSubmit = async () => {
       formData.append('publishYear', coreBookForm.publishYear.toString())
     }
 
-    await request(`/user-books`, {
-      method: 'POST',
-      body: formData,
-    })
+    await create(formData)
 
     await router.push('/user-books')
   } catch (e: unknown) {

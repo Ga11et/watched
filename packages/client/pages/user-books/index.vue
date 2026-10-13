@@ -61,7 +61,7 @@
 <script setup lang="ts">
 import type { UserBook } from '~/types/api'
 
-const { request } = useApiRequest()
+const { list } = useUserBooks()
 
 // 2. Конфигурация и состояние
 const viewMode = useCookie<'cards' | 'table'>('watched_books_view_mode', {
@@ -113,7 +113,7 @@ const error = ref<string>('')
 const { data: books, pending: loading } = await useAsyncData<UserBook[]>('user-books', async () => {
   try {
     error.value = ''
-    return await request<UserBook[]>(`/user-books`)
+    return await list()
   } catch {
     error.value = 'Не удалось загрузить книги'
     return []

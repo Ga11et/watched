@@ -79,7 +79,7 @@ const emit = defineEmits<{
   'name-loaded': [name: string]
 }>()
 
-const { request } = useApiRequest()
+const { get, update } = useAuthors()
 const config = useRuntimeConfig()
 const router = useRouter()
 
@@ -103,21 +103,12 @@ const formLayout = [
   { columns: 1, fields: [{ id: 'comment' }] },
 ]
 
-interface AuthorData {
-  id: string
-  fullName: string
-  comment?: string | null
-  photo?: string | null
-  createdAt: string
-  updatedAt: string
-}
-
 const { data: author, pending: loading } = useAsyncData(
   `author-edit-${props.authorId}`,
   async () => {
     try {
       loadError.value = ''
-      return await request<AuthorData>(`/authors/${props.authorId}`)
+      return await get(props.authorId)
     } catch (e: unknown) {
       const err = e as { data?: { message?: string } }
       loadError.value = err?.data?.message || 'Не удалось загрузить автора'
@@ -197,10 +188,7 @@ const onSubmit = async () => {
       formData.append('removePhoto', 'true')
     }
 
-    await request(`/authors/${props.authorId}`, {
-      method: 'PUT',
-      body: formData,
-    })
+    await update(props.authorId, formData)
 
     await router.push(`/books/authors/${props.authorId}`)
   } catch (e: unknown) {
