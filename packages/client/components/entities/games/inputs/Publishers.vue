@@ -29,8 +29,6 @@
 </template>
 
 <script setup lang="ts">
-import type { Publisher } from '~/types/api'
-
 interface SelectOption {
   value: string
   label: string
@@ -52,7 +50,7 @@ const emit = defineEmits<{
   'update:modelValue': [value: string[]]
 }>()
 
-const { request } = useApiRequest()
+const { get, search } = usePublishers()
 const route = useRoute()
 
 const searchQuery = ref('')
@@ -83,9 +81,7 @@ const syncSelectedOptions = async (ids?: string[]) => {
   if (missingIds.length > 0) {
     resolvingSelected.value = true
     try {
-      const loadedItems = await Promise.all(
-        missingIds.map((id) => request<Publisher>(`/publishers/${id}`)),
-      )
+      const loadedItems = await Promise.all(missingIds.map((id) => get(id)))
 
       loadedItems.forEach((publisher) => {
         currentMap.set(publisher.id, {
@@ -128,9 +124,7 @@ watch(searchQuery, (query) => {
 
   searchTimeout = setTimeout(async () => {
     try {
-      const results = await request<Publisher[]>(`/publishers/search`, {
-        params: { q: query.trim() },
-      })
+      const results = await search(query.trim())
 
       options.value = results.map((publisher) => ({
         value: publisher.id,

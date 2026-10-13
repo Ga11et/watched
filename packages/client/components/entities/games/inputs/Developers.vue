@@ -29,8 +29,6 @@
 </template>
 
 <script setup lang="ts">
-import type { Developer } from '~/types/api'
-
 interface SelectOption {
   value: string
   label: string
@@ -52,7 +50,7 @@ const emit = defineEmits<{
   'update:modelValue': [value: string[]]
 }>()
 
-const { request } = useApiRequest()
+const { get, search } = useDevelopers()
 const route = useRoute()
 
 const searchQuery = ref('')
@@ -83,9 +81,7 @@ const syncSelectedOptions = async (ids?: string[]) => {
   if (missingIds.length > 0) {
     resolvingSelected.value = true
     try {
-      const loadedItems = await Promise.all(
-        missingIds.map((id) => request<Developer>(`/developers/${id}`)),
-      )
+      const loadedItems = await Promise.all(missingIds.map((id) => get(id)))
 
       loadedItems.forEach((developer) => {
         currentMap.set(developer.id, {
@@ -128,9 +124,7 @@ watch(searchQuery, (query) => {
 
   searchTimeout = setTimeout(async () => {
     try {
-      const results = await request<Developer[]>(`/developers/search`, {
-        params: { q: query.trim() },
-      })
+      const results = await search(query.trim())
 
       options.value = results.map((developer) => ({
         value: developer.id,

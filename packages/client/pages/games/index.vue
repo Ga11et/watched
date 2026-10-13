@@ -90,7 +90,7 @@
 <script setup lang="ts">
 import type { Game } from '~/types/api'
 
-const { request } = useApiRequest()
+const { list } = useGames()
 
 const error = ref('')
 
@@ -116,11 +116,9 @@ const { data: games, pending: loading } = await useAsyncData<Game[]>(
   async () => {
     try {
       error.value = ''
-      return await request<Game[]>(`/games`, {
-        params: {
-          sortBy: sortBy.value,
-          sortOrder: sortOrder.value,
-        },
+      return await list({
+        sortBy: sortBy.value,
+        sortOrder: sortOrder.value,
       })
     } catch {
       error.value = 'Не удалось загрузить книги'

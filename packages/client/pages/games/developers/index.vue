@@ -81,18 +81,16 @@ const sortOrder = useCookie<'ASC' | 'DESC'>('watched_developers_sort_order', {
 const searchQuery = ref('')
 
 const error = ref<string>('')
-const { request } = useApiRequest()
+const { list } = useDevelopers()
 
 const { data: developers, pending: loading } = await useAsyncData<Developer[]>(
   'developers',
   async () => {
     try {
       error.value = ''
-      return await request<Developer[]>(`/developers`, {
-        params: {
-          sortBy: sortBy.value,
-          sortOrder: sortOrder.value,
-        },
+      return await list({
+        sortBy: sortBy.value,
+        sortOrder: sortOrder.value,
       })
     } catch {
       error.value = 'Не удалось загрузить разработчиков'

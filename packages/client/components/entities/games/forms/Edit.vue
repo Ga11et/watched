@@ -107,22 +107,6 @@
 <script setup lang="ts">
 import type { IGDBGame } from '~/components/integrations/igdb-games.service'
 
-interface NamedEntity {
-  id: string
-}
-
-interface GameApiResponse {
-  id: string
-  title: string
-  completionDate: string | null
-  playTimeHours: number | null
-  comment: string | null
-  rating: number | null
-  cover: string | null
-  developers?: NamedEntity[]
-  publishers?: NamedEntity[]
-}
-
 interface FormFieldConfig {
   id: string
 }
@@ -143,7 +127,7 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
-const { request } = useApiRequest()
+const { get, update } = useGames()
 const config = useRuntimeConfig()
 
 const loading = ref(true)
@@ -212,7 +196,7 @@ const loadGame = async () => {
   loading.value = true
   error.value = ''
   try {
-    const data = await request<GameApiResponse>(`/games/${props.gameId}`)
+    const data = await get(props.gameId)
     form.title = data.title || ''
     form.completionDate = data.completionDate ? String(data.completionDate).slice(0, 10) : ''
     form.playTimeHours = typeof data.playTimeHours === 'number' ? data.playTimeHours : undefined
@@ -295,10 +279,7 @@ const onSubmit = async () => {
       formData.append('removeCover', 'true')
     }
 
-    await request(`/games/${props.gameId}`, {
-      method: 'PUT',
-      body: formData,
-    })
+    await update(props.gameId, formData)
 
     router.push(`/games/${props.gameId}`)
   } catch (e: unknown) {

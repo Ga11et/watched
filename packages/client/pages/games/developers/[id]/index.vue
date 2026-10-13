@@ -90,32 +90,14 @@
 <script setup lang="ts">
 const route = useRoute()
 const router = useRouter()
-const { request } = useApiRequest()
+const { get, remove } = useDevelopers()
 const error = ref('')
 const deleting = ref(false)
-
-interface DeveloperGame {
-  id: string
-  title: string
-  completionDate?: string | null
-  playTimeHours?: number | null
-  rating?: number | null
-}
-
-interface Developer {
-  id: string
-  fullName: string
-  comment?: string | null
-  photo?: string | null
-  games?: DeveloperGame[]
-  createdAt: string
-  updatedAt: string
-}
 
 const { data: developer, pending } = await useAsyncData(
   `developer-${route.params.id}`,
   async () => {
-    return await request<Developer>(`/developers/${route.params.id}`)
+    return await get(String(route.params.id))
   },
 )
 
@@ -124,12 +106,11 @@ const onDelete = async () => {
   if (!confirm('Удалить этого разработчика? Это действие нельзя отменить.')) return
   deleting.value = true
   try {
-    await request(`/developers/${route.params.id}`, {
-      method: 'DELETE',
-    })
+    await remove(String(route.params.id))
     router.push('/games/developers')
-  } catch (e: any) {
-    error.value = e?.data?.message || 'Не удалось удалить разработчика'
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string } }
+    error.value = err?.data?.message || 'Не удалось удалить разработчика'
   } finally {
     deleting.value = false
   }

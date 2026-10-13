@@ -28,15 +28,17 @@ export interface Author extends BaseEntity {
 // Разработчики
 export interface Developer extends BaseEntity {
   fullName: string
-  photo?: string
-  comment?: string
+  photo?: string | null
+  comment?: string | null
+  games?: Game[]
 }
 
 // Издатели
 export interface Publisher extends BaseEntity {
   fullName: string
-  photo?: string
-  comment?: string
+  photo?: string | null
+  comment?: string | null
+  games?: Game[]
 }
 
 // Книги
@@ -144,6 +146,7 @@ export interface Game extends BaseEntity {
   playTimeHours?: number
   comment?: string
   rating?: number // 0-100
+  cover?: string
   developers?: Developer[]
   publishers?: Publisher[]
 }

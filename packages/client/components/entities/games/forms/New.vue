@@ -87,7 +87,7 @@
 import type { IGDBGame } from '~/components/integrations/igdb-games.service'
 
 const router = useRouter()
-const { request } = useApiRequest()
+const { create } = useGames()
 const submitting = ref(false)
 const error = ref('')
 const errors = ref<Record<string, string>>({})
@@ -203,10 +203,7 @@ const onSubmit = async () => {
       formData.append('cover', coverFile.value)
     }
 
-    await request(`/games`, {
-      method: 'POST',
-      body: formData,
-    })
+    await create(formData)
 
     router.push('/')
   } catch (e: unknown) {

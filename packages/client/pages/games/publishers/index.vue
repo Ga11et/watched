@@ -81,18 +81,16 @@ const sortOrder = useCookie<'ASC' | 'DESC'>('watched_publishers_sort_order', {
 const searchQuery = ref('')
 
 const error = ref<string>('')
-const { request } = useApiRequest()
+const { list } = usePublishers()
 
 const { data: publishers, pending: loading } = await useAsyncData<Publisher[]>(
   'publishers',
   async () => {
     try {
       error.value = ''
-      return await request<Publisher[]>(`/publishers`, {
-        params: {
-          sortBy: sortBy.value,
-          sortOrder: sortOrder.value,
-        },
+      return await list({
+        sortBy: sortBy.value,
+        sortOrder: sortOrder.value,
       })
     } catch {
       error.value = 'Не удалось загрузить издателей'

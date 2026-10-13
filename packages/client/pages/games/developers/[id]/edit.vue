@@ -121,7 +121,7 @@
 
 <script setup lang="ts">
 const route = useRoute()
-const { request } = useApiRequest()
+const { get, update } = useDevelopers()
 const config = useRuntimeConfig()
 
 const loadError = ref('')
@@ -147,14 +147,7 @@ const { data: developer, pending } = await useAsyncData(
   async () => {
     try {
       loadError.value = ''
-      const data = await request<{
-        id: string
-        fullName: string
-        comment?: string | null
-        photo?: string | null
-        createdAt: string
-        updatedAt: string
-      }>(`/developers/${route.params.id}`)
+      const data = await get(String(route.params.id))
 
       form.value.fullName = data.fullName || ''
       form.value.comment = data.comment || ''
@@ -194,10 +187,7 @@ const onSubmit = async () => {
       formData.append('removePhoto', 'true')
     }
 
-    await request(`/developers/${route.params.id}`, {
-      method: 'PUT',
-      body: formData,
-    })
+    await update(String(route.params.id), formData)
 
     navigateTo(`/games/developers/${route.params.id}`)
   } catch (e) {
