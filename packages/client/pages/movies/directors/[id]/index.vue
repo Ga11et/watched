@@ -15,7 +15,7 @@
           <h1 class="text-xl md:text-2xl font-semibold text-gray-900">
             {{ director?.fullName || 'Режиссёр' }}
           </h1>
-          <p class="mt-1 text-sm text-gray-500" v-if="director">Детали режиссёра</p>
+          <p v-if="director" class="mt-1 text-sm text-gray-500">Детали режиссёра</p>
         </div>
         <div class="flex items-center gap-3">
           <NuxtLink
@@ -25,9 +25,9 @@
             Редактировать
           </NuxtLink>
           <button
-            @click="onDelete"
             :disabled="deleting"
             class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-white shadow-sm transition hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed"
+            @click="onDelete"
           >
             <svg
               v-if="deleting"
@@ -88,18 +88,17 @@
 </template>
 
 <script setup lang="ts">
-import type { Director, Movie } from '~/types/api'
-
 const route = useRoute()
 const router = useRouter()
-const config = useRuntimeConfig()
+const directorsApi = useDirectors()
+const moviesApi = useMovies()
 const error = ref('')
 const deleting = ref(false)
 
 const { data: director, pending } = await useAsyncData(`director-${route.params.id}`, async () => {
   try {
     error.value = ''
-    return await _fetch<Director>(`${config.public.apiBase}/directors/${route.params.id}`)
+    return await directorsApi.get(String(route.params.id))
   } catch (e) {
     const err = e as { data?: { message?: string } }
     error.value = err?.data?.message || 'Не удалось загрузить режиссёра'
@@ -111,9 +110,7 @@ const { data: directorMovies } = await useAsyncData(
   `director-movies-${route.params.id}`,
   async () => {
     try {
-      return await _fetch<Movie[]>(`${config.public.apiBase}/movies`, {
-        params: { directorId: route.params.id },
-      })
+      return await moviesApi.list({ directorId: String(route.params.id) })
     } catch {
       return []
     }
@@ -125,7 +122,7 @@ const onDelete = async () => {
   if (!confirm('Удалить этого режиссёра? Это действие нельзя отменить.')) return
   deleting.value = true
   try {
-    await _fetch(`${config.public.apiBase}/directors/${route.params.id}`, { method: 'DELETE' })
+    await directorsApi.remove(String(route.params.id))
     router.push('/movies/directors')
   } catch (e) {
     const err = e as { data?: { message?: string } }

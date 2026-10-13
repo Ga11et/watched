@@ -28,7 +28,10 @@
       </div>
     </div>
 
-    <UiEmpty v-if="!directors?.length" entity-name="режиссёр" />
+    <UiEmpty
+      v-if="!directors?.length"
+      message="Режиссёров пока нет. Добавьте своего первого режиссёра!"
+    />
 
     <Transition name="fade" mode="out-in">
       <EntitiesDirectorsCardsView
@@ -38,7 +41,7 @@
         :sort-order="sortOrder"
         :search-query="searchQuery"
         @update-sorting="updateSorting"
-        @update:searchQuery="updateSearchQuery"
+        @update:search-query="updateSearchQuery"
       />
       <EntitiesDirectorsTableView
         v-else
@@ -52,17 +55,9 @@
 </template>
 
 <script setup lang="ts">
-interface Director {
-  id: string
-  fullName: string
-  country?: string
-  birthYear?: number
-  biography?: string
-  photo?: string
-  createdAt: string
-  updatedAt: string
-}
+import type { Director } from '~/types/api'
 
+const directorsApi = useDirectors()
 const error = ref<string>('')
 
 const viewMode = useCookie<'cards' | 'table'>('watched_directors_view_mode', {
@@ -96,11 +91,9 @@ const { data: directors } = await useAsyncData<Director[]>(
   async () => {
     try {
       error.value = ''
-      return await _fetch<Director[]>(`${useRuntimeConfig().public.apiBase}/directors`, {
-        params: {
-          sortBy: sortBy.value,
-          sortOrder: sortOrder.value,
-        },
+      return await directorsApi.list({
+        sortBy: sortBy.value,
+        sortOrder: sortOrder.value,
       })
     } catch {
       error.value = 'Не удалось загрузить режиссёров'

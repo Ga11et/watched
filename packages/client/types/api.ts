@@ -10,25 +10,35 @@ interface BaseEntity {
   updatedAt: string
 }
 
+export interface User extends BaseEntity {
+  username: string | null
+  email: string | null
+  name: string
+  role: 'ADMIN' | 'USER' | 'GUEST'
+  isActive: boolean
+}
+
 // Авторы
 export interface Author extends BaseEntity {
   fullName: string
-  photo?: string
-  comment?: string
+  photo?: string | null
+  comment?: string | null
 }
 
 // Разработчики
 export interface Developer extends BaseEntity {
   fullName: string
-  photo?: string
-  comment?: string
+  photo?: string | null
+  comment?: string | null
+  games?: Game[]
 }
 
 // Издатели
 export interface Publisher extends BaseEntity {
   fullName: string
-  photo?: string
-  comment?: string
+  photo?: string | null
+  comment?: string | null
+  games?: Game[]
 }
 
 // Книги
@@ -48,6 +58,18 @@ export interface UserBook extends BaseEntity {
   readAt?: string | null
   comment?: string | null
   book: Book
+}
+
+export interface UpdateUserBookDto {
+  rating?: number
+  readAt?: string
+  comment?: string
+}
+
+export interface UserBookStats {
+  total: number
+  thisMonth: number
+  avgRating: number | null
 }
 
 export interface CreateBookDto {
@@ -85,6 +107,12 @@ export interface UserMovie extends BaseEntity {
   movie: Movie
 }
 
+export interface UserMovieStats {
+  total: number
+  thisMonth: number
+  avgRating: number | null
+}
+
 export interface CreateUserMovieDto {
   title: string
   rating?: number | null
@@ -118,6 +146,7 @@ export interface Game extends BaseEntity {
   playTimeHours?: number
   comment?: string
   rating?: number // 0-100
+  cover?: string
   developers?: Developer[]
   publishers?: Publisher[]
 }
@@ -141,7 +170,9 @@ export interface GameStats {
 // Сериалы
 export interface Series extends BaseEntity {
   title: string
-  genre?: string
+  genres?: string
+  country?: string
+  poster?: string
   rating?: number // 0-10
   watchedAt?: string
   comment?: string

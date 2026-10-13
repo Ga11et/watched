@@ -90,33 +90,14 @@
 <script setup lang="ts">
 const route = useRoute()
 const router = useRouter()
+const { get, remove } = usePublishers()
 const error = ref('')
 const deleting = ref(false)
-
-interface PublisherGame {
-  id: string
-  title: string
-  completionDate?: string | null
-  playTimeHours?: number | null
-  rating?: number | null
-}
-
-interface Publisher {
-  id: string
-  fullName: string
-  comment?: string | null
-  photo?: string | null
-  games?: PublisherGame[]
-  createdAt: string
-  updatedAt: string
-}
 
 const { data: publisher, pending } = await useAsyncData(
   `publisher-${route.params.id}`,
   async () => {
-    return await _fetch<Publisher>(
-      `${useRuntimeConfig().public.apiBase}/publishers/${route.params.id}`,
-    )
+    return await get(String(route.params.id))
   },
 )
 
@@ -125,9 +106,7 @@ const onDelete = async () => {
   if (!confirm('Удалить этого издателя? Это действие нельзя отменить.')) return
   deleting.value = true
   try {
-    await _fetch(`${useRuntimeConfig().public.apiBase}/publishers/${route.params.id}`, {
-      method: 'DELETE',
-    })
+    await remove(String(route.params.id))
     router.push('/games/publishers')
   } catch (e: any) {
     error.value = e?.data?.message || 'Не удалось удалить издателя'

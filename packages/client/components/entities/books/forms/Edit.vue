@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent="onSubmit" class="px-6 py-6">
+  <form class="px-6 py-6" @submit.prevent="onSubmit">
     <div v-if="loading" class="text-center py-6 text-gray-500">Загрузка...</div>
 
     <div
@@ -100,7 +100,7 @@
 
 <script setup lang="ts">
 import type { GoogleBook } from '~/components/integrations/google-books.service'
-import type { Author, Book } from '~/types/api'
+import type { Author } from '~/types/api'
 
 interface Props {
   bookId: string
@@ -112,6 +112,7 @@ const emit = defineEmits<{
   'title-loaded': [title: string]
 }>()
 
+const { get, update } = useBooks()
 const config = useRuntimeConfig()
 const router = useRouter()
 
@@ -146,9 +147,10 @@ const { data: book, pending: loading } = useAsyncData(
   async () => {
     try {
       loadError.value = ''
-      return await _fetch<Book>(`${config.public.apiBase}/books/${props.bookId}`)
-    } catch (e: any) {
-      loadError.value = e?.data?.message || 'Не удалось загрузить книгу'
+      return await get(props.bookId)
+    } catch (e: unknown) {
+      const err = e as { data?: { message?: string } }
+      loadError.value = err?.data?.message || 'Не удалось загрузить книгу'
       return null
     }
   },
@@ -266,15 +268,16 @@ const onSubmit = async () => {
       formData.append('removeCover', 'true')
     }
 
-    await _fetch(`${config.public.apiBase}/books/${props.bookId}`, {
-      method: 'PUT',
-      body: formData,
-    })
+    await update(props.bookId, formData)
 
     await router.push(`/books/${props.bookId}`)
-  } catch (e: any) {
-    const base = e?.data?.message || e?.message || 'Произошла ошибка при обновлении книги'
-    const violations = e?.data?.violations
+  } catch (e: unknown) {
+    const err = e as {
+      message?: string
+      data?: { message?: string; violations?: Array<{ field: string; message: string }> }
+    }
+    const base = err?.data?.message || err?.message || 'Произошла ошибка при обновлении книги'
+    const violations = err?.data?.violations
     if (Array.isArray(violations) && violations.length) {
       violations.forEach((v) => {
         errors.value[v.field] = v.message

@@ -76,15 +76,14 @@ import { useRoute, useRouter } from 'vue-router'
 const route = useRoute()
 const router = useRouter()
 
-const config = useRuntimeConfig()
+const { get, remove } = useGames()
 const deleting = ref(false)
 const error = ref('')
 
 const { data, pending, refresh } = await useAsyncData('game-show', async () => {
   error.value = ''
   try {
-    const res = await _fetch(`${config.public.apiBase}/games/${route.params.id}`)
-    return res as any
+    return await get(String(route.params.id))
   } catch (e: any) {
     error.value = e?.data?.message || e?.message || 'Не удалось загрузить игру'
     return null
@@ -98,7 +97,7 @@ const onDelete = async () => {
   if (!confirm('Удалить эту игру? Это действие нельзя отменить.')) return
   deleting.value = true
   try {
-    await _fetch(`${config.public.apiBase}/games/${route.params.id}`, { method: 'DELETE' })
+    await remove(String(route.params.id))
     router.push('/')
   } catch (e: any) {
     error.value = e?.data?.message || e?.message || 'Не удалось удалить игру'

@@ -42,14 +42,14 @@ interface Props {
   disabled?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   error: '',
   disabled: false,
 })
 
 const model = defineModel<Author[]>({ default: () => [] })
 
-const config = useRuntimeConfig()
+const { search } = useAuthors()
 const route = useRoute()
 
 const searchQuery = ref('')
@@ -93,9 +93,7 @@ watch(
 const fetchAuthors = async (query: string) => {
   loading.value = true
   try {
-    const results = await _fetch<Author[]>(`${config.public.apiBase}/authors/search`, {
-      params: { q: query },
-    })
+    const results = await search(query)
 
     results.forEach((a) => authorMap.set(a.id, a))
 

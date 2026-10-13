@@ -81,7 +81,7 @@ interface FormRowConfig {
   fields: FormFieldConfig[]
 }
 
-const config = useRuntimeConfig()
+const { create } = usePublishers()
 const route = useRoute()
 
 const submitting = ref(false)
@@ -165,10 +165,7 @@ const onSubmit = async () => {
 
     const payload = preparePayload()
 
-    await _fetch(`${config.public.apiBase}/publishers`, {
-      method: 'POST',
-      body: payload,
-    })
+    await create(payload)
 
     const redirectTo = route.query.redirectTo as string
     await navigateTo(redirectTo || '/games/publishers')

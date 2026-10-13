@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent="onSubmit" class="px-6 py-6">
+  <form class="px-6 py-6" @submit.prevent="onSubmit">
     <div v-if="loading" class="text-center py-6 text-gray-500">Загрузка...</div>
 
     <div
@@ -79,6 +79,7 @@ const emit = defineEmits<{
   'name-loaded': [name: string]
 }>()
 
+const { get, update } = useAuthors()
 const config = useRuntimeConfig()
 const router = useRouter()
 
@@ -102,23 +103,15 @@ const formLayout = [
   { columns: 1, fields: [{ id: 'comment' }] },
 ]
 
-interface AuthorData {
-  id: string
-  fullName: string
-  comment?: string | null
-  photo?: string | null
-  createdAt: string
-  updatedAt: string
-}
-
 const { data: author, pending: loading } = useAsyncData(
   `author-edit-${props.authorId}`,
   async () => {
     try {
       loadError.value = ''
-      return await _fetch<AuthorData>(`${config.public.apiBase}/authors/${props.authorId}`)
-    } catch (e: any) {
-      loadError.value = e?.data?.message || 'Не удалось загрузить автора'
+      return await get(props.authorId)
+    } catch (e: unknown) {
+      const err = e as { data?: { message?: string } }
+      loadError.value = err?.data?.message || 'Не удалось загрузить автора'
       return null
     }
   },
@@ -195,15 +188,16 @@ const onSubmit = async () => {
       formData.append('removePhoto', 'true')
     }
 
-    await _fetch(`${config.public.apiBase}/authors/${props.authorId}`, {
-      method: 'PUT',
-      body: formData,
-    })
+    await update(props.authorId, formData)
 
     await router.push(`/books/authors/${props.authorId}`)
-  } catch (e: any) {
-    const base = e?.data?.message || e?.message || 'Произошла ошибка при обновлении автора'
-    const violations = e?.data?.violations
+  } catch (e: unknown) {
+    const err = e as {
+      message?: string
+      data?: { message?: string; violations?: Array<{ field: string; message: string }> }
+    }
+    const base = err?.data?.message || err?.message || 'Произошла ошибка при обновлении автора'
+    const violations = err?.data?.violations
     if (Array.isArray(violations) && violations.length) {
       violations.forEach((v) => {
         errors.value[v.field] = v.message

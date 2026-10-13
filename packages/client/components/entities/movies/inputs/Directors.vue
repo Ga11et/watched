@@ -28,15 +28,13 @@
 </template>
 
 <script setup lang="ts">
-import type { Director } from '~/types/api'
-
 withDefaults(defineProps<{ error?: string; disabled?: boolean }>(), {
   error: '',
   disabled: false,
 })
 
 const model = defineModel<string[]>({ default: () => [] })
-const config = useRuntimeConfig()
+const directorsApi = useDirectors()
 const route = useRoute()
 const searchQuery = ref('')
 
@@ -44,9 +42,7 @@ const {
   data: directors,
   status,
   error: loadError,
-} = await useAsyncData('movie-director-options', () =>
-  _fetch<Director[]>(`${config.public.apiBase}/directors`),
-)
+} = await useAsyncData('movie-director-options', () => directorsApi.list())
 
 const directorOptions = computed(() =>
   (directors.value || []).map((director) => ({

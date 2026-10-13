@@ -164,10 +164,13 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: null,
+  manualQuery: '',
   placeholder: 'Поиск книги...',
+  error: '',
 })
 
 const emit = defineEmits<Emits>()
+const { search } = useBooks()
 const config = useRuntimeConfig()
 
 const searchQuery = ref(props.modelValue?.title ?? '')
@@ -205,7 +208,7 @@ watch(
 const mapLocalBook = (book: Book): UserBookSearchResult => ({
   id: book.id,
   title: book.title,
-  authors: book.author?.fullName ? [book.author.fullName] : [],
+  authors: book.authors?.map((author) => author.fullName) ?? [],
   description: book.comment || undefined,
   cover: book.cover || undefined,
   publishedDate: book.publishYear ? String(book.publishYear) : undefined,
@@ -229,12 +232,7 @@ const fetchLocalBooks = async (query: string): Promise<UserBookSearchResult[]> =
   if (!term) return []
 
   try {
-    const books = await _fetch<Book[]>(`${config.public.apiBase}/books`, {
-      params: {
-        search: term,
-        limit: 5,
-      },
-    })
+    const books = await search(term, 5)
     return books.map(mapLocalBook)
   } catch {
     return []

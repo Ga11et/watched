@@ -77,7 +77,7 @@
 import type { TmdbPerson } from '~/types/api'
 
 const route = useRoute()
-const config = useRuntimeConfig()
+const directorsApi = useDirectors()
 const error = ref('')
 const errors = ref<Record<string, string>>({})
 const submitting = ref(false)
@@ -143,10 +143,7 @@ const onSubmit = async () => {
       formData.append('photo', photoFile.value)
     }
 
-    await _fetch(`${config.public.apiBase}/directors`, {
-      method: 'POST',
-      body: formData,
-    })
+    await directorsApi.create(formData)
 
     await navigateTo(redirectTo.value)
   } catch (e) {

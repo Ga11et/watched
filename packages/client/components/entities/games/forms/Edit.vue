@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent="onSubmit" class="px-6 py-6">
+  <form class="px-6 py-6" @submit.prevent="onSubmit">
     <div class="flex gap-6">
       <UiPhotoUpload
         v-model="coverFile"
@@ -107,22 +107,6 @@
 <script setup lang="ts">
 import type { IGDBGame } from '~/components/integrations/igdb-games.service'
 
-interface NamedEntity {
-  id: string
-}
-
-interface GameApiResponse {
-  id: string
-  title: string
-  completionDate: string | null
-  playTimeHours: number | null
-  comment: string | null
-  rating: number | null
-  cover: string | null
-  developers?: NamedEntity[]
-  publishers?: NamedEntity[]
-}
-
 interface FormFieldConfig {
   id: string
 }
@@ -143,6 +127,7 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
+const { get, update } = useGames()
 const config = useRuntimeConfig()
 
 const loading = ref(true)
@@ -211,7 +196,7 @@ const loadGame = async () => {
   loading.value = true
   error.value = ''
   try {
-    const data = await _fetch<GameApiResponse>(`${config.public.apiBase}/games/${props.gameId}`)
+    const data = await get(props.gameId)
     form.title = data.title || ''
     form.completionDate = data.completionDate ? String(data.completionDate).slice(0, 10) : ''
     form.playTimeHours = typeof data.playTimeHours === 'number' ? data.playTimeHours : undefined
@@ -227,8 +212,9 @@ const loadGame = async () => {
     }
 
     emit('title-loaded', form.title)
-  } catch (e: any) {
-    error.value = e?.data?.message || e?.message || 'Не удалось загрузить игру'
+  } catch (e: unknown) {
+    const err = e as { message?: string; data?: { message?: string } }
+    error.value = err?.data?.message || err?.message || 'Не удалось загрузить игру'
   } finally {
     loading.value = false
   }
@@ -293,15 +279,16 @@ const onSubmit = async () => {
       formData.append('removeCover', 'true')
     }
 
-    await _fetch(`${config.public.apiBase}/games/${props.gameId}`, {
-      method: 'PUT',
-      body: formData,
-    })
+    await update(props.gameId, formData)
 
     router.push(`/games/${props.gameId}`)
-  } catch (e: any) {
-    const base = e?.data?.message || e?.message || 'Не удалось сохранить изменения'
-    const violations = e?.data?.violations
+  } catch (e: unknown) {
+    const err = e as {
+      message?: string
+      data?: { message?: string; violations?: Array<{ field: string; message: string }> }
+    }
+    const base = err?.data?.message || err?.message || 'Не удалось сохранить изменения'
+    const violations = err?.data?.violations
 
     if (Array.isArray(violations) && violations.length) {
       violations.forEach((v) => {

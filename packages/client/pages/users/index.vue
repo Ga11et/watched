@@ -1,24 +1,9 @@
 <script setup lang="ts">
-interface User {
-  id: string
-  username: string | null
-  email: string | null
-  name: string
-  role: 'ADMIN' | 'USER' | 'GUEST'
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
-}
+import type { User } from '~/types/api'
 
-const config = useRuntimeConfig()
+const { list } = useUsers()
 
-const {
-  data: users,
-  pending,
-  error,
-} = await useAsyncData<User[]>('users-list', () => {
-  return _fetch<User[]>(`${config.public.apiBase}/users`)
-})
+const { data: users, pending, error } = await useAsyncData<User[]>('users-list', () => list())
 
 const formatDate = (value: string): string => {
   return new Date(value).toLocaleDateString('ru-RU', {

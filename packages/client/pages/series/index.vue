@@ -74,7 +74,7 @@
 
 <script setup>
 const error = ref('')
-const config = useRuntimeConfig()
+const { list } = useSeries()
 
 const viewMode = useCookie('watched_series_view_mode', {
   default: () => 'cards',
@@ -107,11 +107,9 @@ const { data: series } = await useAsyncData(
   async () => {
     try {
       error.value = ''
-      return await _fetch(`${config.public.apiBase}/series`, {
-        params: {
-          sortBy: sortBy.value,
-          sortOrder: sortOrder.value,
-        },
+      return await list({
+        sortBy: sortBy.value,
+        sortOrder: sortOrder.value,
       })
     } catch {
       error.value = 'Не удалось загрузить сериалы'

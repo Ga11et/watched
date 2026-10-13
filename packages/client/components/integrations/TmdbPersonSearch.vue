@@ -97,7 +97,7 @@ const searchPersons = async (searchQuery: string) => {
   }
 
   try {
-    const response = await _fetch<{ results: TmdbPerson[] }>(
+    const response = await $fetch<{ results: TmdbPerson[] }>(
       `https://api.themoviedb.org/3/search/person`,
       {
         params: {

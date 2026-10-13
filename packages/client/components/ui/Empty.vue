@@ -7,5 +7,5 @@ interface Props {
   message: string
 }
 
-const { message = 'Пусто' } = defineProps<Props>()
+const { message } = defineProps<Props>()
 </script>

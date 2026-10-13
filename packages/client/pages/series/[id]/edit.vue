@@ -297,6 +297,7 @@
 
 <script setup lang="ts">
 const route = useRoute()
+const { get, update } = useSeries()
 const config = useRuntimeConfig()
 
 const loadError = ref('')
@@ -325,18 +326,7 @@ const { data: series, pending } = await useAsyncData(
   async () => {
     try {
       loadError.value = ''
-      const data = await _fetch<{
-        id: string
-        title: string
-        genres?: string | null
-        country?: string | null
-        rating?: number | null
-        totalSeasons?: number | null
-        watchedSeasons?: number | null
-        watchedAt?: string | null
-        comment?: string | null
-        poster?: string | null
-      }>(`${config.public.apiBase}/series/${route.params.id}`)
+      const data = await get(String(route.params.id))
 
       form.value.title = data.title || ''
       form.value.genres = data.genres || ''
@@ -352,8 +342,9 @@ const { data: series, pending } = await useAsyncData(
       }
 
       return data
-    } catch (e: any) {
-      loadError.value = e?.data?.message || 'Не удалось загрузить сериал'
+    } catch (e: unknown) {
+      const err = e as { data?: { message?: string } }
+      loadError.value = err?.data?.message || 'Не удалось загрузить сериал'
       return null
     }
   },
@@ -409,10 +400,7 @@ const onSubmit = async () => {
       formData.append('removePoster', 'true')
     }
 
-    await _fetch(`${config.public.apiBase}/series/${route.params.id}`, {
-      method: 'PUT',
-      body: formData,
-    })
+    await update(String(route.params.id), formData)
 
     navigateTo(`/series/${route.params.id}`)
   } catch (e) {
@@ -462,7 +450,7 @@ const loadFromTmdb = async () => {
   tmdbError.value = ''
 
   try {
-    const response = await _fetch<TmdbSearchResponse>(`https://api.themoviedb.org/3/search/tv`, {
+    const response = await $fetch<TmdbSearchResponse>(`https://api.themoviedb.org/3/search/tv`, {
       params: {
         api_key: config.public.tmdbApiKey,
         query: form.value.title.trim(),
@@ -481,7 +469,7 @@ const loadFromTmdb = async () => {
       // Fetch genres from TMDB
       if (series.genre_ids && series.genre_ids.length > 0) {
         try {
-          const genresResponse = await _fetch<TmdbGenresResponse>(
+          const genresResponse = await $fetch<TmdbGenresResponse>(
             `https://api.themoviedb.org/3/genre/tv/list`,
             {
               params: {

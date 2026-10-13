@@ -76,16 +76,14 @@
 </template>
 
 <script setup lang="ts">
-import type { UserBook } from '~/types/api'
-
 const route = useRoute()
 const router = useRouter()
-const config = useRuntimeConfig()
+const { get, remove } = useUserBooks()
 const error = ref('')
 const deleting = ref(false)
 
 const { data: userBook, pending } = await useAsyncData(`user-book-${route.params.id}`, async () => {
-  return await _fetch<UserBook>(`${config.public.apiBase}/user-books/${route.params.id}`)
+  return await get(String(route.params.id))
 })
 
 const onDelete = async () => {
@@ -93,10 +91,11 @@ const onDelete = async () => {
   if (!confirm('Удалить эту книгу? Это действие нельзя отменить.')) return
   deleting.value = true
   try {
-    await _fetch(`${config.public.apiBase}/user-books/${route.params.id}`, { method: 'DELETE' })
+    await remove(String(route.params.id))
     router.push('/user-books')
-  } catch (e: any) {
-    error.value = e?.data?.message || 'Не удалось удалить книгу'
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string } }
+    error.value = err?.data?.message || 'Не удалось удалить книгу'
   } finally {
     deleting.value = false
   }
