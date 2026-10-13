@@ -10,7 +10,7 @@ export type RequestOptionsHeaders = Record<string, string>
 export const useApiRequest = () => {
   const nuxtApp = useNuxtApp()
 
-  // TODO: Принимать только путь, выбирать baseURL здесь и убрать apiBase из всех вызовов _fetch.
+  // Принимать только путь; baseURL выбирается здесь, а вызовы выполняются через request.
   const _fetch = async <T>(path: string, opts: RequestOptions = {}) => {
     const { token } = useAuth()
     const config = useRuntimeConfig()
@@ -38,5 +38,5 @@ export const useApiRequest = () => {
   const request = <T>(path: string, options?: RequestOptions) =>
     nuxtApp.runWithContext(() => _fetch<T>(path, options))
 
-  return { _fetch, request }
+  return { request }
 }
