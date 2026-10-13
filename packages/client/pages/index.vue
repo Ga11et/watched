@@ -1,5 +1,5 @@
 <script setup>
-const { request } = useApiRequest()
+const { stats: seriesStats } = useSeries()
 const { stats: movieStats } = useUserMovies()
 const { stats: bookStats } = useUserBooks()
 const { stats: gameStats } = useGames()
@@ -15,7 +15,7 @@ const {
       movieStats(),
       gameStats(),
       bookStats(),
-      request(`/series/stats`),
+      seriesStats(),
     ])
 
     return {

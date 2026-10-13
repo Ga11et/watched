@@ -170,7 +170,9 @@ export interface GameStats {
 // Сериалы
 export interface Series extends BaseEntity {
   title: string
-  genre?: string
+  genres?: string
+  country?: string
+  poster?: string
   rating?: number // 0-10
   watchedAt?: string
   comment?: string

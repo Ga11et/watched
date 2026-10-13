@@ -233,7 +233,7 @@
 <script setup lang="ts">
 import type { TmdbSeries } from '~/types/api'
 
-const { request } = useApiRequest()
+const { create } = useSeries()
 const config = useRuntimeConfig()
 const error = ref('')
 const errors = ref<Record<string, string>>({})
@@ -399,10 +399,7 @@ const onSubmit = async () => {
       formData.append('poster', posterFile.value)
     }
 
-    await request(`/series`, {
-      method: 'POST',
-      body: formData,
-    })
+    await create(formData)
 
     // Clear form draft
     localStorage.removeItem('seriesFormDraft')
