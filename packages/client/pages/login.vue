@@ -27,6 +27,10 @@ const redirectTo = computed(() => {
   return typeof value === 'string' && value.startsWith('/') ? value : '/'
 })
 
+const noticeMessage = computed(() =>
+  route.query.reason === SESSION_EXPIRED_REASON ? SESSION_EXPIRED_MESSAGE : '',
+)
+
 const submitLogin = async () => {
   pending.value = true
   errorMessage.value = ''
@@ -124,6 +128,14 @@ const submitGuest = async () => {
             Регистрация
           </button>
         </div>
+
+        <p
+          v-if="noticeMessage"
+          role="status"
+          class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+        >
+          {{ noticeMessage }}
+        </p>
 
         <p
           v-if="errorMessage"
