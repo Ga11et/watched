@@ -29,7 +29,6 @@
 
 Удаляйте пункт, когда отклонение исправлено:
 
-- `users/user-access.policy.ts` вместо `users/users.policy.ts`.
 - Общий тип `AuthUser` объявлен в `auth/auth.middleware.ts` вместо `auth/auth.types.ts`.
 - Общий тип `JwtPayload` объявлен в `auth/jwt.service.ts` вместо `auth/auth.types.ts`.
 - Несколько классов в одном DTO-файле: `users/dto/update-user.dto.ts` (2), `user-lists/dto/user-list.dto.ts` (8).

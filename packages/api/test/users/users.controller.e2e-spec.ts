@@ -66,10 +66,10 @@ type ApiUser = {
   id: string;
   name: string;
   username: string | null;
-  email: string | null;
+  email?: string | null;
   role: UserRole;
   isActive: boolean;
-  updatedAt: string;
+  updatedAt?: string;
 };
 
 const IDENTIFIER_REQUIRED = 'Username or email is required';
@@ -177,13 +177,52 @@ describe('UsersController (e2e)', () => {
     return Promise.all(responses);
   };
 
-  const fetchUser = async (id: string): Promise<ApiUser> => {
+  const fetchUser = async (
+    id: string,
+    token = adminToken,
+  ): Promise<ApiUser> => {
     const response = await request(app.getHttpServer())
       .get(`/users/${id}`)
-      .set('Authorization', `Bearer ${adminToken}`)
+      .set('Authorization', `Bearer ${token}`)
       .expect(200);
 
     return response.body as ApiUser;
+  };
+
+  const fetchUsers = async (
+    token = adminToken,
+    query: Record<string, string> = {},
+  ): Promise<ApiUser[]> => {
+    const response = await request(app.getHttpServer())
+      .get('/users')
+      .query(query)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    return response.body as ApiUser[];
+  };
+
+  const searchUserIds = async (
+    search: string,
+    token = adminToken,
+  ): Promise<string[]> =>
+    (await fetchUsers(token, { search })).map(({ id }) => id);
+
+  // Visible private fields carry the stored values; hidden ones are absent as keys, not null.
+  const expectPrivateFieldsShown = (
+    body: ApiUser | undefined,
+    user: User,
+  ): void => {
+    expect(body).toMatchObject({
+      id: user.id,
+      email: user.email,
+      updatedAt: user.updatedAt.toISOString(),
+    });
+  };
+
+  const expectPrivateFieldsHidden = (body: ApiUser): void => {
+    expect(body).not.toHaveProperty('email');
+    expect(body).not.toHaveProperty('updatedAt');
   };
 
   const expectViolations = (
@@ -228,6 +267,137 @@ describe('UsersController (e2e)', () => {
   afterAll(async () => {
     process.env.JWT_SECRET = originalJwtSecret;
     await app?.close();
+  });
+
+  describe('GET /users/:identifier', () => {
+    it.each([UserRole.ADMIN, UserRole.USER, UserRole.GUEST])(
+      'shows %s the email and updatedAt of their own profile',
+      async (role) => {
+        const viewer = await seedUser({ role });
+
+        expectPrivateFieldsShown(
+          await fetchUser(viewer.id, jwtService.generateToken(viewer)),
+          viewer,
+        );
+      },
+    );
+
+    it("shows ADMIN the email and updatedAt of another user's profile", async () => {
+      const other = await seedUser();
+
+      expectPrivateFieldsShown(await fetchUser(other.id), other);
+    });
+
+    it('returns an empty email as null to the owner and ADMIN', async () => {
+      const user = await seedUser({ email: null });
+
+      expect(
+        await fetchUser(user.id, jwtService.generateToken(user)),
+      ).toHaveProperty('email', null);
+      expect(await fetchUser(user.id)).toHaveProperty('email', null);
+    });
+
+    it.each([UserRole.USER, UserRole.GUEST])(
+      "omits the email and updatedAt keys of another user's profile for %s",
+      async (role) => {
+        const viewer = await seedUser({ role });
+        const other = await seedUser();
+
+        expectPrivateFieldsHidden(
+          await fetchUser(other.id, jwtService.generateToken(viewer)),
+        );
+      },
+    );
+
+    it("hides another user's private fields from a demoted ADMIN on the next request with the old JWT", async () => {
+      const demoted = await seedUser({ role: UserRole.ADMIN });
+      const other = await seedUser();
+      const oldToken = jwtService.generateToken(demoted);
+
+      expectPrivateFieldsShown(await fetchUser(other.id, oldToken), other);
+
+      await changeRole(demoted.id, UserRole.USER).expect(200);
+
+      expectPrivateFieldsHidden(await fetchUser(other.id, oldToken));
+    });
+  });
+
+  describe('GET /users', () => {
+    it('shows ADMIN the email and updatedAt of every listed user', async () => {
+      const other = await seedUser();
+      const users = await fetchUsers();
+
+      expectPrivateFieldsShown(
+        users.find(({ id }) => id === other.id),
+        other,
+      );
+      for (const user of users) {
+        expect(Object.keys(user)).toEqual(
+          expect.arrayContaining(['email', 'updatedAt']),
+        );
+      }
+    });
+
+    it.each([UserRole.USER, UserRole.GUEST])(
+      'shows %s the email and updatedAt only in their own list item',
+      async (role) => {
+        const viewer = await seedUser({ role });
+        await seedUser();
+        const users = await fetchUsers(jwtService.generateToken(viewer));
+        const others = users.filter(({ id }) => id !== viewer.id);
+
+        expectPrivateFieldsShown(
+          users.find(({ id }) => id === viewer.id),
+          viewer,
+        );
+        expect(others.length).toBeGreaterThan(0);
+        others.forEach(expectPrivateFieldsHidden);
+      },
+    );
+
+    it('lets ADMIN find a user by part of the email', async () => {
+      const target = await seedUser({
+        email: 'lookup.target@admin-search.dev',
+      });
+
+      expect(await searchUserIds('TARGET@ADMIN-SEARCH')).toEqual([target.id]);
+    });
+
+    it.each([UserRole.USER, UserRole.GUEST])(
+      'does not let %s find users by part of an email, not even their own',
+      async (role) => {
+        const tag = role.toLowerCase();
+        const viewer = await seedUser({
+          role,
+          email: `${tag}.own@hidden-mail.dev`,
+        });
+        await seedUser({ email: `${tag}.other@hidden-mail.dev` });
+        const token = jwtService.generateToken(viewer);
+
+        expect(await searchUserIds(`${tag}.other@hidden`, token)).toEqual([]);
+        expect(await searchUserIds(`${tag}.own@hidden`, token)).toEqual([]);
+      },
+    );
+
+    it.each([UserRole.USER, UserRole.GUEST])(
+      'still lets %s find users by name and username, even an email-like one',
+      async (role) => {
+        const tag = role.toLowerCase();
+        const byName = await seedUser({ name: `Findable ${tag} name` });
+        const byUsername = await seedUser({
+          username: `Legacy.${tag}@Login.dev`,
+          email: null,
+        });
+        const token = jwtService.generateToken(await seedUser({ role }));
+
+        expect(await searchUserIds(`findable ${tag}`, token)).toEqual([
+          byName.id,
+        ]);
+        expect(await searchUserIds(`legacy.${tag}@login`, token)).toEqual([
+          byUsername.id,
+        ]);
+      },
+    );
   });
 
   describe('PATCH /users/:identifier', () => {

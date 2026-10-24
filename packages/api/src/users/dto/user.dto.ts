@@ -16,11 +16,12 @@ export class UserDto {
   username: string | null;
 
   @ApiPropertyOptional({
-    description: 'Уникальный email пользователя',
+    description:
+      'Уникальный email пользователя. Приходит только владельцу профиля и администратору, остальным ключ не передаётся; email без значения приходит как null',
     example: 'test@example.com',
     nullable: true,
   })
-  email: string | null;
+  email?: string | null;
 
   @ApiProperty({
     description: 'Отображаемое имя пользователя',
@@ -47,9 +48,10 @@ export class UserDto {
   })
   createdAt: string;
 
-  @ApiProperty({
-    description: 'Дата обновления пользователя',
+  @ApiPropertyOptional({
+    description:
+      'Дата обновления пользователя. Приходит только владельцу профиля и администратору, остальным ключ не передаётся',
     example: '2026-01-22T17:00:00Z',
   })
-  updatedAt: string;
+  updatedAt?: string;
 }

@@ -76,7 +76,7 @@ export class UsersController {
     name: 'search',
     type: 'string',
     required: false,
-    description: 'Search by name, username, or email',
+    description: 'Search by name or username; ADMIN also searches by email',
   })
   @ApiQuery({
     name: 'role',

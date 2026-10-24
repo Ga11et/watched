@@ -8,6 +8,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserRole } from './entities/user.entity';
 import {
+  canFilterUsersByRole,
+  canSearchUsersByEmail,
+  canViewInactiveUser,
+  canViewPrivateUserFields,
+} from './users.policy';
+import {
   assertAvailable,
   normalizeConstraintError,
   normalizeUser,
@@ -41,17 +47,18 @@ export class UsersService {
     private userGamesRepository: Repository<UserGame>,
   ) {}
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Private-field filtering is introduced in profile block 04.
-  toUserDto(user: User, _actor: AuthUser): UserDto {
+  toUserDto(user: User, actor: AuthUser): UserDto {
     return {
       id: user.id,
       username: user.username,
-      email: user.email,
       name: user.name,
       role: user.role,
       isActive: user.isActive,
       createdAt: user.createdAt.toISOString(),
-      updatedAt: user.updatedAt.toISOString(),
+      ...(canViewPrivateUserFields(actor, user.id) && {
+        email: user.email,
+        updatedAt: user.updatedAt.toISOString(),
+      }),
     };
   }
 
@@ -82,7 +89,7 @@ export class UsersService {
   ): Promise<User[]> {
     let query = this.usersRepository.createQueryBuilder('user');
 
-    if (actor.role !== UserRole.ADMIN) {
+    if (!canViewInactiveUser(actor)) {
       query = query.where('user.isActive = :isActive', { isActive: true });
     } else {
       if (filters?.isActive !== undefined) {
@@ -92,14 +99,17 @@ export class UsersService {
       }
     }
 
-    if (actor.role === UserRole.ADMIN && filters?.role) {
+    if (canFilterUsersByRole(actor) && filters?.role) {
       query = query.andWhere('user.role = :role', { role: filters.role });
     }
 
     if (filters?.search) {
       const searchTerm = `%${filters.search.toLowerCase()}%`;
+      const emailCondition = canSearchUsersByEmail(actor)
+        ? ' OR LOWER(user.email) LIKE :search'
+        : '';
       query = query.andWhere(
-        '(LOWER(user.name) LIKE :search OR LOWER(user.username) LIKE :search OR LOWER(user.email) LIKE :search)',
+        `(LOWER(user.name) LIKE :search OR LOWER(user.username) LIKE :search${emailCondition})`,
         { search: searchTerm },
       );
     }

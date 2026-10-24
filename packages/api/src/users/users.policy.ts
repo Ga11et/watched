@@ -8,6 +8,14 @@ export function canViewPrivateUserFields(
   return actor.role === UserRole.ADMIN || actor.id === userId;
 }
 
+export function canSearchUsersByEmail(actor: AuthUser): boolean {
+  return actor.role === UserRole.ADMIN;
+}
+
+export function canFilterUsersByRole(actor: AuthUser): boolean {
+  return actor.role === UserRole.ADMIN;
+}
+
 export function canViewInactiveUser(actor: AuthUser): boolean {
   return actor.role === UserRole.ADMIN;
 }
