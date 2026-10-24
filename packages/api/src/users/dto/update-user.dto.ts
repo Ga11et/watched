@@ -48,9 +48,7 @@ export class UpdateUserDto {
   @IsOptional()
   @IsEmail()
   email?: string | null;
-}
 
-export class AdminUpdateUserDto extends UpdateUserDto {
   @ApiPropertyOptional({
     description: 'Роль пользователя',
     enum: UserRole,

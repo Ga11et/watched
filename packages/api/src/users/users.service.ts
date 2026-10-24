@@ -5,18 +5,14 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import { User, UserRole } from './entities/user.entity';
 import { UserBook } from '../user-lists/entities/user-book.entity';
 import { UserMovie } from '../user-lists/entities/user-movie.entity';
 import { UserSeries } from '../user-lists/entities/user-series.entity';
 import { UserGame } from '../user-lists/entities/user-game.entity';
 import { UserDto } from './dto/user.dto';
-import {
-  UpdateUserDto,
-  AdminUpdateUserDto,
-  ChangeUserRoleDto,
-} from './dto/update-user.dto';
+import { UpdateUserDto, ChangeUserRoleDto } from './dto/update-user.dto';
 import { isUuid } from '../common/utils/uuid.util';
 import type { AuthUser } from '../auth/auth.middleware';
 
@@ -49,23 +45,20 @@ export class UsersService {
     };
   }
 
-  async getUserByIdentifier(identifier: string): Promise<User | null> {
-    if (isUuid(identifier)) {
-      return this.usersRepository.findOne({
-        where: { id: identifier },
-      });
-    }
+  async getUserByIdentifier(identifier: string): Promise<User> {
+    const user = isUuid(identifier)
+      ? await this.usersRepository.findOne({ where: { id: identifier } })
+      : await this.usersRepository
+          .createQueryBuilder('user')
+          .where('LOWER(user.username) = LOWER(:username)', {
+            username: identifier,
+          })
+          .getOne();
 
-    return this.usersRepository.findOne({
-      where: { username: identifier },
-    });
-  }
-
-  async getUserByIdentifierOrFail(identifier: string): Promise<User> {
-    const user = await this.getUserByIdentifier(identifier);
     if (!user) {
       throw new NotFoundException('User not found');
     }
+
     return user;
   }
 
@@ -106,84 +99,52 @@ export class UsersService {
     return query.getMany();
   }
 
-  private throwDuplicateError(field: string, message: string): never {
-    const response = {
-      status: 422,
-      message: 'Unprocessable entity',
-      violations: [{ field, message }],
-    };
-    throw new UnprocessableEntityException(response);
-  }
-
   async updateUserProfile(
     identifier: string,
     dto: UpdateUserDto,
     actor: AuthUser,
   ): Promise<UserDto> {
-    const user = await this.getUserByIdentifierOrFail(identifier);
+    const user = await this.getUserByIdentifier(identifier);
 
     if (dto.name !== undefined) {
       user.name = dto.name;
     }
 
     if (dto.username !== undefined) {
-      if (dto.username !== null && dto.username !== user.username) {
-        const existingUser = await this.usersRepository.findOne({
-          where: { username: dto.username },
-        });
-        if (existingUser) {
-          this.throwDuplicateError('username', 'Username already taken');
+      if (dto.username !== null) {
+        const taken = await this.usersRepository
+          .createQueryBuilder('user')
+          .where('LOWER(user.username) = LOWER(:username)', {
+            username: dto.username,
+          })
+          .andWhere('user.id != :id', { id: user.id })
+          .getExists();
+        if (taken) {
+          throw new UnprocessableEntityException({
+            status: 422,
+            message: 'Username already exists',
+            violations: [
+              { field: 'username', error: 'Username already exists' },
+            ],
+          });
         }
       }
       user.username = dto.username;
     }
 
     if (dto.email !== undefined) {
-      if (dto.email !== null && dto.email !== user.email) {
-        const existingUser = await this.usersRepository.findOne({
-          where: { email: dto.email },
-        });
-        if (existingUser) {
-          this.throwDuplicateError('email', 'Email already taken');
-        }
-      }
-      user.email = dto.email;
-    }
-
-    await this.usersRepository.save(user);
-    return this.toUserDto(user, actor);
-  }
-
-  async adminUpdateUser(
-    identifier: string,
-    dto: AdminUpdateUserDto,
-    actor: AuthUser,
-  ): Promise<UserDto> {
-    const user = await this.getUserByIdentifierOrFail(identifier);
-
-    if (dto.name !== undefined) {
-      user.name = dto.name;
-    }
-
-    if (dto.username !== undefined) {
-      if (dto.username !== null && dto.username !== user.username) {
-        const existingUser = await this.usersRepository.findOne({
-          where: { username: dto.username },
-        });
-        if (existingUser) {
-          this.throwDuplicateError('username', 'Username already taken');
-        }
-      }
-      user.username = dto.username;
-    }
-
-    if (dto.email !== undefined) {
-      if (dto.email !== null && dto.email !== user.email) {
-        const existingUser = await this.usersRepository.findOne({
-          where: { email: dto.email },
-        });
-        if (existingUser) {
-          this.throwDuplicateError('email', 'Email already taken');
+      if (dto.email !== null) {
+        const taken = await this.usersRepository
+          .createQueryBuilder('user')
+          .where('LOWER(user.email) = LOWER(:email)', { email: dto.email })
+          .andWhere('user.id != :id', { id: user.id })
+          .getExists();
+        if (taken) {
+          throw new UnprocessableEntityException({
+            status: 422,
+            message: 'Email already exists',
+            violations: [{ field: 'email', error: 'Email already exists' }],
+          });
         }
       }
       user.email = dto.email;
@@ -193,12 +154,42 @@ export class UsersService {
       user.role = dto.role;
     }
 
-    await this.usersRepository.save(user);
+    try {
+      await this.usersRepository.save(user);
+    } catch (error) {
+      if (error instanceof QueryFailedError) {
+        const { code, constraint } = (error.driverError ?? {}) as {
+          code?: string;
+          constraint?: string;
+        };
+
+        if (code === '23505' && constraint === 'user_username_lower_uq') {
+          throw new UnprocessableEntityException({
+            status: 422,
+            message: 'Username already exists',
+            violations: [
+              { field: 'username', error: 'Username already exists' },
+            ],
+          });
+        }
+
+        if (code === '23505' && constraint === 'user_email_lower_uq') {
+          throw new UnprocessableEntityException({
+            status: 422,
+            message: 'Email already exists',
+            violations: [{ field: 'email', error: 'Email already exists' }],
+          });
+        }
+      }
+
+      throw error;
+    }
+
     return this.toUserDto(user, actor);
   }
 
   async deactivateUser(identifier: string, actor: AuthUser): Promise<UserDto> {
-    const user = await this.getUserByIdentifierOrFail(identifier);
+    const user = await this.getUserByIdentifier(identifier);
 
     if (user.id === actor.id) {
       throw new ConflictException('Cannot deactivate self');
@@ -209,8 +200,8 @@ export class UsersService {
     return this.toUserDto(user, actor);
   }
 
-  async adminDeleteUser(identifier: string, callerId: string): Promise<void> {
-    const user = await this.getUserByIdentifierOrFail(identifier);
+  async deleteUser(identifier: string, callerId: string): Promise<void> {
+    const user = await this.getUserByIdentifier(identifier);
 
     if (user.id === callerId) {
       throw new ConflictException('Cannot delete self');
@@ -224,12 +215,12 @@ export class UsersService {
     await this.usersRepository.remove(user);
   }
 
-  async adminChangeUserRole(
+  async changeUserRole(
     identifier: string,
     dto: ChangeUserRoleDto,
     actor: AuthUser,
   ): Promise<UserDto> {
-    const user = await this.getUserByIdentifierOrFail(identifier);
+    const user = await this.getUserByIdentifier(identifier);
 
     user.role = dto.role;
     await this.usersRepository.save(user);

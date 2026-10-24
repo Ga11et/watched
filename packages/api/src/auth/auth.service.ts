@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'crypto';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { User, UserRole } from '../users/entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
@@ -44,29 +44,29 @@ export class AuthService {
     }
 
     if (username) {
-      const existingByUsername = await this.usersRepository.findOne({
-        where: { username },
-      });
-      if (existingByUsername) {
+      const taken = await this.usersRepository
+        .createQueryBuilder('user')
+        .where('LOWER(user.username) = LOWER(:username)', { username })
+        .getExists();
+      if (taken) {
         throw new UnprocessableEntityException({
           status: 422,
           message: 'Username already exists',
-          violations: [
-            { property: 'username', error: 'Username already exists' },
-          ],
+          violations: [{ field: 'username', error: 'Username already exists' }],
         });
       }
     }
 
     if (email) {
-      const existingByEmail = await this.usersRepository.findOne({
-        where: { email },
-      });
-      if (existingByEmail) {
+      const taken = await this.usersRepository
+        .createQueryBuilder('user')
+        .where('LOWER(user.email) = LOWER(:email)', { email })
+        .getExists();
+      if (taken) {
         throw new UnprocessableEntityException({
           status: 422,
           message: 'Email already exists',
-          violations: [{ property: 'email', error: 'Email already exists' }],
+          violations: [{ field: 'email', error: 'Email already exists' }],
         });
       }
     }
@@ -82,7 +82,36 @@ export class AuthService {
       isActive: true,
     });
 
-    return this.usersRepository.save(user);
+    try {
+      return await this.usersRepository.save(user);
+    } catch (error) {
+      if (error instanceof QueryFailedError) {
+        const { code, constraint } = (error.driverError ?? {}) as {
+          code?: string;
+          constraint?: string;
+        };
+
+        if (code === '23505' && constraint === 'user_username_lower_uq') {
+          throw new UnprocessableEntityException({
+            status: 422,
+            message: 'Username already exists',
+            violations: [
+              { field: 'username', error: 'Username already exists' },
+            ],
+          });
+        }
+
+        if (code === '23505' && constraint === 'user_email_lower_uq') {
+          throw new UnprocessableEntityException({
+            status: 422,
+            message: 'Email already exists',
+            violations: [{ field: 'email', error: 'Email already exists' }],
+          });
+        }
+      }
+
+      throw error;
+    }
   }
 
   async login(identifier: string, password: string): Promise<LoginResult> {
@@ -90,8 +119,12 @@ export class AuthService {
 
     const user = await this.usersRepository
       .createQueryBuilder('user')
-      .where('user.username = :identifier', { identifier: preparedIdentifier })
-      .orWhere('user.email = :identifier', { identifier: preparedIdentifier })
+      .where('LOWER(user.username) = LOWER(:identifier)', {
+        identifier: preparedIdentifier,
+      })
+      .orWhere('LOWER(user.email) = LOWER(:identifier)', {
+        identifier: preparedIdentifier,
+      })
       .orWhere('user.name = :identifier', { identifier: preparedIdentifier })
       .getOne();
 

@@ -27,7 +27,7 @@ export class User {
     example: 'testuser',
     nullable: true,
   })
-  @Column({ type: 'text', nullable: true, unique: true })
+  @Column({ type: 'text', nullable: true })
   username: string | null;
 
   @ApiPropertyOptional({
@@ -35,7 +35,7 @@ export class User {
     example: 'test@example.com',
     nullable: true,
   })
-  @Column({ type: 'text', nullable: true, unique: true })
+  @Column({ type: 'text', nullable: true })
   email: string | null;
 
   @ApiProperty({

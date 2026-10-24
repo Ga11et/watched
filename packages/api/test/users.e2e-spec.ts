@@ -11,7 +11,7 @@ import {
 import { TypeOrmModule } from '@nestjs/typeorm';
 import request from 'supertest';
 import { User, UserRole } from '../src/users/entities/user.entity';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { JwtService } from '../src/auth/jwt.service';
 import { UsersModule } from '../src/users/users.module';
@@ -230,6 +230,17 @@ describe('Users Module E2E Tests', () => {
         });
     });
 
+    it('should get the same user by username in a different case', () => {
+      return request(app.getHttpServer())
+        .get('/users/TESTUSER')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.id).toBe(testUser.id);
+          expect(res.body.username).toBe('testuser');
+        });
+    });
+
     it('should return 401 without authentication', () => {
       return request(app.getHttpServer())
         .get(`/users/${testUser.id}`)
@@ -441,6 +452,110 @@ describe('Users Module E2E Tests', () => {
           username: 'admin',
         })
         .expect(422);
+    });
+
+    it("should save a new spelling of the user's own username and email", async () => {
+      await request(app.getHttpServer())
+        .patch(`/users/${guestUser.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          username: 'Guest_User',
+          email: 'Guest@Example.com',
+        })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.username).toBe('Guest_User');
+          expect(res.body.email).toBe('Guest@Example.com');
+        });
+
+      await request(app.getHttpServer())
+        .get('/users/guest_user')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.id).toBe(guestUser.id);
+          expect(res.body.username).toBe('Guest_User');
+        });
+
+      // Restore for other tests
+      await usersRepository.update(guestUser.id, {
+        username: 'guest_user',
+        email: 'guest@example.com',
+      });
+    });
+
+    it("should reject another user's username in a different case", () => {
+      return request(app.getHttpServer())
+        .patch(`/users/${testUser.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          username: 'ADMIN',
+        })
+        .expect(422)
+        .expect((res) => {
+          expect(res.body).toEqual({
+            status: 422,
+            message: 'Username already exists',
+            violations: [
+              { field: 'username', error: 'Username already exists' },
+            ],
+          });
+        });
+    });
+
+    it("should reject another user's email in a different case", () => {
+      return request(app.getHttpServer())
+        .patch(`/users/${testUser.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          email: 'Admin@Example.com',
+        })
+        .expect(422)
+        .expect((res) => {
+          expect(res.body).toEqual({
+            status: 422,
+            message: 'Email already exists',
+            violations: [{ field: 'email', error: 'Email already exists' }],
+          });
+        });
+    });
+
+    it('should map a 23505 on the username index during save to 422 for username', async () => {
+      const saveSpy = jest
+        .spyOn(usersRepository, 'save')
+        .mockRejectedValueOnce(
+          new QueryFailedError(
+            'UPDATE "user"',
+            [],
+            Object.assign(
+              new Error(
+                'duplicate key value violates unique constraint "user_username_lower_uq"',
+              ),
+              { code: '23505', constraint: 'user_username_lower_uq' },
+            ),
+          ),
+        );
+
+      try {
+        await request(app.getHttpServer())
+          .patch(`/users/${testUser.id}`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({
+            username: 'raced_username',
+          })
+          .expect(422)
+          .expect((res) => {
+            expect(res.body).toEqual({
+              status: 422,
+              message: 'Username already exists',
+              violations: [
+                { field: 'username', error: 'Username already exists' },
+              ],
+            });
+          });
+      } finally {
+        saveSpy.mockRestore();
+      }
     });
 
     it('should reject invalid email', () => {

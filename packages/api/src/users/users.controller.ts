@@ -20,7 +20,7 @@ import {
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { UserDto } from './dto/user.dto';
-import { AdminUpdateUserDto, ChangeUserRoleDto } from './dto/update-user.dto';
+import { UpdateUserDto, ChangeUserRoleDto } from './dto/update-user.dto';
 import { UserRole } from './entities/user.entity';
 import type { AuthUser } from '../auth/auth.middleware';
 
@@ -63,7 +63,7 @@ export class UsersController {
       throw new ForbiddenException('Unauthorized');
     }
 
-    const user = await this.usersService.getUserByIdentifierOrFail(identifier);
+    const user = await this.usersService.getUserByIdentifier(identifier);
     return this.usersService.toUserDto(user, req.user);
   }
 
@@ -155,13 +155,13 @@ export class UsersController {
   async updateUser(
     @Request() req: AuthRequest,
     @Param('identifier') identifier: string,
-    @Body() dto: AdminUpdateUserDto,
+    @Body() dto: UpdateUserDto,
   ): Promise<UserDto> {
     if (!req.user || req.user.role !== UserRole.ADMIN) {
       throw new ForbiddenException('Admin access required');
     }
 
-    return this.usersService.adminUpdateUser(identifier, dto, req.user);
+    return this.usersService.updateUserProfile(identifier, dto, req.user);
   }
 
   @Patch(':identifier/deactivate')
@@ -242,7 +242,7 @@ export class UsersController {
       throw new ForbiddenException('Admin access required');
     }
 
-    await this.usersService.adminDeleteUser(identifier, req.user.id);
+    await this.usersService.deleteUser(identifier, req.user.id);
   }
 
   @Patch(':identifier/role')
@@ -283,6 +283,6 @@ export class UsersController {
       throw new ForbiddenException('Admin access required');
     }
 
-    return this.usersService.adminChangeUserRole(identifier, dto, req.user);
+    return this.usersService.changeUserRole(identifier, dto, req.user);
   }
 }
