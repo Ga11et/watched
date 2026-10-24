@@ -120,7 +120,6 @@ const props = defineProps<{ userMovieId: string }>()
 const emit = defineEmits<{ 'title-loaded': [title: string] }>()
 const router = useRouter()
 const { get, update } = useUserMovies()
-const { getApiErrorMessage } = useAuth()
 
 const form = reactive<{ rating?: number; watchedAt: string; comment: string }>({
   rating: undefined,

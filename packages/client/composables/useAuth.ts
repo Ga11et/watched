@@ -21,21 +21,6 @@ const AUTH_TOKEN_COOKIE = 'watched.auth.token'
 export const SESSION_EXPIRED_REASON = 'session-expired'
 export const SESSION_EXPIRED_MESSAGE = 'Сессия завершена. Войдите снова'
 
-export const getApiErrorStatus = (error: unknown): number | null => {
-  if (!error || typeof error !== 'object') {
-    return null
-  }
-
-  const withStatus = error as {
-    status?: number
-    statusCode?: number
-    response?: { status?: number }
-  }
-  const status = withStatus.status ?? withStatus.statusCode ?? withStatus.response?.status
-
-  return typeof status === 'number' ? status : null
-}
-
 export const loginRoute = (redirect: string, reason?: string) => {
   const query = new URLSearchParams()
 
@@ -50,27 +35,6 @@ export const loginRoute = (redirect: string, reason?: string) => {
   const search = query.toString()
 
   return search ? `/login?${search}` : '/login'
-}
-
-const getApiErrorMessage = (error: unknown): string => {
-  const fallback = 'Не удалось выполнить запрос. Попробуйте еще раз.'
-
-  if (!error || typeof error !== 'object') {
-    return fallback
-  }
-
-  const withData = error as { data?: { message?: string | string[] } }
-  const message = withData.data?.message
-
-  if (Array.isArray(message) && message.length > 0) {
-    return String(message[0])
-  }
-
-  if (typeof message === 'string' && message.trim().length > 0) {
-    return message
-  }
-
-  return fallback
 }
 
 export const useAuth = () => {
@@ -201,6 +165,5 @@ export const useAuth = () => {
     register,
     loginAsGuest,
     logout,
-    getApiErrorMessage,
   }
 }

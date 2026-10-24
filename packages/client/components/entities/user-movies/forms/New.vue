@@ -71,7 +71,6 @@ import type { CreateUserMovieDto } from '~/types/api'
 
 const router = useRouter()
 const { create } = useUserMovies()
-const { getApiErrorMessage } = useAuth()
 const form = reactive<{ title: string; rating?: number; watchedAt: string; comment: string }>({
   title: '',
   rating: undefined,

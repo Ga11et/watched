@@ -6,9 +6,14 @@ definePageMeta({
   layout: 'auth',
 })
 
+const REGISTER_FIELDS = ['name', 'username', 'email', 'password'] as const
+
+type RegisterErrors = Partial<Record<(typeof REGISTER_FIELDS)[number], string>>
+
 const mode = ref<'login' | 'register'>('login')
 const pending = ref(false)
 const errorMessage = ref('')
+const registerErrors = ref<RegisterErrors>({})
 
 const loginForm = reactive({
   identifier: '',
@@ -43,7 +48,7 @@ const submitLogin = async () => {
 
     await navigateTo(redirectTo.value)
   } catch (error: unknown) {
-    errorMessage.value = auth.getApiErrorMessage(error)
+    errorMessage.value = parseRequestError(error).message
   } finally {
     pending.value = false
   }
@@ -52,6 +57,7 @@ const submitLogin = async () => {
 const submitRegister = async () => {
   pending.value = true
   errorMessage.value = ''
+  registerErrors.value = {}
 
   try {
     await auth.register({
@@ -63,7 +69,23 @@ const submitRegister = async () => {
 
     await navigateTo(redirectTo.value)
   } catch (error: unknown) {
-    errorMessage.value = auth.getApiErrorMessage(error)
+    const { message, violations } = parseRequestError(error)
+    const fieldErrors: RegisterErrors = {}
+    let generalMessage = ''
+
+    // Нарушения известных полей показываются у полей, остальные — общим сообщением.
+    for (const { field, error: text } of violations) {
+      const registerField = REGISTER_FIELDS.find((name) => name === field)
+
+      if (registerField) {
+        fieldErrors[registerField] ??= text
+      } else {
+        generalMessage ||= text
+      }
+    }
+
+    registerErrors.value = fieldErrors
+    errorMessage.value = generalMessage || (Object.keys(fieldErrors).length > 0 ? '' : message)
   } finally {
     pending.value = false
   }
@@ -176,36 +198,56 @@ const submitGuest = async () => {
           </button>
         </form>
 
-        <form v-else class="space-y-4" @submit.prevent="submitRegister">
+        <form v-else class="space-y-4" novalidate @submit.prevent="submitRegister">
+          <p class="text-xs text-gray-500">Укажите логин, email или оба.</p>
+
           <label class="block text-sm font-medium text-gray-700">
             Имя
             <input
               v-model="registerForm.name"
               type="text"
               required
-              class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition focus:border-indigo-500"
+              :aria-invalid="Boolean(registerErrors.name)"
+              class="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none transition focus:border-indigo-500"
+              :class="registerErrors.name ? 'border-red-400' : 'border-gray-300'"
               placeholder="Ваше имя"
             />
+            <span v-if="registerErrors.name" class="mt-1 block text-xs font-normal text-red-600">
+              {{ registerErrors.name }}
+            </span>
           </label>
 
           <label class="block text-sm font-medium text-gray-700">
-            Логин (опционально)
+            Логин
             <input
               v-model="registerForm.username"
               type="text"
-              class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition focus:border-indigo-500"
+              :aria-invalid="Boolean(registerErrors.username)"
+              class="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none transition focus:border-indigo-500"
+              :class="registerErrors.username ? 'border-red-400' : 'border-gray-300'"
               placeholder="username"
             />
+            <span
+              v-if="registerErrors.username"
+              class="mt-1 block text-xs font-normal text-red-600"
+            >
+              {{ registerErrors.username }}
+            </span>
           </label>
 
           <label class="block text-sm font-medium text-gray-700">
-            Email (опционально)
+            Email
             <input
               v-model="registerForm.email"
               type="email"
-              class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition focus:border-indigo-500"
+              :aria-invalid="Boolean(registerErrors.email)"
+              class="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none transition focus:border-indigo-500"
+              :class="registerErrors.email ? 'border-red-400' : 'border-gray-300'"
               placeholder="you@example.com"
             />
+            <span v-if="registerErrors.email" class="mt-1 block text-xs font-normal text-red-600">
+              {{ registerErrors.email }}
+            </span>
           </label>
 
           <label class="block text-sm font-medium text-gray-700">
@@ -214,9 +256,17 @@ const submitGuest = async () => {
               v-model="registerForm.password"
               type="password"
               required
-              class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition focus:border-indigo-500"
-              placeholder="Минимум 1 символ"
+              :aria-invalid="Boolean(registerErrors.password)"
+              class="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none transition focus:border-indigo-500"
+              :class="registerErrors.password ? 'border-red-400' : 'border-gray-300'"
+              placeholder="Минимум 6 символов"
             />
+            <span
+              v-if="registerErrors.password"
+              class="mt-1 block text-xs font-normal text-red-600"
+            >
+              {{ registerErrors.password }}
+            </span>
           </label>
 
           <button

@@ -5,8 +5,14 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { User, UserRole } from './entities/user.entity';
+import {
+  assertAvailable,
+  normalizeConstraintError,
+  normalizeUser,
+  validateUser,
+} from './users.rules';
 import { UserBook } from '../user-lists/entities/user-book.entity';
 import { UserMovie } from '../user-lists/entities/user-movie.entity';
 import { UserSeries } from '../user-lists/entities/user-series.entity';
@@ -15,6 +21,10 @@ import { UserDto } from './dto/user.dto';
 import { UpdateUserDto, ChangeUserRoleDto } from './dto/update-user.dto';
 import { isUuid } from '../common/utils/uuid.util';
 import type { AuthUser } from '../auth/auth.middleware';
+
+type EditableUserFields = Partial<
+  Pick<User, 'name' | 'username' | 'email' | 'role' | 'isActive'>
+>;
 
 @Injectable()
 export class UsersService {
@@ -104,106 +114,38 @@ export class UsersService {
     dto: UpdateUserDto,
     actor: AuthUser,
   ): Promise<UserDto> {
-    const user = await this.getUserByIdentifier(identifier);
-
-    if (dto.name !== undefined) {
-      user.name = dto.name;
-    }
-
-    if (dto.username !== undefined) {
-      if (dto.username !== null) {
-        const taken = await this.usersRepository
-          .createQueryBuilder('user')
-          .where('LOWER(user.username) = LOWER(:username)', {
-            username: dto.username,
-          })
-          .andWhere('user.id != :id', { id: user.id })
-          .getExists();
-        if (taken) {
-          throw new UnprocessableEntityException({
-            status: 422,
-            message: 'Username already exists',
-            violations: [
-              { field: 'username', error: 'Username already exists' },
-            ],
-          });
-        }
-      }
-      user.username = dto.username;
-    }
-
-    if (dto.email !== undefined) {
-      if (dto.email !== null) {
-        const taken = await this.usersRepository
-          .createQueryBuilder('user')
-          .where('LOWER(user.email) = LOWER(:email)', { email: dto.email })
-          .andWhere('user.id != :id', { id: user.id })
-          .getExists();
-        if (taken) {
-          throw new UnprocessableEntityException({
-            status: 422,
-            message: 'Email already exists',
-            violations: [{ field: 'email', error: 'Email already exists' }],
-          });
-        }
-      }
-      user.email = dto.email;
-    }
+    const fields: EditableUserFields = normalizeUser(dto);
 
     if (dto.role !== undefined) {
-      user.role = dto.role;
+      fields.role = dto.role;
     }
 
-    try {
-      await this.usersRepository.save(user);
-    } catch (error) {
-      if (error instanceof QueryFailedError) {
-        const { code, constraint } = (error.driverError ?? {}) as {
-          code?: string;
-          constraint?: string;
-        };
-
-        if (code === '23505' && constraint === 'user_username_lower_uq') {
-          throw new UnprocessableEntityException({
-            status: 422,
-            message: 'Username already exists',
-            violations: [
-              { field: 'username', error: 'Username already exists' },
-            ],
-          });
-        }
-
-        if (code === '23505' && constraint === 'user_email_lower_uq') {
-          throw new UnprocessableEntityException({
-            status: 422,
-            message: 'Email already exists',
-            violations: [{ field: 'email', error: 'Email already exists' }],
-          });
-        }
-      }
-
-      throw error;
-    }
+    const id = isUuid(identifier)
+      ? identifier
+      : (await this.getUserByIdentifier(identifier)).id;
+    const user = await this.editUser(id, fields);
 
     return this.toUserDto(user, actor);
   }
 
   async deactivateUser(identifier: string, actor: AuthUser): Promise<UserDto> {
-    const user = await this.getUserByIdentifier(identifier);
+    const id = isUuid(identifier)
+      ? identifier
+      : (await this.getUserByIdentifier(identifier)).id;
 
-    if (user.id === actor.id) {
+    if (id === actor.id) {
       throw new ConflictException('Cannot deactivate self');
     }
 
-    user.isActive = false;
-    await this.usersRepository.save(user);
+    const user = await this.editUser(id, { isActive: false });
+
     return this.toUserDto(user, actor);
   }
 
-  async deleteUser(identifier: string, callerId: string): Promise<void> {
+  async deleteUser(identifier: string, actor: AuthUser): Promise<void> {
     const user = await this.getUserByIdentifier(identifier);
 
-    if (user.id === callerId) {
+    if (user.id === actor.id) {
       throw new ConflictException('Cannot delete self');
     }
 
@@ -220,11 +162,52 @@ export class UsersService {
     dto: ChangeUserRoleDto,
     actor: AuthUser,
   ): Promise<UserDto> {
-    const user = await this.getUserByIdentifier(identifier);
+    const id = isUuid(identifier)
+      ? identifier
+      : (await this.getUserByIdentifier(identifier)).id;
 
-    user.role = dto.role;
-    await this.usersRepository.save(user);
+    const user = await this.editUser(id, { role: dto.role });
 
     return this.toUserDto(user, actor);
+  }
+
+  /**
+   * Locks the current row by UUID, applies the fields, checks the resulting
+   * profile and always writes the given fields, even when nothing actually changes.
+   */
+  private async editUser(
+    userId: string,
+    fields: EditableUserFields,
+  ): Promise<User> {
+    try {
+      return await this.usersRepository.manager.transaction(async (manager) => {
+        const current = await manager.findOne(User, {
+          where: { id: userId },
+          lock: { mode: 'pessimistic_write' },
+        });
+
+        if (!current) {
+          throw new NotFoundException('User not found');
+        }
+
+        const next = { ...current, ...fields };
+        const violations = validateUser(next);
+
+        if (violations.length > 0) {
+          throw new UnprocessableEntityException({
+            status: 422,
+            message: violations[0].error,
+            violations,
+          });
+        }
+
+        await assertAvailable(manager, next, current);
+        await manager.update(User, { id: userId }, fields);
+
+        return manager.findOneByOrFail(User, { id: userId });
+      });
+    } catch (error) {
+      throw normalizeConstraintError(error) ?? error;
+    }
   }
 }

@@ -11,7 +11,7 @@ import {
 import { TypeOrmModule } from '@nestjs/typeorm';
 import request from 'supertest';
 import { User, UserRole } from '../src/users/entities/user.entity';
-import { QueryFailedError, Repository } from 'typeorm';
+import { EntityManager, QueryFailedError, Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { JwtService } from '../src/auth/jwt.service';
 import { UsersModule } from '../src/users/users.module';
@@ -520,9 +520,9 @@ describe('Users Module E2E Tests', () => {
         });
     });
 
-    it('should map a 23505 on the username index during save to 422 for username', async () => {
-      const saveSpy = jest
-        .spyOn(usersRepository, 'save')
+    it('should map a 23505 on the username index during update to 422 for username', async () => {
+      const updateSpy = jest
+        .spyOn(EntityManager.prototype, 'update')
         .mockRejectedValueOnce(
           new QueryFailedError(
             'UPDATE "user"',
@@ -554,7 +554,7 @@ describe('Users Module E2E Tests', () => {
             });
           });
       } finally {
-        saveSpy.mockRestore();
+        updateSpy.mockRestore();
       }
     });
 

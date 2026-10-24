@@ -513,7 +513,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
       .post('/auth/register')
       .send({
         name: 'Duplicate First',
-        username: `duplicate-${suffix}`,
+        username: `duplicate_${suffix}`,
         password: 'password123',
       })
       .expect(201);
@@ -522,7 +522,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
       .post('/auth/register')
       .send({
         name: 'Duplicate Second',
-        username: `duplicate-${suffix}`,
+        username: `duplicate_${suffix}`,
         password: 'password123',
       })
       .expect(422)
@@ -537,7 +537,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
     await request(app.getHttpServer())
       .post('/auth/login')
       .send({
-        identifier: `duplicate-${suffix}`,
+        identifier: `duplicate_${suffix}`,
         password: 'wrong-password',
       })
       .expect(401)
@@ -556,7 +556,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
       .post('/auth/register')
       .send({
         name: 'Trim User',
-        username: `trim-${suffix}`,
+        username: `trim_${suffix}`,
         password: 'password123',
       })
       .expect(201);
@@ -564,7 +564,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
     const loginResponse = await request(app.getHttpServer())
       .post('/auth/login')
       .send({
-        identifier: `   trim-${suffix}   `,
+        identifier: `   trim_${suffix}   `,
         password: 'password123',
       })
       .expect(200);
@@ -584,13 +584,13 @@ describe('Step 7 final authorization integration (e2e)', () => {
   });
 
   it("rejects registration with another user's username or email in a different case", async () => {
-    const suffix = `${Date.now()}-${randomUUID()}`;
+    const suffix = `${Date.now()}_${randomUUID().slice(0, 8)}`;
 
     await request(app.getHttpServer())
       .post('/auth/register')
       .send({
         name: 'Case Owner',
-        username: `Case-Owner-${suffix}`,
+        username: `Case_Owner_${suffix}`,
         email: `Case.Owner-${suffix}@Test.dev`,
         password: 'password123',
       })
@@ -600,7 +600,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
       .post('/auth/register')
       .send({
         name: 'Username Clash',
-        username: `case-owner-${suffix}`,
+        username: `case_owner_${suffix}`,
         password: 'password123',
       })
       .expect(422)
@@ -635,7 +635,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
       constraint: string,
       message: string,
     ): Promise<request.Response> => {
-      const suffix = `${Date.now()}-${randomUUID()}`;
+      const suffix = `${Date.now()}_${randomUUID().slice(0, 8)}`;
       const saveSpy = jest
         .spyOn(dataSource.getRepository(User), 'save')
         .mockRejectedValueOnce(
@@ -651,7 +651,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
           .post('/auth/register')
           .send({
             name: 'Insert Failure',
-            username: `fail-${suffix}`,
+            username: `fail_${suffix}`,
             email: `fail-${suffix}@test.dev`,
             password: 'password123',
           });
@@ -733,8 +733,8 @@ describe('Step 7 final authorization integration (e2e)', () => {
   });
 
   it('logs in by username or email in a different case into the same account', async () => {
-    const suffix = `${Date.now()}-${randomUUID()}`;
-    const username = `Case-Login-${suffix}`;
+    const suffix = `${Date.now()}_${randomUUID().slice(0, 8)}`;
+    const username = `Case_Login_${suffix}`;
 
     const registerResponse = await request(app.getHttpServer())
       .post('/auth/register')
@@ -749,7 +749,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
 
     const byUsername = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ identifier: `CASE-LOGIN-${suffix}`, password: 'password123' })
+      .send({ identifier: `CASE_LOGIN_${suffix}`, password: 'password123' })
       .expect(200);
     expect(byUsername.body.user.id).toBe(userId);
     expect(byUsername.body.user.username).toBe(username);
@@ -765,8 +765,8 @@ describe('Step 7 final authorization integration (e2e)', () => {
   });
 
   it('denies login to inactive users without revealing inactivity on wrong password', async () => {
-    const suffix = `${Date.now()}-${randomUUID()}`;
-    const username = `inactive-login-${suffix}`;
+    const suffix = `${Date.now()}_${randomUUID().slice(0, 8)}`;
+    const username = `inactive_login_${suffix}`;
     const password = 'password123';
     const adminToken = signToken(UserRole.ADMIN, ADMIN_ID);
 
@@ -828,7 +828,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
         .post('/auth/register')
         .send({
           name: `No Secret ${Date.now()}`,
-          username: `no-secret-${Date.now()}`,
+          username: `no_secret_${Date.now()}`,
           password: 'password123',
         })
         .expect(500)

@@ -5,9 +5,15 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'crypto';
-import { QueryFailedError, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { User, UserRole } from '../users/entities/user.entity';
+import {
+  assertAvailable,
+  normalizeConstraintError,
+  normalizeUser,
+  validateUser,
+} from '../users/users.rules';
 import { RegisterDto } from './dto/register.dto';
 
 export interface LoginResult {
@@ -23,94 +29,39 @@ export class AuthService {
   ) {}
 
   async register(data: RegisterDto): Promise<User> {
-    const name = data.name?.trim();
-    const username = data.username?.trim() || null;
-    const email = data.email?.trim() || null;
+    const user: Pick<User, 'name' | 'username' | 'email'> = {
+      name: '',
+      username: null,
+      email: null,
+      ...normalizeUser(data),
+    };
+    const violations = validateUser(user);
 
-    if (!name) {
+    if (!data.password.trim()) {
+      violations.push({ field: 'password', error: 'Password is required' });
+    }
+
+    if (violations.length > 0) {
       throw new UnprocessableEntityException({
         status: 422,
-        message: 'Name is required',
-        violations: [{ property: 'name', error: 'Name is required' }],
+        message: violations[0].error,
+        violations,
       });
     }
 
-    if (!data.password?.trim()) {
-      throw new UnprocessableEntityException({
-        status: 422,
-        message: 'Password is required',
-        violations: [{ property: 'password', error: 'Password is required' }],
-      });
-    }
+    await assertAvailable(this.usersRepository.manager, user);
 
-    if (username) {
-      const taken = await this.usersRepository
-        .createQueryBuilder('user')
-        .where('LOWER(user.username) = LOWER(:username)', { username })
-        .getExists();
-      if (taken) {
-        throw new UnprocessableEntityException({
-          status: 422,
-          message: 'Username already exists',
-          violations: [{ field: 'username', error: 'Username already exists' }],
-        });
-      }
-    }
-
-    if (email) {
-      const taken = await this.usersRepository
-        .createQueryBuilder('user')
-        .where('LOWER(user.email) = LOWER(:email)', { email })
-        .getExists();
-      if (taken) {
-        throw new UnprocessableEntityException({
-          status: 422,
-          message: 'Email already exists',
-          violations: [{ field: 'email', error: 'Email already exists' }],
-        });
-      }
-    }
-
-    const passwordHash = await this.hashPassword(data.password);
-
-    const user = this.usersRepository.create({
-      name,
-      passwordHash,
-      username,
-      email,
+    const entity = this.usersRepository.create({
+      ...user,
+      passwordHash: await this.hashPassword(data.password),
       role: UserRole.USER,
       isActive: true,
     });
 
     try {
-      return await this.usersRepository.save(user);
+      return await this.usersRepository.save(entity);
     } catch (error) {
-      if (error instanceof QueryFailedError) {
-        const { code, constraint } = (error.driverError ?? {}) as {
-          code?: string;
-          constraint?: string;
-        };
-
-        if (code === '23505' && constraint === 'user_username_lower_uq') {
-          throw new UnprocessableEntityException({
-            status: 422,
-            message: 'Username already exists',
-            violations: [
-              { field: 'username', error: 'Username already exists' },
-            ],
-          });
-        }
-
-        if (code === '23505' && constraint === 'user_email_lower_uq') {
-          throw new UnprocessableEntityException({
-            status: 422,
-            message: 'Email already exists',
-            violations: [{ field: 'email', error: 'Email already exists' }],
-          });
-        }
-      }
-
-      throw error;
+      throw normalizeConstraintError(error) ?? error;
     }
   }
 

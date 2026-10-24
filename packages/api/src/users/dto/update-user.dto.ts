@@ -1,13 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsOptional,
-  IsString,
-  MinLength,
-  MaxLength,
-  IsEmail,
-  Matches,
-  IsEnum,
-} from 'class-validator';
+import { IsOptional, IsString, IsEnum, ValidateIf } from 'class-validator';
 import { UserRole } from '../entities/user.entity';
 
 export class UpdateUserDto {
@@ -17,10 +9,8 @@ export class UpdateUserDto {
     minLength: 1,
     maxLength: 255,
   })
-  @IsOptional()
+  @ValidateIf((dto: UpdateUserDto) => dto.name !== undefined)
   @IsString()
-  @MinLength(1)
-  @MaxLength(255)
   name?: string;
 
   @ApiPropertyOptional({
@@ -29,15 +19,10 @@ export class UpdateUserDto {
     nullable: true,
     minLength: 1,
     maxLength: 50,
+    pattern: '^[A-Za-z0-9_]+$',
   })
   @IsOptional()
   @IsString()
-  @MinLength(1)
-  @MaxLength(50)
-  @Matches(/^[a-zA-Z0-9_]*$/, {
-    message:
-      'username must contain only alphanumeric characters and underscores',
-  })
   username?: string | null;
 
   @ApiPropertyOptional({
@@ -46,7 +31,7 @@ export class UpdateUserDto {
     nullable: true,
   })
   @IsOptional()
-  @IsEmail()
+  @IsString()
   email?: string | null;
 
   @ApiPropertyOptional({
@@ -54,7 +39,7 @@ export class UpdateUserDto {
     enum: UserRole,
     example: UserRole.USER,
   })
-  @IsOptional()
+  @ValidateIf((dto: UpdateUserDto) => dto.role !== undefined)
   @IsEnum(UserRole)
   role?: UserRole;
 }

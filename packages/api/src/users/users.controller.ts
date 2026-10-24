@@ -193,6 +193,10 @@ export class UsersController {
     status: 409,
     description: 'Cannot deactivate self',
   })
+  @ApiResponse({
+    status: 422,
+    description: 'Unprocessable entity',
+  })
   async deactivateUser(
     @Request() req: AuthRequest,
     @Param('identifier') identifier: string,
@@ -242,7 +246,7 @@ export class UsersController {
       throw new ForbiddenException('Admin access required');
     }
 
-    await this.usersService.deleteUser(identifier, req.user.id);
+    await this.usersService.deleteUser(identifier, req.user);
   }
 
   @Patch(':identifier/role')
@@ -272,7 +276,7 @@ export class UsersController {
   })
   @ApiResponse({
     status: 422,
-    description: 'Invalid role',
+    description: 'Unprocessable entity',
   })
   async changeUserRole(
     @Request() req: AuthRequest,
