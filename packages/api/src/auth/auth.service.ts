@@ -96,7 +96,7 @@ export class AuthService {
       .getOne();
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     const isValidPassword = await this.verifyPassword(
@@ -106,6 +106,10 @@ export class AuthService {
 
     if (!isValidPassword) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('User is inactive');
     }
 
     return {

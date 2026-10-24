@@ -184,6 +184,14 @@ describe('Step 7 final authorization integration (e2e)', () => {
     );
   };
 
+  const expectInvalidCredentials = (response: request.Response): void => {
+    expect(response.body).toEqual({
+      status: 401,
+      message: 'Invalid credentials',
+      violations: [{ property: 'request', error: 'Invalid credentials' }],
+    });
+  };
+
   const createBookId = async (): Promise<string> => {
     const booksRepository = dataSource.getRepository(Book);
     const book = await booksRepository.save({
@@ -535,13 +543,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
         password: 'wrong-password',
       })
       .expect(401)
-      .expect((response) => {
-        expect(response.body).toEqual({
-          status: 401,
-          message: 'Invalid credentials',
-          violations: [{ property: 'request', error: 'Invalid credentials' }],
-        });
-      });
+      .expect(expectInvalidCredentials);
 
     await request(app.getHttpServer())
       .post('/auth/login')
@@ -550,13 +552,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
         password: 'password123',
       })
       .expect(401)
-      .expect((response) => {
-        expect(response.body).toEqual({
-          status: 401,
-          message: 'User not found',
-          violations: [{ property: 'request', error: 'User not found' }],
-        });
-      });
+      .expect(expectInvalidCredentials);
 
     await request(app.getHttpServer())
       .post('/auth/register')
@@ -587,6 +583,61 @@ describe('Step 7 final authorization integration (e2e)', () => {
 
     expect(users.some((user) => user.id === INACTIVE_USER_ID)).toBe(false);
     expect(users.every((user) => user.passwordHash === undefined)).toBe(true);
+  });
+
+  it('denies login to inactive users without revealing inactivity on wrong password', async () => {
+    const suffix = `${Date.now()}-${randomUUID()}`;
+    const username = `inactive-login-${suffix}`;
+    const password = 'password123';
+    const adminToken = signToken(UserRole.ADMIN, ADMIN_ID);
+
+    const login = (identifier: string, loginPassword: string) =>
+      request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ identifier, password: loginPassword });
+
+    const registerResponse = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({ name: 'Inactive Login User', username, password })
+      .expect(201);
+    const userId = registerResponse.body.user.id as string;
+
+    const activeLogin = await login(username, password).expect(200);
+    expect(typeof activeLogin.body.token).toBe('string');
+    expect(activeLogin.body.user.id).toBe(userId);
+
+    await login(username, 'wrong-password')
+      .expect(401)
+      .expect(expectInvalidCredentials);
+
+    await request(app.getHttpServer())
+      .patch(`/users/${userId}/deactivate`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+
+    await login(username, password)
+      .expect(401)
+      .expect((response) => {
+        expect(response.body).toEqual({
+          status: 401,
+          message: 'User is inactive',
+          violations: [{ property: 'request', error: 'User is inactive' }],
+        });
+      });
+
+    await login(username, 'wrong-password')
+      .expect(401)
+      .expect(expectInvalidCredentials);
+
+    await login(`missing-${suffix}`, password)
+      .expect(401)
+      .expect(expectInvalidCredentials);
+
+    await dataSource.getRepository(User).update(userId, { isActive: true });
+
+    const reactivatedLogin = await login(username, password).expect(200);
+    expect(typeof reactivatedLogin.body.token).toBe('string');
+    expect(reactivatedLogin.body.user.id).toBe(userId);
   });
 
   it('returns 500 with unified payload when JWT_SECRET is missing during register', async () => {
