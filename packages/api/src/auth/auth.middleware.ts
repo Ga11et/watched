@@ -5,10 +5,16 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from './jwt.service';
+import type { UserRole } from '../users/entities/user.entity';
+
+export interface AuthUser {
+  id: string;
+  role: UserRole;
+}
 
 interface AuthRequest {
   headers?: Record<string, string | undefined>;
-  user?: unknown;
+  user?: AuthUser;
 }
 
 @Injectable()

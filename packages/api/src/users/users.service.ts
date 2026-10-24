@@ -18,6 +18,7 @@ import {
   ChangeUserRoleDto,
 } from './dto/update-user.dto';
 import { isUuid } from '../common/utils/uuid.util';
+import type { AuthUser } from '../auth/auth.middleware';
 
 @Injectable()
 export class UsersService {
@@ -34,7 +35,8 @@ export class UsersService {
     private userGamesRepository: Repository<UserGame>,
   ) {}
 
-  private toUserDto(user: User): UserDto {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Private-field filtering is introduced in profile block 04.
+  toUserDto(user: User, _actor: AuthUser): UserDto {
     return {
       id: user.id,
       username: user.username,
@@ -68,7 +70,7 @@ export class UsersService {
   }
 
   async getAllUsers(
-    userRole: UserRole,
+    actor: AuthUser,
     filters?: {
       search?: string;
       role?: UserRole;
@@ -77,7 +79,7 @@ export class UsersService {
   ): Promise<User[]> {
     let query = this.usersRepository.createQueryBuilder('user');
 
-    if (userRole !== UserRole.ADMIN) {
+    if (actor.role !== UserRole.ADMIN) {
       query = query.where('user.isActive = :isActive', { isActive: true });
     } else {
       if (filters?.isActive !== undefined) {
@@ -87,7 +89,7 @@ export class UsersService {
       }
     }
 
-    if (userRole === UserRole.ADMIN && filters?.role) {
+    if (actor.role === UserRole.ADMIN && filters?.role) {
       query = query.andWhere('user.role = :role', { role: filters.role });
     }
 
@@ -116,6 +118,7 @@ export class UsersService {
   async updateUserProfile(
     identifier: string,
     dto: UpdateUserDto,
+    actor: AuthUser,
   ): Promise<UserDto> {
     const user = await this.getUserByIdentifierOrFail(identifier);
 
@@ -148,12 +151,13 @@ export class UsersService {
     }
 
     await this.usersRepository.save(user);
-    return this.toUserDto(user);
+    return this.toUserDto(user, actor);
   }
 
   async adminUpdateUser(
     identifier: string,
     dto: AdminUpdateUserDto,
+    actor: AuthUser,
   ): Promise<UserDto> {
     const user = await this.getUserByIdentifierOrFail(identifier);
 
@@ -190,19 +194,19 @@ export class UsersService {
     }
 
     await this.usersRepository.save(user);
-    return this.toUserDto(user);
+    return this.toUserDto(user, actor);
   }
 
-  async deactivateUser(identifier: string, callerId: string): Promise<UserDto> {
+  async deactivateUser(identifier: string, actor: AuthUser): Promise<UserDto> {
     const user = await this.getUserByIdentifierOrFail(identifier);
 
-    if (user.id === callerId) {
+    if (user.id === actor.id) {
       throw new ConflictException('Cannot deactivate self');
     }
 
     user.isActive = false;
     await this.usersRepository.save(user);
-    return this.toUserDto(user);
+    return this.toUserDto(user, actor);
   }
 
   async adminDeleteUser(identifier: string, callerId: string): Promise<void> {
@@ -223,12 +227,13 @@ export class UsersService {
   async adminChangeUserRole(
     identifier: string,
     dto: ChangeUserRoleDto,
+    actor: AuthUser,
   ): Promise<UserDto> {
     const user = await this.getUserByIdentifierOrFail(identifier);
 
     user.role = dto.role;
     await this.usersRepository.save(user);
 
-    return this.toUserDto(user);
+    return this.toUserDto(user, actor);
   }
 }

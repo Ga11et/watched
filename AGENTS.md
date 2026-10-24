@@ -3,6 +3,7 @@
 ## Правила проекта
 
 - Перед изменениями в `packages/client/` прочитайте [правило проверки фронтенда](docs/rules/frontend-verification.md).
+- Перед добавлением или изменением тестов прочитайте [правило тестов](docs/rules/tests.md).
 
 ## Production
 

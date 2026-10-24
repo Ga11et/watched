@@ -22,12 +22,10 @@ import { UsersService } from './users.service';
 import { UserDto } from './dto/user.dto';
 import { AdminUpdateUserDto, ChangeUserRoleDto } from './dto/update-user.dto';
 import { UserRole } from './entities/user.entity';
+import type { AuthUser } from '../auth/auth.middleware';
 
 interface AuthRequest {
-  user?: {
-    id: string;
-    role: UserRole;
-  };
+  user?: AuthUser;
   query?: Record<string, string | undefined>;
 }
 
@@ -57,9 +55,16 @@ export class UsersController {
     status: 404,
     description: 'User not found',
   })
-  async getUser(@Param('identifier') identifier: string): Promise<UserDto> {
+  async getUser(
+    @Request() req: AuthRequest,
+    @Param('identifier') identifier: string,
+  ): Promise<UserDto> {
+    if (!req.user) {
+      throw new ForbiddenException('Unauthorized');
+    }
+
     const user = await this.usersService.getUserByIdentifierOrFail(identifier);
-    return this.usersService['toUserDto'](user);
+    return this.usersService.toUserDto(user, req.user);
   }
 
   @Get()
@@ -108,14 +113,14 @@ export class UsersController {
       throw new ForbiddenException('Unauthorized');
     }
 
-    const userRole = req.user.role;
-    const users = await this.usersService.getAllUsers(userRole, {
+    const actor = req.user;
+    const users = await this.usersService.getAllUsers(actor, {
       search,
       role,
       isActive: typeof isActive === 'boolean' ? isActive : undefined,
     });
 
-    return users.map((user) => this.usersService['toUserDto'](user));
+    return users.map((user) => this.usersService.toUserDto(user, actor));
   }
 
   @Patch(':identifier')
@@ -156,7 +161,7 @@ export class UsersController {
       throw new ForbiddenException('Admin access required');
     }
 
-    return this.usersService.adminUpdateUser(identifier, dto);
+    return this.usersService.adminUpdateUser(identifier, dto, req.user);
   }
 
   @Patch(':identifier/deactivate')
@@ -196,7 +201,7 @@ export class UsersController {
       throw new ForbiddenException('Admin access required');
     }
 
-    return this.usersService.deactivateUser(identifier, req.user.id);
+    return this.usersService.deactivateUser(identifier, req.user);
   }
 
   @Delete(':identifier')
@@ -278,6 +283,6 @@ export class UsersController {
       throw new ForbiddenException('Admin access required');
     }
 
-    return this.usersService.adminChangeUserRole(identifier, dto);
+    return this.usersService.adminChangeUserRole(identifier, dto, req.user);
   }
 }
