@@ -400,19 +400,19 @@ describe('Series Module E2E Tests', () => {
   });
 
   describe('Невалидный токен', () => {
-    it('GET /series с невалидным токеном возвращает 403', () => {
+    it('GET /series с невалидным токеном возвращает 401', () => {
       return request(app.getHttpServer())
         .get('/series')
         .set('Authorization', 'Bearer invalid-token')
-        .expect(403);
+        .expect(401);
     });
 
-    it('POST /series с невалидным токеном возвращает 403', () => {
+    it('POST /series с невалидным токеном возвращает 401', () => {
       return request(app.getHttpServer())
         .post('/series')
         .set('Authorization', 'Bearer invalid-token')
         .send({ title: 'Сериал' })
-        .expect(403);
+        .expect(401);
     });
   });
 });

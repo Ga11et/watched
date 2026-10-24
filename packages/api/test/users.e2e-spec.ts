@@ -670,8 +670,8 @@ describe('Users Module E2E Tests', () => {
   });
 
   describe('PATCH /users/:identifier/role', () => {
-    it('should change user role as ADMIN', () => {
-      return request(app.getHttpServer())
+    it('should change user role as ADMIN', async () => {
+      await request(app.getHttpServer())
         .patch(`/users/${testUser.id}/role`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
@@ -681,6 +681,9 @@ describe('Users Module E2E Tests', () => {
         .expect((res) => {
           expect(res.body.role).toBe(UserRole.ADMIN);
         });
+
+      // Restore for other tests: the DB role now drives access with the same JWT
+      await usersRepository.update(testUser.id, { role: UserRole.USER });
     });
 
     it('should reject invalid role', () => {
@@ -728,6 +731,82 @@ describe('Users Module E2E Tests', () => {
         .send({
           role: UserRole.USER,
         })
+        .expect(200);
+    });
+  });
+
+  describe('Live role and activity from DB with unchanged JWT', () => {
+    const ACTOR_ID = '550e8400-e29b-41d4-a716-446655440077';
+    let actorToken: string;
+
+    beforeAll(async () => {
+      const actor = await usersRepository.save(
+        usersRepository.create({
+          id: ACTOR_ID,
+          username: 'live_actor',
+          email: 'live-actor@example.com',
+          name: 'Live Actor',
+          passwordHash: '$2b$10$hash',
+          role: UserRole.USER,
+          isActive: true,
+        }),
+      );
+      actorToken = jwtService.generateToken(actor);
+    });
+
+    it('demotion and promotion take effect on the next request with the same JWT', async () => {
+      await request(app.getHttpServer())
+        .patch(`/users/${testUser.id}`)
+        .set('Authorization', `Bearer ${actorToken}`)
+        .send({ name: 'Still Forbidden' })
+        .expect(403);
+
+      await request(app.getHttpServer())
+        .patch(`/users/${ACTOR_ID}/role`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ role: UserRole.ADMIN })
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .patch(`/users/${testUser.id}`)
+        .set('Authorization', `Bearer ${actorToken}`)
+        .send({ name: 'Promoted Edit' })
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .patch(`/users/${ACTOR_ID}/role`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ role: UserRole.USER })
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .patch(`/users/${testUser.id}`)
+        .set('Authorization', `Bearer ${actorToken}`)
+        .send({ name: 'Demoted Edit' })
+        .expect(403);
+    });
+
+    it('deactivation gives 401 and reactivation restores access with the same JWT', async () => {
+      await request(app.getHttpServer())
+        .get(`/users/${ACTOR_ID}`)
+        .set('Authorization', `Bearer ${actorToken}`)
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .patch(`/users/${ACTOR_ID}/deactivate`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .get(`/users/${ACTOR_ID}`)
+        .set('Authorization', `Bearer ${actorToken}`)
+        .expect(401);
+
+      await usersRepository.update(ACTOR_ID, { isActive: true });
+
+      await request(app.getHttpServer())
+        .get(`/users/${ACTOR_ID}`)
+        .set('Authorization', `Bearer ${actorToken}`)
         .expect(200);
     });
   });

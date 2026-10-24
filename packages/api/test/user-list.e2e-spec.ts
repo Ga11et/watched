@@ -16,14 +16,30 @@ import {
   Get,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import request from 'supertest';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { App } from 'supertest/types';
-import { UserRole } from '../src/users/entities/user.entity';
+import { DataSource } from 'typeorm';
+import { User, UserRole } from '../src/users/entities/user.entity';
 import { JwtPayload, JwtService } from '../src/auth/jwt.service';
 import { AuthMiddleware } from '../src/auth/auth.middleware';
 import { AdminMiddleware } from '../src/auth/admin.middleware';
 import { ApplicationValidationPipe } from '../src/common/application-validation.pipe';
+
+const TEST_DB_NAME = 'watched_test';
+
+const e2eDbConfig = {
+  type: 'postgres' as const,
+  host: process.env.DB_HOST || '127.0.0.1',
+  port: +(process.env.DB_PORT || 5434),
+  username: process.env.DB_USER || 'watched',
+  password: process.env.DB_PASSWORD || 'watched',
+  database: process.env.DB_NAME_TEST || TEST_DB_NAME,
+  dropSchema: true,
+  synchronize: true,
+  autoLoadEntities: true,
+};
 
 const resourceIdPipe = new ParseUUIDPipe({
   errorHttpStatusCode: HttpStatus.NOT_FOUND,
@@ -450,6 +466,10 @@ class UserListsStubController {
 }
 
 @Module({
+  imports: [
+    TypeOrmModule.forRoot(e2eDbConfig),
+    TypeOrmModule.forFeature([User]),
+  ],
   controllers: [CatalogStubController, UserListsStubController],
   providers: [JwtService, AuthMiddleware, AdminMiddleware],
 })
@@ -509,6 +529,7 @@ const PUBLIC_GUID = '44444444-4444-4444-8444-444444444444';
 
 describe('Step 4 auth protection (e2e)', () => {
   let app: INestApplication<App>;
+  let dataSource: DataSource;
   let originalJwtSecret: string | undefined;
 
   const protectedUserRoutes: Array<{
@@ -707,6 +728,12 @@ describe('Step 4 auth protection (e2e)', () => {
     originalJwtSecret = process.env.JWT_SECRET;
     process.env.JWT_SECRET = 'step4-test-secret';
 
+    if (e2eDbConfig.database !== TEST_DB_NAME) {
+      throw new Error(
+        `E2E tests must run against test DB "${TEST_DB_NAME}". Current database is "${e2eDbConfig.database}".`,
+      );
+    }
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AuthProtectionTestModule],
     }).compile();
@@ -715,10 +742,36 @@ describe('Step 4 auth protection (e2e)', () => {
     app.useGlobalPipes(new ApplicationValidationPipe());
 
     await app.init();
+    dataSource = app.get(DataSource);
+
+    await dataSource.getRepository(User).save([
+      {
+        id: USER_ID,
+        name: 'Step4 User',
+        username: 'step4-user',
+        email: 'step4-user@test.dev',
+        passwordHash: 'hash',
+        role: UserRole.USER,
+        isActive: true,
+      },
+      {
+        id: ADMIN_ID,
+        name: 'Step4 Admin',
+        username: 'step4-admin',
+        email: 'step4-admin@test.dev',
+        passwordHash: 'hash',
+        role: UserRole.ADMIN,
+        isActive: true,
+      },
+    ]);
   });
 
   afterAll(async () => {
     process.env.JWT_SECRET = originalJwtSecret;
+
+    if (dataSource?.isInitialized) {
+      await dataSource.destroy();
+    }
 
     if (app) {
       await app.close();
@@ -734,20 +787,20 @@ describe('Step 4 auth protection (e2e)', () => {
     );
 
     it.each(protectedUserRoutes)(
-      '$method $path returns 403 with invalid token',
+      '$method $path returns 401 with invalid token',
       async ({ method, path, body }) => {
-        await send(method, path, 'invalid-token', body).expect(403);
+        await send(method, path, 'invalid-token', body).expect(401);
       },
     );
 
     it.each(protectedUserRoutes)(
-      '$method $path returns 403 with expired token',
+      '$method $path returns 401 with expired token',
       async ({ method, path, body }) => {
         const expiredToken = signToken(UserRole.USER, USER_ID, {
           expiresIn: '-1h',
         });
 
-        await send(method, path, expiredToken, body).expect(403);
+        await send(method, path, expiredToken, body).expect(401);
       },
     );
 
@@ -818,16 +871,16 @@ describe('Step 4 auth protection (e2e)', () => {
     );
 
     it.each(adminEntities)(
-      'POST /$route returns 403 for invalid or expired JWT',
+      'POST /$route returns 401 for invalid or expired JWT',
       async ({ route, createBody }) => {
         await send('post', `/${route}`, 'invalid-token', createBody).expect(
-          403,
+          401,
         );
 
         const expiredToken = signToken(UserRole.ADMIN, ADMIN_ID, {
           expiresIn: '-1h',
         });
-        await send('post', `/${route}`, expiredToken, createBody).expect(403);
+        await send('post', `/${route}`, expiredToken, createBody).expect(401);
       },
     );
 

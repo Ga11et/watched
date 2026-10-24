@@ -1,11 +1,13 @@
 import {
-  ForbiddenException,
   Injectable,
   NestMiddleware,
   UnauthorizedException,
 } from '@nestjs/common';
-import { JwtService } from './jwt.service';
-import type { UserRole } from '../users/entities/user.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { JwtPayload, JwtService } from './jwt.service';
+import { User, UserRole } from '../users/entities/user.entity';
+import { isUuid } from '../common/utils/uuid.util';
 
 export interface AuthUser {
   id: string;
@@ -19,7 +21,11 @@ interface AuthRequest {
 
 @Injectable()
 export class AuthMiddleware implements NestMiddleware {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    @InjectRepository(User)
+    private readonly usersRepository: Repository<User>,
+  ) {}
 
   async use(
     request: AuthRequest,
@@ -32,23 +38,37 @@ export class AuthMiddleware implements NestMiddleware {
       throw new UnauthorizedException('Authorization token required');
     }
 
+    const payload = this.verifyToken(token);
+
+    if (!isUuid(payload.userId)) {
+      throw new UnauthorizedException('Invalid token');
+    }
+
+    const user = await this.usersRepository.findOne({
+      where: { id: payload.userId },
+      select: ['id', 'role', 'isActive'],
+    });
+
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('User not found or inactive');
+    }
+
+    request.user = { id: user.id, role: user.role };
+
+    if (next) {
+      next();
+      return;
+    }
+
+    return request;
+  }
+
+  private verifyToken(token: string): JwtPayload {
     try {
-      const payload = await Promise.resolve(this.jwtService.verifyToken(token));
-
-      request.user = {
-        id: payload.userId,
-        ...payload,
-      };
-
-      if (next) {
-        next();
-        return;
-      }
-
-      return request;
+      return this.jwtService.verifyToken(token);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Invalid token';
-      throw new ForbiddenException(message);
+      throw new UnauthorizedException(message);
     }
   }
 }

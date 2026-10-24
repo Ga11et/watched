@@ -9,6 +9,6 @@ import { JwtService } from './jwt.service';
   imports: [TypeOrmModule.forFeature([User])],
   controllers: [AuthController],
   providers: [AuthService, JwtService],
-  exports: [AuthService, JwtService],
+  exports: [AuthService, JwtService, TypeOrmModule],
 })
 export class AuthModule {}

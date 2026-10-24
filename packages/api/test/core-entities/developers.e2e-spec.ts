@@ -421,19 +421,19 @@ describe('Developers Module E2E Tests', () => {
   });
 
   describe('Невалидный токен', () => {
-    it('GET /developers с невалидным токеном возвращает 403', () => {
+    it('GET /developers с невалидным токеном возвращает 401', () => {
       return request(app.getHttpServer())
         .get('/developers')
         .set('Authorization', 'Bearer invalid-token')
-        .expect(403);
+        .expect(401);
     });
 
-    it('POST /developers с невалидным токеном возвращает 403', () => {
+    it('POST /developers с невалидным токеном возвращает 401', () => {
       return request(app.getHttpServer())
         .post('/developers')
         .set('Authorization', 'Bearer invalid-token')
         .send({ fullName: 'Имя' })
-        .expect(403);
+        .expect(401);
     });
   });
 });

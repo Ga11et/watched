@@ -459,19 +459,19 @@ describe('Authors Module E2E Tests', () => {
   });
 
   describe('Невалидный токен', () => {
-    it('POST /authors с невалидным токеном возвращает 403', () => {
+    it('POST /authors с невалидным токеном возвращает 401', () => {
       return request(app.getHttpServer())
         .post('/authors')
         .set('Authorization', 'Bearer invalid-token')
         .send({ fullName: 'Имя' })
-        .expect(403);
+        .expect(401);
     });
 
-    it('GET /authors с невалидным токеном возвращает 403', () => {
+    it('GET /authors с невалидным токеном возвращает 401', () => {
       return request(app.getHttpServer())
         .get('/authors')
         .set('Authorization', 'Bearer invalid-token')
-        .expect(403);
+        .expect(401);
     });
   });
 });

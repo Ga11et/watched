@@ -370,10 +370,10 @@ describe('Step 7 final authorization integration (e2e)', () => {
       .post('/user-books')
       .set('Authorization', 'Bearer invalid-token')
       .send({ bookId: randomUUID() })
-      .expect(403)
+      .expect(401)
       .expect((response) => {
         expect(response.body).toEqual({
-          status: 403,
+          status: 401,
           message: 'Invalid token',
           violations: [{ property: 'request', error: 'Invalid token' }],
         });
@@ -384,14 +384,75 @@ describe('Step 7 final authorization integration (e2e)', () => {
       .post('/user-books')
       .set('Authorization', `Bearer ${expiredToken}`)
       .send({ bookId: randomUUID() })
-      .expect(403)
+      .expect(401)
       .expect((response) => {
         expect(response.body).toEqual({
-          status: 403,
+          status: 401,
           message: 'Token expired',
           violations: [{ property: 'request', error: 'Token expired' }],
         });
       });
+  });
+
+  it('rejects valid JWT whose user is missing, inactive or has malformed UUID with 401', async () => {
+    const deletedUserToken = signToken(UserRole.USER, randomUUID());
+    await request(app.getHttpServer())
+      .get('/books')
+      .set('Authorization', `Bearer ${deletedUserToken}`)
+      .expect(401);
+
+    const inactiveToken = signToken(UserRole.USER, INACTIVE_USER_ID);
+    await request(app.getHttpServer())
+      .get('/books')
+      .set('Authorization', `Bearer ${inactiveToken}`)
+      .expect(401);
+
+    const malformedIdToken = signToken(UserRole.USER, 'not-a-uuid');
+    await request(app.getHttpServer())
+      .get('/books')
+      .set('Authorization', `Bearer ${malformedIdToken}`)
+      .expect(401);
+  });
+
+  it('applies the role stored in DB instead of the role claimed by JWT', async () => {
+    const forgedAdminToken = signToken(UserRole.ADMIN, USER_OWNER_ID);
+    await request(app.getHttpServer())
+      .post('/books')
+      .set('Authorization', `Bearer ${forgedAdminToken}`)
+      .send({ title: 'forged-admin-book' })
+      .expect(403);
+
+    const staleUserToken = signToken(UserRole.USER, ADMIN_ID);
+    await request(app.getHttpServer())
+      .post('/books')
+      .set('Authorization', `Bearer ${staleUserToken}`)
+      .send({ title: 'promoted-admin-book' })
+      .expect(201);
+  });
+
+  it('reports DB failure during user lookup as server error, not as 401/403', async () => {
+    const findOneSpy = jest
+      .spyOn(dataSource.getRepository(User), 'findOne')
+      .mockRejectedValueOnce(new Error('connection refused'));
+
+    try {
+      await request(app.getHttpServer())
+        .get('/books')
+        .set(
+          'Authorization',
+          `Bearer ${signToken(UserRole.USER, USER_OWNER_ID)}`,
+        )
+        .expect(500)
+        .expect((response) => {
+          expect(response.body).toEqual({
+            status: 500,
+            message: 'Internal server error',
+            violations: [{ property: 'request', error: 'connection refused' }],
+          });
+        });
+    } finally {
+      findOneSpy.mockRestore();
+    }
   });
 
   it('catalog GET endpoints require auth (no public catalog)', async () => {
