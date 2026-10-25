@@ -279,4 +279,53 @@ describe('AuthController (e2e)', () => {
       }
     });
   });
+
+  describe('POST /auth/login', () => {
+    const login = (identifier: unknown, password = 'password123') =>
+      request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ identifier, password });
+
+    it('does not log in by the display name', async () => {
+      const body = validBody({ name: `Display Name ${sequence}` });
+      await register(body).expect(201);
+
+      const response = await login(body.name).expect(401);
+      expect(response.body.message).toBe('Invalid credentials');
+      expect(response.body.token).toBeUndefined();
+    });
+
+    it("checks the password of the username owner when another user's name matches it", async () => {
+      const owner = validBody();
+      await register(owner).expect(201);
+      await register(
+        validBody({ name: owner.username, password: 'other-password' }),
+      ).expect(201);
+
+      await login(owner.username, 'other-password').expect(401);
+      await login(owner.username).expect(200);
+    });
+
+    it('rejects a blank identifier and one matching different users', async () => {
+      await login(' \t ').expect(401);
+
+      const shared = 'Shared.Login@Test.dev';
+      const hash = 'hash';
+      await dataSource.getRepository(User).save(
+        [
+          { name: 'A', username: shared, email: null, passwordHash: hash },
+          {
+            name: 'B',
+            username: null,
+            email: shared.toLowerCase(),
+            passwordHash: hash,
+          },
+        ].map((user) => ({ ...user, role: UserRole.USER, isActive: true })),
+      );
+
+      const response = await login(` ${shared} `).expect(401);
+      expect(response.body.message).toBe('Invalid credentials');
+      expect(response.body.token).toBeUndefined();
+    });
+  });
 });

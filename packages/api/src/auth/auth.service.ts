@@ -68,20 +68,24 @@ export class AuthService {
   async login(identifier: string, password: string): Promise<LoginResult> {
     const preparedIdentifier = identifier?.trim();
 
-    const user = await this.usersRepository
-      .createQueryBuilder('user')
-      .where('LOWER(user.username) = LOWER(:identifier)', {
-        identifier: preparedIdentifier,
-      })
-      .orWhere('LOWER(user.email) = LOWER(:identifier)', {
-        identifier: preparedIdentifier,
-      })
-      .orWhere('user.name = :identifier', { identifier: preparedIdentifier })
-      .getOne();
-
-    if (!user) {
+    if (!preparedIdentifier) {
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    const candidates = await this.usersRepository
+      .createQueryBuilder('user')
+      .where(
+        '(LOWER(user.username) = LOWER(:identifier) OR LOWER(user.email) = LOWER(:identifier))',
+        { identifier: preparedIdentifier },
+      )
+      .take(2)
+      .getMany();
+
+    if (candidates.length !== 1) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const [user] = candidates;
 
     const isValidPassword = await this.verifyPassword(
       password,

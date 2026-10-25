@@ -104,8 +104,8 @@ const submitGuest = async () => {
         <p class="mb-2 text-xs uppercase tracking-[0.18em] text-gray-500">Watched Account</p>
         <h1 class="mb-3 text-2xl font-bold text-gray-900">Авторизация</h1>
         <p class="text-sm text-gray-600">
-          Войдите по credentials (имя, логин или email) и паролю, зарегистрируйте новый аккаунт,
-          либо продолжите как гость.
+          Войдите по логину или email и паролю, зарегистрируйте новый аккаунт, либо продолжите как
+          гость.
         </p>
 
         <div class="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -168,13 +168,13 @@ const submitGuest = async () => {
 
         <form v-if="mode === 'login'" class="space-y-4" @submit.prevent="submitLogin">
           <label class="block text-sm font-medium text-gray-700">
-            Identifier (имя, логин или email)
+            Логин или email
             <input
               v-model="loginForm.identifier"
               type="text"
               required
               class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition focus:border-indigo-500"
-              placeholder="Введите имя, логин или email"
+              placeholder="Введите логин или email"
             />
           </label>
 
