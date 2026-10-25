@@ -32,7 +32,7 @@ export class SeriesService {
     if (!createSeriesDto.title?.trim()) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при создании сериала',
-        violations: [{ field: 'title', message: 'Название обязательно' }],
+        violations: [{ field: 'title', error: 'Название обязательно' }],
       });
     }
 
@@ -47,7 +47,7 @@ export class SeriesService {
         violations: [
           {
             field: 'watchedSeasons',
-            message:
+            error:
               'Просмотренных сезонов не может быть больше общего количества',
           },
         ],
@@ -135,7 +135,7 @@ export class SeriesService {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при обновлении сериала',
         violations: [
-          { field: 'title', message: 'Название не может быть пустым' },
+          { field: 'title', error: 'Название не может быть пустым' },
         ],
       });
     }
@@ -151,7 +151,7 @@ export class SeriesService {
         violations: [
           {
             field: 'watchedSeasons',
-            message:
+            error:
               'Просмотренных сезонов не может быть больше общего количества',
           },
         ],

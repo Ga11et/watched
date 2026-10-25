@@ -43,7 +43,7 @@ export const useApiRequest = () => {
     } catch (error: unknown) {
       // 401 защищённого запроса очищает токен и требует перезахода.
       // В middleware navigateTo не выполняет переход: редирект делает само middleware.
-      if (isProtected && getApiErrorStatus(error) === 401 && auth.expireSession()) {
+      if (isProtected && parseRequestError(error).statusCode === 401 && auth.expireSession()) {
         await nuxtApp.runWithContext(() =>
           navigateTo(loginRoute(route.fullPath, SESSION_EXPIRED_REASON)),
         )

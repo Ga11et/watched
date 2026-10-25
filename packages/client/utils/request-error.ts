@@ -37,40 +37,30 @@ export const parseRequestError = (error: unknown): RequestError => {
   return { statusCode, message, violations }
 }
 
-/** @deprecated Используйте `parseRequestError(error).statusCode`. */
-export const getApiErrorStatus = (error: unknown): number | null => {
-  if (!error || typeof error !== 'object') {
-    return null
-  }
-
-  const withStatus = error as {
-    status?: number
-    statusCode?: number
-    response?: { status?: number }
-  }
-  const status = withStatus.status ?? withStatus.statusCode ?? withStatus.response?.status
-
-  return typeof status === 'number' ? status : null
+export interface FormRequestError {
+  message: string
+  fieldErrors: Record<string, string>
 }
 
-/** @deprecated Используйте `parseRequestError(error).message`. */
-export const getApiErrorMessage = (error: unknown): string => {
-  const fallback = 'Не удалось выполнить запрос. Попробуйте еще раз.'
+// Нарушения известных полей показываются у полей, остальные и ошибка без полей — общим сообщением.
+export const parseFormRequestError = (
+  error: unknown,
+  fields: readonly string[],
+): FormRequestError => {
+  const { message, violations } = parseRequestError(error)
+  const fieldErrors: Record<string, string> = {}
+  let generalMessage = ''
 
-  if (!error || typeof error !== 'object') {
-    return fallback
+  for (const { field, error: text } of violations) {
+    if (fields.includes(field)) {
+      fieldErrors[field] ??= text
+    } else {
+      generalMessage ||= text
+    }
   }
 
-  const withData = error as { data?: { message?: string | string[] } }
-  const message = withData.data?.message
-
-  if (Array.isArray(message) && message.length > 0) {
-    return String(message[0])
+  return {
+    message: generalMessage || (Object.keys(fieldErrors).length > 0 ? '' : message),
+    fieldErrors,
   }
-
-  if (typeof message === 'string' && message.trim().length > 0) {
-    return message
-  }
-
-  return fallback
 }

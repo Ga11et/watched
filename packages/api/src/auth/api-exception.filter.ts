@@ -8,8 +8,7 @@ import {
 import { Request, Response } from 'express';
 
 interface Violation {
-  field?: string;
-  property?: string;
+  field: string;
   error: string;
 }
 
@@ -25,7 +24,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
       const payload = exception.getResponse();
 
       const message = this.resolveMessage(payload);
-      const violations = this.resolveViolations(payload, message, request);
+      const violations = this.resolveViolations(payload, request);
 
       response.status(status).json({
         status,
@@ -35,20 +34,10 @@ export class ApiExceptionFilter implements ExceptionFilter {
       return;
     }
 
-    const internalErrorMessage =
-      exception instanceof Error && exception.message
-        ? exception.message
-        : 'Internal server error';
-
     response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       status: HttpStatus.INTERNAL_SERVER_ERROR,
       message: 'Internal server error',
-      violations: [
-        {
-          property: 'request',
-          error: internalErrorMessage,
-        } satisfies Violation,
-      ],
+      violations: [],
     });
   }
 
@@ -72,7 +61,6 @@ export class ApiExceptionFilter implements ExceptionFilter {
 
   private resolveViolations(
     payload: string | object,
-    fallbackMessage: string,
     request: Request,
   ): Violation[] {
     if (typeof payload !== 'string') {
@@ -99,7 +87,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
       }
     }
 
-    return [{ property: 'request', error: fallbackMessage }];
+    return [];
   }
 
   private mapMessageToViolation(message: string): Violation {

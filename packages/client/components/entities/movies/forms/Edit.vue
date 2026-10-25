@@ -298,18 +298,15 @@ const onSubmit = async () => {
 
     await router.push(`/movies/${props.movieId}`)
   } catch (e) {
-    const err = e as {
-      data?: { message?: string; violations?: Array<{ field: string; message: string }> }
-    }
-    const base = err.data?.message
-    const violations = err.data?.violations
-
-    if (Array.isArray(violations) && violations.length) {
-      violations.forEach((v) => {
-        errors.value[v.field] = v.message
-      })
-    }
-    error.value = base ?? 'Произошла ошибка при обновлении фильма'
+    const { message, fieldErrors } = parseFormRequestError(e, [
+      'title',
+      'genre',
+      'releaseYear',
+      'poster',
+      'directorIds',
+    ])
+    errors.value = fieldErrors
+    error.value = message
   } finally {
     submitting.value = false
   }

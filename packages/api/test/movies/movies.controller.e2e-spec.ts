@@ -1,0 +1,229 @@
+import {
+  INestApplication,
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import request from 'supertest';
+import { App } from 'supertest/types';
+import { DataSource } from 'typeorm';
+import { AdminMiddleware } from '../../src/auth/admin.middleware';
+import { ApiExceptionFilter } from '../../src/auth/api-exception.filter';
+import { AuthMiddleware } from '../../src/auth/auth.middleware';
+import { AuthModule } from '../../src/auth/auth.module';
+import { JwtService } from '../../src/auth/jwt.service';
+import { AuthorsModule } from '../../src/authors/authors.module';
+import { BooksModule } from '../../src/books/books.module';
+import { ApplicationValidationPipe } from '../../src/common/application-validation.pipe';
+import { DevelopersModule } from '../../src/developers/developers.module';
+import { DirectorsModule } from '../../src/directors/directors.module';
+import { GamesModule } from '../../src/games/games.module';
+import { MoviesModule } from '../../src/movies/movies.module';
+import { PublishersModule } from '../../src/publishers/publishers.module';
+import { SeriesModule } from '../../src/series/series.module';
+import { UserListsModule } from '../../src/user-lists/user-lists.module';
+import { User, UserRole } from '../../src/users/entities/user.entity';
+import { UsersModule } from '../../src/users/users.module';
+
+const TEST_DB_NAME = 'watched_test';
+
+const e2eDbConfig = {
+  type: 'postgres' as const,
+  host: process.env.DB_HOST || '127.0.0.1',
+  port: +(process.env.DB_PORT || 33021),
+  username: process.env.DB_USER || 'watched',
+  password: process.env.DB_PASSWORD || 'watched',
+  database: process.env.DB_NAME_TEST || TEST_DB_NAME,
+  dropSchema: true,
+  synchronize: true,
+  autoLoadEntities: true,
+};
+
+const MISSING_ID = '00000000-0000-4000-8000-000000000404';
+
+@Module({
+  imports: [
+    TypeOrmModule.forRoot(e2eDbConfig),
+    AuthModule,
+    UsersModule,
+    AuthorsModule,
+    BooksModule,
+    DevelopersModule,
+    DirectorsModule,
+    GamesModule,
+    MoviesModule,
+    PublishersModule,
+    SeriesModule,
+    UserListsModule,
+  ],
+  providers: [AuthMiddleware, AdminMiddleware],
+})
+class MoviesControllerTestModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer
+      .apply(AuthMiddleware)
+      .forRoutes(
+        { path: 'movies', method: RequestMethod.GET },
+        { path: 'movies/(.*)', method: RequestMethod.GET },
+      );
+    consumer
+      .apply(AuthMiddleware, AdminMiddleware)
+      .forRoutes(
+        { path: 'movies', method: RequestMethod.POST },
+        { path: 'movies/:id', method: RequestMethod.PUT },
+      );
+  }
+}
+
+describe('MoviesController (e2e)', () => {
+  let app: INestApplication<App>;
+  let adminToken: string;
+  let userToken: string;
+  let originalJwtSecret: string | undefined;
+
+  beforeAll(async () => {
+    originalJwtSecret = process.env.JWT_SECRET;
+    process.env.JWT_SECRET = 'movies-controller-e2e-secret';
+
+    if (e2eDbConfig.database !== TEST_DB_NAME) {
+      throw new Error(
+        `E2E tests must run against test DB "${TEST_DB_NAME}". Current database is "${e2eDbConfig.database}".`,
+      );
+    }
+
+    const moduleFixture = await Test.createTestingModule({
+      imports: [MoviesControllerTestModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    app.useGlobalPipes(new ApplicationValidationPipe());
+    app.useGlobalFilters(new ApiExceptionFilter());
+    await app.init();
+
+    const usersRepository = app.get(DataSource).getRepository(User);
+    const jwtService = app.get(JwtService);
+    const [admin, user] = await usersRepository.save([
+      usersRepository.create({
+        name: 'Admin',
+        username: 'movies_admin',
+        email: 'movies_admin@test.dev',
+        passwordHash: 'hash',
+        role: UserRole.ADMIN,
+        isActive: true,
+      }),
+      usersRepository.create({
+        name: 'User',
+        username: 'movies_user',
+        email: 'movies_user@test.dev',
+        passwordHash: 'hash',
+        role: UserRole.USER,
+        isActive: true,
+      }),
+    ]);
+    adminToken = jwtService.generateToken(admin);
+    userToken = jwtService.generateToken(user);
+  });
+
+  afterAll(async () => {
+    process.env.JWT_SECRET = originalJwtSecret;
+    await app?.close();
+  });
+
+  const post = (body: Record<string, unknown>, token?: string) => {
+    const pending = request(app.getHttpServer()).post('/movies');
+
+    return (
+      token ? pending.set('Authorization', `Bearer ${token}`) : pending
+    ).send(body);
+  };
+
+  describe('POST /movies', () => {
+    it('returns a field violation for a blank title', async () => {
+      const response = await post({ title: '   ' }, adminToken).expect(422);
+
+      expect(response.body).toEqual({
+        status: 422,
+        message: 'Произошла ошибка при создании фильма',
+        violations: [{ field: 'title', error: 'Название обязательно' }],
+      });
+    });
+
+    it('returns a field violation for missing directorIds', async () => {
+      const response = await post(
+        { title: 'Relation check', directorIds: [MISSING_ID] },
+        adminToken,
+      ).expect(422);
+
+      expect(response.body).toEqual({
+        status: 422,
+        message: 'Произошла ошибка при обработке режиссёров фильма',
+        violations: [
+          {
+            field: 'directorIds',
+            error: 'Один или несколько режиссёров не найдены',
+          },
+        ],
+      });
+    });
+
+    it('returns empty violations without a token', async () => {
+      const response = await post({ title: 'Valid' }).expect(401);
+
+      expect(response.body).toEqual({
+        status: 401,
+        message: 'Authorization token required',
+        violations: [],
+      });
+    });
+
+    it('returns empty violations for a non-admin', async () => {
+      const response = await post({ title: 'Valid' }, userToken).expect(403);
+
+      expect(response.body).toEqual({
+        status: 403,
+        message: 'Admin access required',
+        violations: [],
+      });
+    });
+  });
+
+  describe('PUT /movies/:id', () => {
+    it('returns a field violation for a blank title', async () => {
+      const created = await post({ title: 'Before update' }, adminToken).expect(
+        201,
+      );
+
+      const response = await request(app.getHttpServer())
+        .put(`/movies/${(created.body as { id: string }).id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ title: '   ' })
+        .expect(422);
+
+      expect(response.body).toEqual({
+        status: 422,
+        message: 'Произошла ошибка при обновлении фильма',
+        violations: [
+          { field: 'title', error: 'Название не может быть пустым' },
+        ],
+      });
+    });
+  });
+
+  describe('GET /movies/:id', () => {
+    it('returns empty violations when the record is missing', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/movies/${MISSING_ID}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(404);
+
+      expect(response.body).toEqual({
+        status: 404,
+        message: `Фильм с ID ${MISSING_ID} не найден`,
+        violations: [],
+      });
+    });
+  });
+});

@@ -40,7 +40,7 @@ export class DevelopersService {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при создании разработчика',
         violations: [
-          { field: 'fullName', message: 'Название разработчика обязательно' },
+          { field: 'fullName', error: 'Название разработчика обязательно' },
         ],
       });
     }
@@ -122,7 +122,7 @@ export class DevelopersService {
         violations: [
           {
             field: 'fullName',
-            message: 'Название разработчика не может быть пустым',
+            error: 'Название разработчика не может быть пустым',
           },
         ],
       });

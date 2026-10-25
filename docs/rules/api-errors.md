@@ -21,16 +21,7 @@
 
 ## Клиент
 
-- Новый код разбирает ошибки только через `parseRequestError` из `packages/client/utils/request-error.ts`.
-  Элементы `violations` вне контракта он отбрасывает, поэтому ошибки полей из модулей с другим форматом
-  в формах не появятся.
-- `getApiErrorStatus` и `getApiErrorMessage` устарели и остаются для ещё не переведённого кода.
-
-## Известные отклонения
-
-Приводите к контракту, когда меняете соответствующий код:
-
-- `ApiExceptionFilter` (`packages/api/src/auth/api-exception.filter.ts`) для ошибок без поля добавляет
-  `{ property: 'request', error }` вместо `violations: []`.
-- Сервисы каталога (`authors`, `books`, `directors`, `developers`, `games`, `movies`, `publishers`,
-  `series`, `user-lists`) возвращают нарушения `{ field, message }` вместо `{ field, error }`.
+- Клиент разбирает ошибки только через `parseRequestError` из `packages/client/utils/request-error.ts`.
+  Элементы `violations` вне контракта он отбрасывает.
+- Формы раскладывают ошибку через `parseFormRequestError` из того же файла: нарушения известных полей
+  показываются у полей, нарушения других полей и ошибка без полей — общим сообщением.

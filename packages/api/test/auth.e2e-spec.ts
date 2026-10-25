@@ -188,7 +188,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
     expect(response.body).toEqual({
       status: 401,
       message: 'Invalid credentials',
-      violations: [{ property: 'request', error: 'Invalid credentials' }],
+      violations: [],
     });
   };
 
@@ -368,9 +368,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
         expect(response.body).toEqual({
           status: 401,
           message: 'Authorization token required',
-          violations: [
-            { property: 'request', error: 'Authorization token required' },
-          ],
+          violations: [],
         });
       });
 
@@ -383,7 +381,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
         expect(response.body).toEqual({
           status: 401,
           message: 'Invalid token',
-          violations: [{ property: 'request', error: 'Invalid token' }],
+          violations: [],
         });
       });
 
@@ -397,7 +395,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
         expect(response.body).toEqual({
           status: 401,
           message: 'Token expired',
-          violations: [{ property: 'request', error: 'Token expired' }],
+          violations: [],
         });
       });
   });
@@ -455,7 +453,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
           expect(response.body).toEqual({
             status: 500,
             message: 'Internal server error',
-            violations: [{ property: 'request', error: 'connection refused' }],
+            violations: [],
           });
         });
     } finally {
@@ -701,12 +699,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
       expect(response.body).toEqual({
         status: 500,
         message: 'Internal server error',
-        violations: [
-          {
-            property: 'request',
-            error: 'duplicate key value violates unique constraint "user_pkey"',
-          },
-        ],
+        violations: [],
       });
     });
 
@@ -721,13 +714,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
       expect(response.body).toEqual({
         status: 500,
         message: 'Internal server error',
-        violations: [
-          {
-            property: 'request',
-            error:
-              'new row for relation "user" violates check constraint "user_username_lower_uq"',
-          },
-        ],
+        violations: [],
       });
     });
   });
@@ -800,7 +787,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
         expect(response.body).toEqual({
           status: 401,
           message: 'User is inactive',
-          violations: [{ property: 'request', error: 'User is inactive' }],
+          violations: [],
         });
       });
 
@@ -836,9 +823,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
           expect(response.body).toEqual({
             status: 500,
             message: 'Internal server error',
-            violations: [
-              { property: 'request', error: 'JWT_SECRET not configured' },
-            ],
+            violations: [],
           });
         });
     } finally {

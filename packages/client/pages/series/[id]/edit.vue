@@ -404,18 +404,19 @@ const onSubmit = async () => {
 
     navigateTo(`/series/${route.params.id}`)
   } catch (e) {
-    const err = e as {
-      data?: { message?: string; violations?: Array<{ field: string; message: string }> }
-    }
-    const base = err.data?.message
-    const violations = err.data?.violations
-
-    if (Array.isArray(violations) && violations.length) {
-      violations.forEach((v) => {
-        errors.value[v.field] = v.message
-      })
-    }
-    error.value = base ?? 'Произошла ошибка при обновлении сериала'
+    const { message, fieldErrors } = parseFormRequestError(e, [
+      'title',
+      'country',
+      'genres',
+      'poster',
+      'rating',
+      'totalSeasons',
+      'watchedSeasons',
+      'watchedAt',
+      'comment',
+    ])
+    errors.value = fieldErrors
+    error.value = message
   } finally {
     submitting.value = false
   }

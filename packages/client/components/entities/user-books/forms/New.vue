@@ -265,18 +265,18 @@ const onSubmit = async () => {
 
     await router.push('/user-books')
   } catch (e: unknown) {
-    const err = e as {
-      message?: string
-      data?: { message?: string; violations?: Array<{ field: string; message: string }> }
-    }
-    const base = err?.data?.message || err?.message || 'Не удалось создать книгу'
-    const violations = err?.data?.violations
-    if (Array.isArray(violations) && violations.length) {
-      violations.forEach((v) => {
-        errors.value[v.field] = v.message
-      })
-    }
-    error.value = base
+    const { message, fieldErrors } = parseFormRequestError(e, [
+      'title',
+      'genre',
+      'publishYear',
+      'pageCount',
+      'cover',
+      'rating',
+      'readAt',
+      'comment',
+    ])
+    errors.value = fieldErrors
+    error.value = message
   } finally {
     submitting.value = false
   }

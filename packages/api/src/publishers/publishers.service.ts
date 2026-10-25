@@ -42,7 +42,7 @@ export class PublishersService {
         violations: [
           {
             field: 'fullName',
-            message: 'Название издателя обязательно',
+            error: 'Название издателя обязательно',
           },
         ],
       });
@@ -125,7 +125,7 @@ export class PublishersService {
         violations: [
           {
             field: 'fullName',
-            message: 'Название издателя не может быть пустым',
+            error: 'Название издателя не может быть пустым',
           },
         ],
       });

@@ -184,7 +184,7 @@ export class UserListsService {
         violations: [
           {
             field: 'authorIds',
-            message: `Авторы не найдены: ${missingIds.join(', ')}`,
+            error: `Авторы не найдены: ${missingIds.join(', ')}`,
           },
         ],
       });
@@ -361,7 +361,9 @@ export class UserListsService {
         'constraint' in error &&
         error.constraint === 'UQ_user_movies_user_movie'
       ) {
-        throw new ConflictException('UserMovie already exists', { cause: error });
+        throw new ConflictException('UserMovie already exists', {
+          cause: error,
+        });
       }
       if (
         error instanceof QueryFailedError &&
