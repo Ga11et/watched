@@ -52,7 +52,7 @@ const formatDate = (value: string): string => {
         <div class="mb-4 flex items-start justify-between gap-3">
           <div>
             <h3 class="text-lg font-semibold text-gray-900">
-              <NuxtLink :to="`/users/${user.username || user.id}`" class="hover:text-indigo-700">
+              <NuxtLink :to="`/users/${user.id}`" class="hover:text-indigo-700">
                 {{ user.name }}
               </NuxtLink>
             </h3>
@@ -73,7 +73,7 @@ const formatDate = (value: string): string => {
         </div>
 
         <dl class="space-y-2 text-sm">
-          <div class="flex justify-between gap-2">
+          <div v-if="user.email !== undefined" class="flex justify-between gap-2">
             <dt class="text-gray-500">Email</dt>
             <dd class="truncate text-right text-gray-800">{{ user.email || '—' }}</dd>
           </div>

@@ -421,19 +421,19 @@ describe('Publishers Module E2E Tests', () => {
   });
 
   describe('Невалидный токен', () => {
-    it('GET /publishers с невалидным токеном возвращает 403', () => {
+    it('GET /publishers с невалидным токеном возвращает 401', () => {
       return request(app.getHttpServer())
         .get('/publishers')
         .set('Authorization', 'Bearer invalid-token')
-        .expect(403);
+        .expect(401);
     });
 
-    it('POST /publishers с невалидным токеном возвращает 403', () => {
+    it('POST /publishers с невалидным токеном возвращает 401', () => {
       return request(app.getHttpServer())
         .post('/publishers')
         .set('Authorization', 'Bearer invalid-token')
         .send({ fullName: 'Имя' })
-        .expect(403);
+        .expect(401);
     });
   });
 });

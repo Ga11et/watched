@@ -21,11 +21,10 @@ import { LoginDto } from './dto/login.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { AuthUserDto } from './dto/auth-user.dto';
 import { User } from '../users/entities/user.entity';
+import type { AuthUser } from './auth.middleware';
 
 interface AuthenticatedRequest {
-  user?: {
-    id: string;
-  };
+  user?: AuthUser;
 }
 
 @ApiTags('auth')
@@ -50,7 +49,7 @@ export class AuthController {
 
   @Post('auth/login')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Вход пользователя' })
+  @ApiOperation({ summary: 'Вход пользователя по username или email' })
   @ApiBody({ type: LoginDto })
   @ApiResponse({ status: 200, type: AuthResponseDto })
   async login(@Body() dto: LoginDto): Promise<AuthResponseDto> {

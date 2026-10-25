@@ -230,17 +230,17 @@ describe('UserList-Book module (e2e)', () => {
         .expect(401);
     });
 
-    it('returns 403 for invalid token', async () => {
+    it('returns 401 for invalid token', async () => {
       await request(app.getHttpServer())
         .get('/user-books')
         .set('Authorization', 'Bearer invalid-token')
-        .expect(403);
+        .expect(401);
 
       await request(app.getHttpServer())
         .post('/user-books')
         .set('Authorization', 'Bearer invalid-token')
         .send({ bookId: IDS.bookA })
-        .expect(403);
+        .expect(401);
     });
 
     it('allows USER to CRUD own records', async () => {

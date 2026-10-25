@@ -9,15 +9,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 import { UserRole } from '../users/entities/user.entity';
+import type { AuthUser } from './auth.middleware';
 import { UserBook } from '../user-lists/entities/user-book.entity';
 import { UserMovie } from '../user-lists/entities/user-movie.entity';
 import { UserSeries } from '../user-lists/entities/user-series.entity';
 import { UserGame } from '../user-lists/entities/user-game.entity';
-
-interface RequestUser {
-  id: string;
-  role: UserRole;
-}
 
 interface AuthenticatedRequest {
   method: string;
@@ -25,7 +21,7 @@ interface AuthenticatedRequest {
   params?: {
     id?: string;
   };
-  user?: RequestUser;
+  user?: AuthUser;
 }
 
 interface OwnableEntity {

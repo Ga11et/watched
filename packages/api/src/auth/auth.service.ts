@@ -8,6 +8,12 @@ import { randomUUID } from 'crypto';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { User, UserRole } from '../users/entities/user.entity';
+import {
+  assertAvailable,
+  normalizeConstraintError,
+  normalizeUser,
+  validateUser,
+} from '../users/users.rules';
 import { RegisterDto } from './dto/register.dto';
 
 export interface LoginResult {
@@ -23,81 +29,63 @@ export class AuthService {
   ) {}
 
   async register(data: RegisterDto): Promise<User> {
-    const name = data.name?.trim();
-    const username = data.username?.trim() || null;
-    const email = data.email?.trim() || null;
+    const user: Pick<User, 'name' | 'username' | 'email'> = {
+      name: '',
+      username: null,
+      email: null,
+      ...normalizeUser(data),
+    };
+    const violations = validateUser(user);
 
-    if (!name) {
+    if (!data.password.trim()) {
+      violations.push({ field: 'password', error: 'Password is required' });
+    }
+
+    if (violations.length > 0) {
       throw new UnprocessableEntityException({
         status: 422,
-        message: 'Name is required',
-        violations: [{ property: 'name', error: 'Name is required' }],
+        message: violations[0].error,
+        violations,
       });
     }
 
-    if (!data.password?.trim()) {
-      throw new UnprocessableEntityException({
-        status: 422,
-        message: 'Password is required',
-        violations: [{ property: 'password', error: 'Password is required' }],
-      });
-    }
+    await assertAvailable(this.usersRepository.manager, user);
 
-    if (username) {
-      const existingByUsername = await this.usersRepository.findOne({
-        where: { username },
-      });
-      if (existingByUsername) {
-        throw new UnprocessableEntityException({
-          status: 422,
-          message: 'Username already exists',
-          violations: [
-            { property: 'username', error: 'Username already exists' },
-          ],
-        });
-      }
-    }
-
-    if (email) {
-      const existingByEmail = await this.usersRepository.findOne({
-        where: { email },
-      });
-      if (existingByEmail) {
-        throw new UnprocessableEntityException({
-          status: 422,
-          message: 'Email already exists',
-          violations: [{ property: 'email', error: 'Email already exists' }],
-        });
-      }
-    }
-
-    const passwordHash = await this.hashPassword(data.password);
-
-    const user = this.usersRepository.create({
-      name,
-      passwordHash,
-      username,
-      email,
+    const entity = this.usersRepository.create({
+      ...user,
+      passwordHash: await this.hashPassword(data.password),
       role: UserRole.USER,
       isActive: true,
     });
 
-    return this.usersRepository.save(user);
+    try {
+      return await this.usersRepository.save(entity);
+    } catch (error) {
+      throw normalizeConstraintError(error) ?? error;
+    }
   }
 
   async login(identifier: string, password: string): Promise<LoginResult> {
     const preparedIdentifier = identifier?.trim();
 
-    const user = await this.usersRepository
-      .createQueryBuilder('user')
-      .where('user.username = :identifier', { identifier: preparedIdentifier })
-      .orWhere('user.email = :identifier', { identifier: preparedIdentifier })
-      .orWhere('user.name = :identifier', { identifier: preparedIdentifier })
-      .getOne();
-
-    if (!user) {
-      throw new UnauthorizedException('User not found');
+    if (!preparedIdentifier) {
+      throw new UnauthorizedException('Invalid credentials');
     }
+
+    const candidates = await this.usersRepository
+      .createQueryBuilder('user')
+      .where(
+        '(LOWER(user.username) = LOWER(:identifier) OR LOWER(user.email) = LOWER(:identifier))',
+        { identifier: preparedIdentifier },
+      )
+      .take(2)
+      .getMany();
+
+    if (candidates.length !== 1) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const [user] = candidates;
 
     const isValidPassword = await this.verifyPassword(
       password,
@@ -106,6 +94,10 @@ export class AuthService {
 
     if (!isValidPassword) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('User is inactive');
     }
 
     return {

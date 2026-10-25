@@ -17,7 +17,7 @@ import jwt from 'jsonwebtoken';
 import { SignOptions } from 'jsonwebtoken';
 import { App } from 'supertest/types';
 import { randomUUID } from 'crypto';
-import { DataSource } from 'typeorm';
+import { DataSource, QueryFailedError } from 'typeorm';
 import { AuthModule } from '../src/auth/auth.module';
 import { UserListsModule } from '../src/user-lists/user-lists.module';
 import { UsersModule } from '../src/users/users.module';
@@ -182,6 +182,14 @@ describe('Step 7 final authorization integration (e2e)', () => {
         expiresIn,
       },
     );
+  };
+
+  const expectInvalidCredentials = (response: request.Response): void => {
+    expect(response.body).toEqual({
+      status: 401,
+      message: 'Invalid credentials',
+      violations: [{ property: 'request', error: 'Invalid credentials' }],
+    });
   };
 
   const createBookId = async (): Promise<string> => {
@@ -370,10 +378,10 @@ describe('Step 7 final authorization integration (e2e)', () => {
       .post('/user-books')
       .set('Authorization', 'Bearer invalid-token')
       .send({ bookId: randomUUID() })
-      .expect(403)
+      .expect(401)
       .expect((response) => {
         expect(response.body).toEqual({
-          status: 403,
+          status: 401,
           message: 'Invalid token',
           violations: [{ property: 'request', error: 'Invalid token' }],
         });
@@ -384,14 +392,75 @@ describe('Step 7 final authorization integration (e2e)', () => {
       .post('/user-books')
       .set('Authorization', `Bearer ${expiredToken}`)
       .send({ bookId: randomUUID() })
-      .expect(403)
+      .expect(401)
       .expect((response) => {
         expect(response.body).toEqual({
-          status: 403,
+          status: 401,
           message: 'Token expired',
           violations: [{ property: 'request', error: 'Token expired' }],
         });
       });
+  });
+
+  it('rejects valid JWT whose user is missing, inactive or has malformed UUID with 401', async () => {
+    const deletedUserToken = signToken(UserRole.USER, randomUUID());
+    await request(app.getHttpServer())
+      .get('/books')
+      .set('Authorization', `Bearer ${deletedUserToken}`)
+      .expect(401);
+
+    const inactiveToken = signToken(UserRole.USER, INACTIVE_USER_ID);
+    await request(app.getHttpServer())
+      .get('/books')
+      .set('Authorization', `Bearer ${inactiveToken}`)
+      .expect(401);
+
+    const malformedIdToken = signToken(UserRole.USER, 'not-a-uuid');
+    await request(app.getHttpServer())
+      .get('/books')
+      .set('Authorization', `Bearer ${malformedIdToken}`)
+      .expect(401);
+  });
+
+  it('applies the role stored in DB instead of the role claimed by JWT', async () => {
+    const forgedAdminToken = signToken(UserRole.ADMIN, USER_OWNER_ID);
+    await request(app.getHttpServer())
+      .post('/books')
+      .set('Authorization', `Bearer ${forgedAdminToken}`)
+      .send({ title: 'forged-admin-book' })
+      .expect(403);
+
+    const staleUserToken = signToken(UserRole.USER, ADMIN_ID);
+    await request(app.getHttpServer())
+      .post('/books')
+      .set('Authorization', `Bearer ${staleUserToken}`)
+      .send({ title: 'promoted-admin-book' })
+      .expect(201);
+  });
+
+  it('reports DB failure during user lookup as server error, not as 401/403', async () => {
+    const findOneSpy = jest
+      .spyOn(dataSource.getRepository(User), 'findOne')
+      .mockRejectedValueOnce(new Error('connection refused'));
+
+    try {
+      await request(app.getHttpServer())
+        .get('/books')
+        .set(
+          'Authorization',
+          `Bearer ${signToken(UserRole.USER, USER_OWNER_ID)}`,
+        )
+        .expect(500)
+        .expect((response) => {
+          expect(response.body).toEqual({
+            status: 500,
+            message: 'Internal server error',
+            violations: [{ property: 'request', error: 'connection refused' }],
+          });
+        });
+    } finally {
+      findOneSpy.mockRestore();
+    }
   });
 
   it('catalog GET endpoints require auth (no public catalog)', async () => {
@@ -444,7 +513,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
       .post('/auth/register')
       .send({
         name: 'Duplicate First',
-        username: `duplicate-${suffix}`,
+        username: `duplicate_${suffix}`,
         password: 'password123',
       })
       .expect(201);
@@ -453,7 +522,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
       .post('/auth/register')
       .send({
         name: 'Duplicate Second',
-        username: `duplicate-${suffix}`,
+        username: `duplicate_${suffix}`,
         password: 'password123',
       })
       .expect(422)
@@ -461,26 +530,18 @@ describe('Step 7 final authorization integration (e2e)', () => {
         expect(response.body).toEqual({
           status: 422,
           message: 'Username already exists',
-          violations: [
-            { property: 'username', error: 'Username already exists' },
-          ],
+          violations: [{ field: 'username', error: 'Username already exists' }],
         });
       });
 
     await request(app.getHttpServer())
       .post('/auth/login')
       .send({
-        identifier: `duplicate-${suffix}`,
+        identifier: `duplicate_${suffix}`,
         password: 'wrong-password',
       })
       .expect(401)
-      .expect((response) => {
-        expect(response.body).toEqual({
-          status: 401,
-          message: 'Invalid credentials',
-          violations: [{ property: 'request', error: 'Invalid credentials' }],
-        });
-      });
+      .expect(expectInvalidCredentials);
 
     await request(app.getHttpServer())
       .post('/auth/login')
@@ -489,19 +550,13 @@ describe('Step 7 final authorization integration (e2e)', () => {
         password: 'password123',
       })
       .expect(401)
-      .expect((response) => {
-        expect(response.body).toEqual({
-          status: 401,
-          message: 'User not found',
-          violations: [{ property: 'request', error: 'User not found' }],
-        });
-      });
+      .expect(expectInvalidCredentials);
 
     await request(app.getHttpServer())
       .post('/auth/register')
       .send({
         name: 'Trim User',
-        username: `trim-${suffix}`,
+        username: `trim_${suffix}`,
         password: 'password123',
       })
       .expect(201);
@@ -509,7 +564,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
     const loginResponse = await request(app.getHttpServer())
       .post('/auth/login')
       .send({
-        identifier: `   trim-${suffix}   `,
+        identifier: `   trim_${suffix}   `,
         password: 'password123',
       })
       .expect(200);
@@ -528,6 +583,242 @@ describe('Step 7 final authorization integration (e2e)', () => {
     expect(users.every((user) => user.passwordHash === undefined)).toBe(true);
   });
 
+  it("rejects registration with another user's username or email in a different case", async () => {
+    const suffix = `${Date.now()}_${randomUUID().slice(0, 8)}`;
+
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        name: 'Case Owner',
+        username: `Case_Owner_${suffix}`,
+        email: `Case.Owner-${suffix}@Test.dev`,
+        password: 'password123',
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        name: 'Username Clash',
+        username: `case_owner_${suffix}`,
+        password: 'password123',
+      })
+      .expect(422)
+      .expect((response) => {
+        expect(response.body).toEqual({
+          status: 422,
+          message: 'Username already exists',
+          violations: [{ field: 'username', error: 'Username already exists' }],
+        });
+      });
+
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        name: 'Email Clash',
+        email: `CASE.OWNER-${suffix}@test.dev`,
+        password: 'password123',
+      })
+      .expect(422)
+      .expect((response) => {
+        expect(response.body).toEqual({
+          status: 422,
+          message: 'Email already exists',
+          violations: [{ field: 'email', error: 'Email already exists' }],
+        });
+      });
+  });
+
+  describe('register when the database rejects the insert', () => {
+    const registerWithInsertFailure = async (
+      code: string,
+      constraint: string,
+      message: string,
+    ): Promise<request.Response> => {
+      const suffix = `${Date.now()}_${randomUUID().slice(0, 8)}`;
+      const saveSpy = jest
+        .spyOn(dataSource.getRepository(User), 'save')
+        .mockRejectedValueOnce(
+          new QueryFailedError(
+            'INSERT INTO "user"',
+            [],
+            Object.assign(new Error(message), { code, constraint }),
+          ),
+        );
+
+      try {
+        return await request(app.getHttpServer())
+          .post('/auth/register')
+          .send({
+            name: 'Insert Failure',
+            username: `fail_${suffix}`,
+            email: `fail-${suffix}@test.dev`,
+            password: 'password123',
+          });
+      } finally {
+        saveSpy.mockRestore();
+      }
+    };
+
+    it('maps a 23505 on the username index to 422 for username', async () => {
+      const response = await registerWithInsertFailure(
+        '23505',
+        'user_username_lower_uq',
+        'duplicate key value violates unique constraint "user_username_lower_uq"',
+      );
+
+      expect(response.status).toBe(422);
+      expect(response.body).toEqual({
+        status: 422,
+        message: 'Username already exists',
+        violations: [{ field: 'username', error: 'Username already exists' }],
+      });
+    });
+
+    it('maps a 23505 on the email index to 422 for email', async () => {
+      const response = await registerWithInsertFailure(
+        '23505',
+        'user_email_lower_uq',
+        'duplicate key value violates unique constraint "user_email_lower_uq"',
+      );
+
+      expect(response.status).toBe(422);
+      expect(response.body).toEqual({
+        status: 422,
+        message: 'Email already exists',
+        violations: [{ field: 'email', error: 'Email already exists' }],
+      });
+    });
+
+    it('does not mask a 23505 on an unknown constraint', async () => {
+      const response = await registerWithInsertFailure(
+        '23505',
+        'user_pkey',
+        'duplicate key value violates unique constraint "user_pkey"',
+      );
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({
+        status: 500,
+        message: 'Internal server error',
+        violations: [
+          {
+            property: 'request',
+            error: 'duplicate key value violates unique constraint "user_pkey"',
+          },
+        ],
+      });
+    });
+
+    it('does not mask another error code on a known index', async () => {
+      const response = await registerWithInsertFailure(
+        '23514',
+        'user_username_lower_uq',
+        'new row for relation "user" violates check constraint "user_username_lower_uq"',
+      );
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({
+        status: 500,
+        message: 'Internal server error',
+        violations: [
+          {
+            property: 'request',
+            error:
+              'new row for relation "user" violates check constraint "user_username_lower_uq"',
+          },
+        ],
+      });
+    });
+  });
+
+  it('logs in by username or email in a different case into the same account', async () => {
+    const suffix = `${Date.now()}_${randomUUID().slice(0, 8)}`;
+    const username = `Case_Login_${suffix}`;
+
+    const registerResponse = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        name: 'Case Login',
+        username,
+        email: `Case.Login-${suffix}@Test.dev`,
+        password: 'password123',
+      })
+      .expect(201);
+    const userId = registerResponse.body.user.id as string;
+
+    const byUsername = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ identifier: `CASE_LOGIN_${suffix}`, password: 'password123' })
+      .expect(200);
+    expect(byUsername.body.user.id).toBe(userId);
+    expect(byUsername.body.user.username).toBe(username);
+
+    const byEmail = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        identifier: `case.login-${suffix}@test.dev`,
+        password: 'password123',
+      })
+      .expect(200);
+    expect(byEmail.body.user.id).toBe(userId);
+  });
+
+  it('denies login to inactive users without revealing inactivity on wrong password', async () => {
+    const suffix = `${Date.now()}_${randomUUID().slice(0, 8)}`;
+    const username = `inactive_login_${suffix}`;
+    const password = 'password123';
+    const adminToken = signToken(UserRole.ADMIN, ADMIN_ID);
+
+    const login = (identifier: string, loginPassword: string) =>
+      request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ identifier, password: loginPassword });
+
+    const registerResponse = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({ name: 'Inactive Login User', username, password })
+      .expect(201);
+    const userId = registerResponse.body.user.id as string;
+
+    const activeLogin = await login(username, password).expect(200);
+    expect(typeof activeLogin.body.token).toBe('string');
+    expect(activeLogin.body.user.id).toBe(userId);
+
+    await login(username, 'wrong-password')
+      .expect(401)
+      .expect(expectInvalidCredentials);
+
+    await request(app.getHttpServer())
+      .patch(`/users/${userId}/deactivate`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+
+    await login(username, password)
+      .expect(401)
+      .expect((response) => {
+        expect(response.body).toEqual({
+          status: 401,
+          message: 'User is inactive',
+          violations: [{ property: 'request', error: 'User is inactive' }],
+        });
+      });
+
+    await login(username, 'wrong-password')
+      .expect(401)
+      .expect(expectInvalidCredentials);
+
+    await login(`missing-${suffix}`, password)
+      .expect(401)
+      .expect(expectInvalidCredentials);
+
+    await dataSource.getRepository(User).update(userId, { isActive: true });
+
+    const reactivatedLogin = await login(username, password).expect(200);
+    expect(typeof reactivatedLogin.body.token).toBe('string');
+    expect(reactivatedLogin.body.user.id).toBe(userId);
+  });
+
   it('returns 500 with unified payload when JWT_SECRET is missing during register', async () => {
     const previousJwtSecret = process.env.JWT_SECRET;
     delete process.env.JWT_SECRET;
@@ -537,7 +828,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
         .post('/auth/register')
         .send({
           name: `No Secret ${Date.now()}`,
-          username: `no-secret-${Date.now()}`,
+          username: `no_secret_${Date.now()}`,
           password: 'password123',
         })
         .expect(500)

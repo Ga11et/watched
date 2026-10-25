@@ -5,11 +5,10 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { UserRole } from '../users/entities/user.entity';
+import type { AuthUser } from './auth.middleware';
 
 interface AuthenticatedRequest {
-  user?: {
-    role?: UserRole;
-  };
+  user?: AuthUser;
 }
 
 @Injectable()

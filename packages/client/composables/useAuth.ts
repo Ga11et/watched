@@ -18,26 +18,23 @@ interface LoginPayload {
 }
 
 const AUTH_TOKEN_COOKIE = 'watched.auth.token'
+export const SESSION_EXPIRED_REASON = 'session-expired'
+export const SESSION_EXPIRED_MESSAGE = 'Сессия завершена. Войдите снова'
 
-const getApiErrorMessage = (error: unknown): string => {
-  const fallback = 'Не удалось выполнить запрос. Попробуйте еще раз.'
+export const loginRoute = (redirect: string, reason?: string) => {
+  const query = new URLSearchParams()
 
-  if (!error || typeof error !== 'object') {
-    return fallback
+  if (reason) {
+    query.set('reason', reason)
   }
 
-  const withData = error as { data?: { message?: string | string[] } }
-  const message = withData.data?.message
-
-  if (Array.isArray(message) && message.length > 0) {
-    return String(message[0])
+  if (redirect.startsWith('/') && !redirect.startsWith('/login')) {
+    query.set('redirect', redirect)
   }
 
-  if (typeof message === 'string' && message.trim().length > 0) {
-    return message
-  }
+  const search = query.toString()
 
-  return fallback
+  return search ? `/login?${search}` : '/login'
 }
 
 export const useAuth = () => {
@@ -56,6 +53,25 @@ export const useAuth = () => {
     tokenCookie.value = token.value
   }
 
+  const logout = () => {
+    token.value = null
+    user.value = null
+    persistToken()
+    initialized.value = true
+  }
+
+  // Очищает сессию по 401 защищённого запроса. Возвращает false, если очищать уже нечего.
+  const expireSession = () => {
+    if (!token.value && !user.value) {
+      return false
+    }
+
+    logout()
+
+    return true
+  }
+
+  // Сеть и 5xx оставляют токен и не завершают инициализацию, чтобы проверку можно было повторить.
   const initFromStorage = async () => {
     if (initialized.value) {
       return
@@ -73,13 +89,12 @@ export const useAuth = () => {
       const me = await request<User>('/auth/me')
 
       user.value = me
-    } catch {
-      token.value = null
-      user.value = null
-      persistToken()
+      initialized.value = true
+    } catch (error: unknown) {
+      if (getApiErrorStatus(error) !== 401) {
+        throw error
+      }
     }
-
-    initialized.value = true
   }
 
   const setSession = (payload: AuthResponse) => {
@@ -125,13 +140,6 @@ export const useAuth = () => {
     initialized.value = true
   }
 
-  const logout = () => {
-    token.value = null
-    user.value = null
-    persistToken()
-    initialized.value = true
-  }
-
   const authHeaders = computed<Record<string, string>>(() => {
     const headers: Record<string, string> = {}
 
@@ -152,10 +160,10 @@ export const useAuth = () => {
     isGuest,
     authHeaders,
     initFromStorage,
+    expireSession,
     login,
     register,
     loginAsGuest,
     logout,
-    getApiErrorMessage,
   }
 }

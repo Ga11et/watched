@@ -11,7 +11,7 @@ import {
 import { TypeOrmModule } from '@nestjs/typeorm';
 import request from 'supertest';
 import { User, UserRole } from '../src/users/entities/user.entity';
-import { Repository } from 'typeorm';
+import { EntityManager, QueryFailedError, Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { JwtService } from '../src/auth/jwt.service';
 import { UsersModule } from '../src/users/users.module';
@@ -230,6 +230,17 @@ describe('Users Module E2E Tests', () => {
         });
     });
 
+    it('should get the same user by username in a different case', () => {
+      return request(app.getHttpServer())
+        .get('/users/TESTUSER')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.id).toBe(testUser.id);
+          expect(res.body.username).toBe('testuser');
+        });
+    });
+
     it('should return 401 without authentication', () => {
       return request(app.getHttpServer())
         .get(`/users/${testUser.id}`)
@@ -443,6 +454,110 @@ describe('Users Module E2E Tests', () => {
         .expect(422);
     });
 
+    it("should save a new spelling of the user's own username and email", async () => {
+      await request(app.getHttpServer())
+        .patch(`/users/${guestUser.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          username: 'Guest_User',
+          email: 'Guest@Example.com',
+        })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.username).toBe('Guest_User');
+          expect(res.body.email).toBe('Guest@Example.com');
+        });
+
+      await request(app.getHttpServer())
+        .get('/users/guest_user')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.id).toBe(guestUser.id);
+          expect(res.body.username).toBe('Guest_User');
+        });
+
+      // Restore for other tests
+      await usersRepository.update(guestUser.id, {
+        username: 'guest_user',
+        email: 'guest@example.com',
+      });
+    });
+
+    it("should reject another user's username in a different case", () => {
+      return request(app.getHttpServer())
+        .patch(`/users/${testUser.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          username: 'ADMIN',
+        })
+        .expect(422)
+        .expect((res) => {
+          expect(res.body).toEqual({
+            status: 422,
+            message: 'Username already exists',
+            violations: [
+              { field: 'username', error: 'Username already exists' },
+            ],
+          });
+        });
+    });
+
+    it("should reject another user's email in a different case", () => {
+      return request(app.getHttpServer())
+        .patch(`/users/${testUser.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          email: 'Admin@Example.com',
+        })
+        .expect(422)
+        .expect((res) => {
+          expect(res.body).toEqual({
+            status: 422,
+            message: 'Email already exists',
+            violations: [{ field: 'email', error: 'Email already exists' }],
+          });
+        });
+    });
+
+    it('should map a 23505 on the username index during update to 422 for username', async () => {
+      const updateSpy = jest
+        .spyOn(EntityManager.prototype, 'update')
+        .mockRejectedValueOnce(
+          new QueryFailedError(
+            'UPDATE "user"',
+            [],
+            Object.assign(
+              new Error(
+                'duplicate key value violates unique constraint "user_username_lower_uq"',
+              ),
+              { code: '23505', constraint: 'user_username_lower_uq' },
+            ),
+          ),
+        );
+
+      try {
+        await request(app.getHttpServer())
+          .patch(`/users/${testUser.id}`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({
+            username: 'raced_username',
+          })
+          .expect(422)
+          .expect((res) => {
+            expect(res.body).toEqual({
+              status: 422,
+              message: 'Username already exists',
+              violations: [
+                { field: 'username', error: 'Username already exists' },
+              ],
+            });
+          });
+      } finally {
+        updateSpy.mockRestore();
+      }
+    });
+
     it('should reject invalid email', () => {
       return request(app.getHttpServer())
         .patch(`/users/${testUser.id}`)
@@ -455,7 +570,7 @@ describe('Users Module E2E Tests', () => {
 
     it('should return 403 for non-ADMIN user', () => {
       return request(app.getHttpServer())
-        .patch(`/users/${testUser.id}`)
+        .patch(`/users/${adminUser.id}`)
         .set('Authorization', `Bearer ${userToken}`)
         .send({
           name: 'New Name',
@@ -670,8 +785,8 @@ describe('Users Module E2E Tests', () => {
   });
 
   describe('PATCH /users/:identifier/role', () => {
-    it('should change user role as ADMIN', () => {
-      return request(app.getHttpServer())
+    it('should change user role as ADMIN', async () => {
+      await request(app.getHttpServer())
         .patch(`/users/${testUser.id}/role`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
@@ -681,6 +796,9 @@ describe('Users Module E2E Tests', () => {
         .expect((res) => {
           expect(res.body.role).toBe(UserRole.ADMIN);
         });
+
+      // Restore for other tests: the DB role now drives access with the same JWT
+      await usersRepository.update(testUser.id, { role: UserRole.USER });
     });
 
     it('should reject invalid role', () => {
@@ -732,10 +850,86 @@ describe('Users Module E2E Tests', () => {
     });
   });
 
+  describe('Live role and activity from DB with unchanged JWT', () => {
+    const ACTOR_ID = '550e8400-e29b-41d4-a716-446655440077';
+    let actorToken: string;
+
+    beforeAll(async () => {
+      const actor = await usersRepository.save(
+        usersRepository.create({
+          id: ACTOR_ID,
+          username: 'live_actor',
+          email: 'live-actor@example.com',
+          name: 'Live Actor',
+          passwordHash: '$2b$10$hash',
+          role: UserRole.USER,
+          isActive: true,
+        }),
+      );
+      actorToken = jwtService.generateToken(actor);
+    });
+
+    it('demotion and promotion take effect on the next request with the same JWT', async () => {
+      await request(app.getHttpServer())
+        .patch(`/users/${testUser.id}`)
+        .set('Authorization', `Bearer ${actorToken}`)
+        .send({ name: 'Still Forbidden' })
+        .expect(403);
+
+      await request(app.getHttpServer())
+        .patch(`/users/${ACTOR_ID}/role`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ role: UserRole.ADMIN })
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .patch(`/users/${testUser.id}`)
+        .set('Authorization', `Bearer ${actorToken}`)
+        .send({ name: 'Promoted Edit' })
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .patch(`/users/${ACTOR_ID}/role`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ role: UserRole.USER })
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .patch(`/users/${testUser.id}`)
+        .set('Authorization', `Bearer ${actorToken}`)
+        .send({ name: 'Demoted Edit' })
+        .expect(403);
+    });
+
+    it('deactivation gives 401 and reactivation restores access with the same JWT', async () => {
+      await request(app.getHttpServer())
+        .get(`/users/${ACTOR_ID}`)
+        .set('Authorization', `Bearer ${actorToken}`)
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .patch(`/users/${ACTOR_ID}/deactivate`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .get(`/users/${ACTOR_ID}`)
+        .set('Authorization', `Bearer ${actorToken}`)
+        .expect(401);
+
+      await usersRepository.update(ACTOR_ID, { isActive: true });
+
+      await request(app.getHttpServer())
+        .get(`/users/${ACTOR_ID}`)
+        .set('Authorization', `Bearer ${actorToken}`)
+        .expect(200);
+    });
+  });
+
   describe('Role-Based Access Control', () => {
     it('USER should not access admin endpoints', () => {
       return request(app.getHttpServer())
-        .patch(`/users/${testUser.id}`)
+        .patch(`/users/${adminUser.id}`)
         .set('Authorization', `Bearer ${userToken}`)
         .send({
           name: 'New Name',

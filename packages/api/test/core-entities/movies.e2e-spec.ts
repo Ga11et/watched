@@ -535,19 +535,19 @@ describe('Movies Module E2E Tests', () => {
   });
 
   describe('Невалидный токен', () => {
-    it('GET /movies с невалидным токеном возвращает 403', () => {
+    it('GET /movies с невалидным токеном возвращает 401', () => {
       return request(app.getHttpServer())
         .get('/movies')
         .set('Authorization', 'Bearer invalid-token')
-        .expect(403);
+        .expect(401);
     });
 
-    it('POST /movies с невалидным токеном возвращает 403', () => {
+    it('POST /movies с невалидным токеном возвращает 401', () => {
       return request(app.getHttpServer())
         .post('/movies')
         .set('Authorization', 'Bearer invalid-token')
         .send({ title: 'Фильм' })
-        .expect(403);
+        .expect(401);
     });
   });
 });

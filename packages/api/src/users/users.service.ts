@@ -1,23 +1,39 @@
 import {
   Injectable,
+  ForbiddenException,
   NotFoundException,
   UnprocessableEntityException,
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { User, UserRole } from './entities/user.entity';
+import {
+  canEditUser,
+  canSearchUsersByEmail,
+  canViewInactiveUser,
+  canViewPrivateUserFields,
+} from './users.policy';
+import {
+  assertAvailable,
+  normalizeConstraintError,
+  normalizeUser,
+  validateUser,
+} from './users.rules';
 import { UserBook } from '../user-lists/entities/user-book.entity';
 import { UserMovie } from '../user-lists/entities/user-movie.entity';
 import { UserSeries } from '../user-lists/entities/user-series.entity';
 import { UserGame } from '../user-lists/entities/user-game.entity';
 import { UserDto } from './dto/user.dto';
-import {
-  UpdateUserDto,
-  AdminUpdateUserDto,
-  ChangeUserRoleDto,
-} from './dto/update-user.dto';
+import { UserDeletionSummaryDto } from './dto/user-deletion-summary.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { ChangeUserRoleDto } from './dto/change-user-role.dto';
 import { isUuid } from '../common/utils/uuid.util';
+import type { AuthUser } from '../auth/auth.middleware';
+
+type EditableUserFields = Partial<
+  Pick<User, 'name' | 'username' | 'email' | 'role' | 'isActive'>
+>;
 
 @Injectable()
 export class UsersService {
@@ -34,42 +50,41 @@ export class UsersService {
     private userGamesRepository: Repository<UserGame>,
   ) {}
 
-  private toUserDto(user: User): UserDto {
+  toUserDto(user: User, actor: AuthUser): UserDto {
     return {
       id: user.id,
       username: user.username,
-      email: user.email,
       name: user.name,
       role: user.role,
       isActive: user.isActive,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
+      ...(canViewPrivateUserFields(actor, user.id) && {
+        email: user.email,
+      }),
     };
   }
 
-  async getUserByIdentifier(identifier: string): Promise<User | null> {
-    if (isUuid(identifier)) {
-      return this.usersRepository.findOne({
-        where: { id: identifier },
-      });
-    }
+  async getUserByIdentifier(identifier: string): Promise<User> {
+    const user = isUuid(identifier)
+      ? await this.usersRepository.findOne({ where: { id: identifier } })
+      : await this.usersRepository
+          .createQueryBuilder('user')
+          .where('LOWER(user.username) = LOWER(:username)', {
+            username: identifier,
+          })
+          .getOne();
 
-    return this.usersRepository.findOne({
-      where: { username: identifier },
-    });
-  }
-
-  async getUserByIdentifierOrFail(identifier: string): Promise<User> {
-    const user = await this.getUserByIdentifier(identifier);
     if (!user) {
       throw new NotFoundException('User not found');
     }
+
     return user;
   }
 
   async getAllUsers(
-    userRole: UserRole,
-    filters?: {
+    actor: AuthUser,
+    filters: {
       search?: string;
       role?: UserRole;
       isActive?: boolean;
@@ -77,24 +92,23 @@ export class UsersService {
   ): Promise<User[]> {
     let query = this.usersRepository.createQueryBuilder('user');
 
-    if (userRole !== UserRole.ADMIN) {
-      query = query.where('user.isActive = :isActive', { isActive: true });
-    } else {
-      if (filters?.isActive !== undefined) {
-        query = query.where('user.isActive = :isActive', {
-          isActive: filters.isActive,
-        });
-      }
+    if (filters.isActive !== undefined) {
+      query = query.where('user.isActive = :isActive', {
+        isActive: filters.isActive,
+      });
     }
 
-    if (userRole === UserRole.ADMIN && filters?.role) {
+    if (filters.role) {
       query = query.andWhere('user.role = :role', { role: filters.role });
     }
 
-    if (filters?.search) {
+    if (filters.search) {
       const searchTerm = `%${filters.search.toLowerCase()}%`;
+      const emailCondition = canSearchUsersByEmail(actor)
+        ? ' OR LOWER(user.email) LIKE :search'
+        : '';
       query = query.andWhere(
-        '(LOWER(user.name) LIKE :search OR LOWER(user.username) LIKE :search OR LOWER(user.email) LIKE :search)',
+        `(LOWER(user.name) LIKE :search OR LOWER(user.username) LIKE :search${emailCondition})`,
         { search: searchTerm },
       );
     }
@@ -104,131 +118,159 @@ export class UsersService {
     return query.getMany();
   }
 
-  private throwDuplicateError(field: string, message: string): never {
-    const response = {
-      status: 422,
-      message: 'Unprocessable entity',
-      violations: [{ field, message }],
-    };
-    throw new UnprocessableEntityException(response);
-  }
-
-  async updateUserProfile(
+  async updateUser(
     identifier: string,
     dto: UpdateUserDto,
-  ): Promise<UserDto> {
-    const user = await this.getUserByIdentifierOrFail(identifier);
+    actor: AuthUser,
+  ): Promise<User> {
+    const id = isUuid(identifier)
+      ? identifier
+      : (await this.getUserByIdentifier(identifier)).id;
 
-    if (dto.name !== undefined) {
-      user.name = dto.name;
-    }
-
-    if (dto.username !== undefined) {
-      if (dto.username !== null && dto.username !== user.username) {
-        const existingUser = await this.usersRepository.findOne({
-          where: { username: dto.username },
+    try {
+      return await this.usersRepository.manager.transaction(async (manager) => {
+        const current = await manager.findOne(User, {
+          where: { id },
+          lock: { mode: 'pessimistic_write' },
         });
-        if (existingUser) {
-          this.throwDuplicateError('username', 'Username already taken');
-        }
-      }
-      user.username = dto.username;
-    }
 
-    if (dto.email !== undefined) {
-      if (dto.email !== null && dto.email !== user.email) {
-        const existingUser = await this.usersRepository.findOne({
-          where: { email: dto.email },
-        });
-        if (existingUser) {
-          this.throwDuplicateError('email', 'Email already taken');
+        if (!current) {
+          throw new NotFoundException('User not found');
         }
-      }
-      user.email = dto.email;
-    }
 
-    await this.usersRepository.save(user);
-    return this.toUserDto(user);
+        if (!current.isActive && !canViewInactiveUser(actor)) {
+          throw new NotFoundException('User not found');
+        }
+
+        if (!canEditUser(actor, current.id)) {
+          throw new ForbiddenException('Cannot edit this user');
+        }
+
+        return this.saveUser(manager, current, normalizeUser(dto));
+      });
+    } catch (error) {
+      throw normalizeConstraintError(error) ?? error;
+    }
   }
 
-  async adminUpdateUser(
-    identifier: string,
-    dto: AdminUpdateUserDto,
-  ): Promise<UserDto> {
-    const user = await this.getUserByIdentifierOrFail(identifier);
+  async deactivateUser(identifier: string, actor: AuthUser): Promise<User> {
+    const id = isUuid(identifier)
+      ? identifier
+      : (await this.getUserByIdentifier(identifier)).id;
 
-    if (dto.name !== undefined) {
-      user.name = dto.name;
-    }
-
-    if (dto.username !== undefined) {
-      if (dto.username !== null && dto.username !== user.username) {
-        const existingUser = await this.usersRepository.findOne({
-          where: { username: dto.username },
-        });
-        if (existingUser) {
-          this.throwDuplicateError('username', 'Username already taken');
-        }
-      }
-      user.username = dto.username;
-    }
-
-    if (dto.email !== undefined) {
-      if (dto.email !== null && dto.email !== user.email) {
-        const existingUser = await this.usersRepository.findOne({
-          where: { email: dto.email },
-        });
-        if (existingUser) {
-          this.throwDuplicateError('email', 'Email already taken');
-        }
-      }
-      user.email = dto.email;
-    }
-
-    if (dto.role !== undefined) {
-      user.role = dto.role;
-    }
-
-    await this.usersRepository.save(user);
-    return this.toUserDto(user);
-  }
-
-  async deactivateUser(identifier: string, callerId: string): Promise<UserDto> {
-    const user = await this.getUserByIdentifierOrFail(identifier);
-
-    if (user.id === callerId) {
+    if (id === actor.id) {
       throw new ConflictException('Cannot deactivate self');
     }
 
-    user.isActive = false;
-    await this.usersRepository.save(user);
-    return this.toUserDto(user);
+    return this.usersRepository.manager.transaction(async (manager) => {
+      const current = await manager.findOne(User, {
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!current) {
+        throw new NotFoundException('User not found');
+      }
+
+      return this.saveUser(manager, current, { isActive: false });
+    });
   }
 
-  async adminDeleteUser(identifier: string, callerId: string): Promise<void> {
-    const user = await this.getUserByIdentifierOrFail(identifier);
+  async getDeletionSummary(
+    identifier: string,
+    actor: AuthUser,
+  ): Promise<UserDeletionSummaryDto> {
+    const user = await this.getUserByIdentifier(identifier);
 
-    if (user.id === callerId) {
+    if (user.id === actor.id) {
       throw new ConflictException('Cannot delete self');
     }
 
-    await this.userBooksRepository.delete({ userId: user.id });
-    await this.userMoviesRepository.delete({ userId: user.id });
-    await this.userSeriesRepository.delete({ userId: user.id });
-    await this.userGamesRepository.delete({ userId: user.id });
+    const [books, movies, series, games] = await Promise.all([
+      this.userBooksRepository.count({ where: { userId: user.id } }),
+      this.userMoviesRepository.count({ where: { userId: user.id } }),
+      this.userSeriesRepository.count({ where: { userId: user.id } }),
+      this.userGamesRepository.count({ where: { userId: user.id } }),
+    ]);
 
-    await this.usersRepository.remove(user);
+    return { books, movies, series, games };
   }
 
-  async adminChangeUserRole(
+  async deleteUser(identifier: string, actor: AuthUser): Promise<void> {
+    const user = await this.getUserByIdentifier(identifier);
+
+    if (user.id === actor.id) {
+      throw new ConflictException('Cannot delete self');
+    }
+
+    await this.usersRepository.manager.transaction(async (manager) => {
+      await manager.delete(UserBook, { userId: user.id });
+      await manager.delete(UserMovie, { userId: user.id });
+      await manager.delete(UserSeries, { userId: user.id });
+      await manager.delete(UserGame, { userId: user.id });
+
+      const { affected } = await manager.delete(User, { id: user.id });
+
+      if (!affected) {
+        throw new NotFoundException('User not found');
+      }
+    });
+  }
+
+  async changeUserRole(
     identifier: string,
     dto: ChangeUserRoleDto,
-  ): Promise<UserDto> {
-    const user = await this.getUserByIdentifierOrFail(identifier);
+  ): Promise<User> {
+    const id = isUuid(identifier)
+      ? identifier
+      : (await this.getUserByIdentifier(identifier)).id;
 
-    user.role = dto.role;
-    await this.usersRepository.save(user);
+    return this.usersRepository.manager.transaction(async (manager) => {
+      const current = await manager.findOne(User, {
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
 
-    return this.toUserDto(user);
+      if (!current) {
+        throw new NotFoundException('User not found');
+      }
+
+      return this.saveUser(manager, current, { role: dto.role });
+    });
+  }
+
+  /**
+   * Checks the resulting profile of the locked row and writes only the fields
+   * whose values actually differ. When nothing differs no UPDATE runs at all.
+   */
+  private async saveUser(
+    manager: EntityManager,
+    current: User,
+    fields: EditableUserFields,
+  ): Promise<User> {
+    const next = { ...current, ...fields };
+    const violations = validateUser(next);
+
+    if (violations.length > 0) {
+      throw new UnprocessableEntityException({
+        status: 422,
+        message: violations[0].error,
+        violations,
+      });
+    }
+
+    await assertAvailable(manager, next, current);
+
+    const changed = Object.fromEntries(
+      Object.entries(fields).filter(
+        ([key, value]) => value !== current[key as keyof User],
+      ),
+    );
+
+    if (Object.keys(changed).length > 0) {
+      await manager.update(User, { id: current.id }, changed);
+    }
+
+    return manager.findOneByOrFail(User, { id: current.id });
   }
 }

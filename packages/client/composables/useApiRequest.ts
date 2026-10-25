@@ -7,12 +7,16 @@ export interface RequestOptions {
 export type RequestOptionsQuery = Record<string, unknown> | undefined
 export type RequestOptionsHeaders = Record<string, string>
 
+// Вход и регистрация публичны: их 401 остаются ошибками формы и не завершают сессию.
+const PUBLIC_PATHS = ['/auth/login', '/auth/register']
+
 export const useApiRequest = () => {
   const nuxtApp = useNuxtApp()
 
   // Принимать только путь; baseURL выбирается здесь, а вызовы выполняются через request.
   const _fetch = async <T>(path: string, opts: RequestOptions = {}) => {
-    const { token } = useAuth()
+    const auth = useAuth()
+    const route = useRoute()
     const config = useRuntimeConfig()
     const baseURL = import.meta.server ? config.apiBase : config.public.apiBase
 
@@ -24,15 +28,29 @@ export const useApiRequest = () => {
       ...opts.headers,
     }
 
-    if (token.value) {
-      headers['Authorization'] = `Bearer ${token.value}`
+    if (auth.token.value) {
+      headers['Authorization'] = `Bearer ${auth.token.value}`
     }
 
-    return $fetch<T>(path, {
-      ...opts,
-      baseURL,
-      headers,
-    })
+    const isProtected = !PUBLIC_PATHS.includes(path)
+
+    try {
+      return await $fetch<T>(path, {
+        ...opts,
+        baseURL,
+        headers,
+      })
+    } catch (error: unknown) {
+      // 401 защищённого запроса очищает токен и требует перезахода.
+      // В middleware navigateTo не выполняет переход: редирект делает само middleware.
+      if (isProtected && getApiErrorStatus(error) === 401 && auth.expireSession()) {
+        await nuxtApp.runWithContext(() =>
+          navigateTo(loginRoute(route.fullPath, SESSION_EXPIRED_REASON)),
+        )
+      }
+
+      throw error
+    }
   }
 
   const request = <T>(path: string, options?: RequestOptions) =>

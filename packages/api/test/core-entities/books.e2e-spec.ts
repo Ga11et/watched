@@ -677,27 +677,27 @@ describe('Books Module E2E Tests', () => {
   });
 
   describe('Невалидный и просроченный токен на защищённых эндпоинтах', () => {
-    it('POST /books с невалидным токеном возвращает 403', () => {
+    it('POST /books с невалидным токеном возвращает 401', () => {
       return request(app.getHttpServer())
         .post('/books')
         .set('Authorization', 'Bearer invalid-token')
         .send({ title: 'Книга' })
-        .expect(403);
+        .expect(401);
     });
 
-    it('PUT /books/:id с невалидным токеном возвращает 403', () => {
+    it('PUT /books/:id с невалидным токеном возвращает 401', () => {
       return request(app.getHttpServer())
         .put(`/books/${testBook.id}`)
         .set('Authorization', 'Bearer invalid-token')
         .send({ title: 'Название' })
-        .expect(403);
+        .expect(401);
     });
 
-    it('DELETE /books/:id с невалидным токеном возвращает 403', () => {
+    it('DELETE /books/:id с невалидным токеном возвращает 401', () => {
       return request(app.getHttpServer())
         .delete(`/books/${testBook.id}`)
         .set('Authorization', 'Bearer invalid-token')
-        .expect(403);
+        .expect(401);
     });
   });
 });

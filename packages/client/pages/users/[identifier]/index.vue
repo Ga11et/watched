@@ -1,0 +1,124 @@
+<script setup lang="ts">
+const route = useRoute()
+const auth = useAuth()
+const { get } = useUsers()
+
+const identifier = String(route.params.identifier)
+
+const {
+  data: user,
+  pending,
+  error,
+} = useLazyAsyncData(`user-profile-${identifier}`, () => get(identifier))
+
+const errorStatus = computed(() => parseRequestError(error.value).statusCode)
+
+// Админ редактирует любой профиль, обычный пользователь — только свой, гость — ничей.
+const canEdit = computed(() => {
+  const viewer = auth.user.value
+
+  if (!user.value || !viewer) return false
+  if (viewer.role === 'ADMIN') return true
+  if (viewer.role === 'GUEST') return false
+
+  return viewer.id === user.value.id
+})
+
+// Админ удаляет любой чужой профиль, включая неактивных и других админов.
+const canDelete = computed(() => {
+  const viewer = auth.user.value
+
+  return Boolean(user.value && viewer && viewer.role === 'ADMIN' && viewer.id !== user.value.id)
+})
+
+const deleteDialogOpen = ref(false)
+
+const onDeleted = async () => {
+  clearNuxtData((key) => key === 'users-list' || key.startsWith('user-profile-'))
+  await navigateTo('/users')
+}
+</script>
+
+<template>
+  <div class="mx-auto max-w-7xl">
+    <LayoutBreadcrumbs
+      :items="[
+        { label: 'Главная', to: '/' },
+        { label: 'Пользователи', to: '/users' },
+        { label: user?.name || 'Профиль пользователя' },
+      ]"
+    />
+
+    <div v-if="pending" role="status" class="py-12 text-center text-gray-500">
+      Загрузка профиля...
+    </div>
+
+    <div v-else-if="errorStatus === 404" class="py-12 text-center text-gray-500">
+      Пользователь не найден
+    </div>
+
+    <div
+      v-else-if="error"
+      role="alert"
+      class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+    >
+      {{
+        errorStatus === 403
+          ? 'Нет доступа к профилю пользователя.'
+          : 'Не удалось загрузить профиль пользователя. Попробуйте позже.'
+      }}
+    </div>
+
+    <div
+      v-else-if="user"
+      class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+    >
+      <div
+        class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-6 py-5"
+      >
+        <div class="min-w-0">
+          <h1 class="break-words text-xl font-semibold text-gray-900 md:text-2xl">
+            {{ user.name }}
+          </h1>
+          <p class="mt-1 break-all text-sm text-gray-500">
+            {{ user.username ? `@${user.username}` : 'Логин не указан' }}
+          </p>
+        </div>
+        <div class="flex items-center gap-3">
+          <span
+            v-if="!user.isActive"
+            class="rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700"
+          >
+            Неактивен
+          </span>
+          <NuxtLink
+            v-if="canEdit"
+            :to="`/users/${user.id}/edit`"
+            class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Редактировать
+          </NuxtLink>
+          <button
+            v-if="canDelete"
+            type="button"
+            class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+            @click="deleteDialogOpen = true"
+          >
+            Удалить
+          </button>
+        </div>
+      </div>
+
+      <div class="px-6 py-6">
+        <EntitiesUserOutputsDetails :user />
+      </div>
+    </div>
+
+    <EntitiesUserDialogsDelete
+      v-if="user && canDelete"
+      v-model:open="deleteDialogOpen"
+      :user
+      @deleted="onDeleted"
+    />
+  </div>
+</template>

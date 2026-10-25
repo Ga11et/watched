@@ -24,6 +24,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { UserRole } from '../users/entities/user.entity';
+import type { AuthUser } from '../auth/auth.middleware';
 import { RolesGuard } from '../auth/roles.guard';
 import { UserBook } from './entities/user-book.entity';
 import { UserMovie } from './entities/user-movie.entity';
@@ -47,10 +48,7 @@ const resourceIdPipe = new ParseUUIDPipe({
 });
 
 interface AuthenticatedRequest {
-  user?: {
-    id: string;
-    role: UserRole;
-  };
+  user?: AuthUser;
 }
 
 @ApiTags('user-lists')
@@ -543,10 +541,7 @@ export class UserListsController {
     return [];
   }
 
-  private getAuthenticatedUser(request: AuthenticatedRequest): {
-    id: string;
-    role: UserRole;
-  } {
+  private getAuthenticatedUser(request: AuthenticatedRequest): AuthUser {
     if (!request.user) {
       throw new UnauthorizedException('Authorization token required');
     }

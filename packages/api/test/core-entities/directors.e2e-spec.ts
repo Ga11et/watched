@@ -403,19 +403,19 @@ describe('Directors Module E2E Tests', () => {
   });
 
   describe('Невалидный токен', () => {
-    it('GET /directors с невалидным токеном возвращает 403', () => {
+    it('GET /directors с невалидным токеном возвращает 401', () => {
       return request(app.getHttpServer())
         .get('/directors')
         .set('Authorization', 'Bearer invalid-token')
-        .expect(403);
+        .expect(401);
     });
 
-    it('POST /directors с невалидным токеном возвращает 403', () => {
+    it('POST /directors с невалидным токеном возвращает 401', () => {
       return request(app.getHttpServer())
         .post('/directors')
         .set('Authorization', 'Bearer invalid-token')
         .send({ fullName: 'Имя' })
-        .expect(403);
+        .expect(401);
     });
   });
 });
