@@ -37,7 +37,7 @@ const TEST_DB_NAME = 'watched_test';
 const e2eDbConfig = {
   type: 'postgres' as const,
   host: process.env.DB_HOST || '127.0.0.1',
-  port: +(process.env.DB_PORT || 5434),
+  port: +(process.env.DB_PORT || 33021),
   username: process.env.DB_USER || 'watched',
   password: process.env.DB_PASSWORD || 'watched',
   database: process.env.DB_NAME_TEST || TEST_DB_NAME,

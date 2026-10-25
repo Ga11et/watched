@@ -1,0 +1,35 @@
+name: watched-test
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: watched
+      POSTGRES_PASSWORD: watched
+      POSTGRES_DB: watched_test
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 2s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api.dev
+    image: watched-api:dev
+    init: true
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: watched
+      DB_PASSWORD: watched
+      DB_NAME_TEST: watched_test
+    volumes:
+      - ./packages/api:/workspace/packages/api
+      - /workspace/packages/api/node_modules
+    depends_on:
+      db:
+        condition: service_healthy

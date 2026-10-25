@@ -2,10 +2,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /**
  * E2E тесты модуля books.
- * Запуск:
- *   1. Поднять test-db: docker compose up -d test-db (порт 5434, БД watched_test)
- *   2. DB_NAME_TEST=watched_test DB_PORT=5434 npm run test:e2e -- test/books.e2e-spec.ts
- *   3. Или загрузить .env.test и запустить тесты
+ * Запуск: pnpm test:api:e2e -- test/core-entities/books.e2e-spec.ts
+ * Тестовая БД поднимается автоматически.
  */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
@@ -41,7 +39,7 @@ const TEST_DB_NAME = 'watched_test';
 const e2eDbConfig = {
   type: 'postgres' as const,
   host: process.env.DB_HOST || '127.0.0.1',
-  port: +(process.env.DB_PORT || 5434),
+  port: +(process.env.DB_PORT || 33021),
   username: process.env.DB_USER || 'watched',
   password: process.env.DB_PASSWORD || 'watched',
   database: process.env.DB_NAME_TEST || TEST_DB_NAME,

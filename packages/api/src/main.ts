@@ -6,7 +6,7 @@ import { requireMigrations } from './database/require-migrations';
 
 import 'dotenv/config';
 
-function validateProductionEnv(): void {
+function validateEnv(): void {
   for (const name of [
     'JWT_SECRET',
     'JWT_ALGORITHM',
@@ -14,16 +14,19 @@ function validateProductionEnv(): void {
     'CORS_ORIGIN',
   ]) {
     if (!process.env[name]?.trim()) {
-      throw new Error(`${name} is required in production`);
+      throw new Error(`${name} is required`);
     }
   }
 }
 
 async function bootstrap() {
-  if (process.env.NODE_ENV === 'production') {
-    validateProductionEnv();
-    await requireMigrations();
-  }
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  validateEnv();
+
+  await requireMigrations(
+    isProduction ? 'pnpm prod:migrate' : 'pnpm dev:migrate',
+  );
 
   const app = await NestFactory.create(AppModule);
 

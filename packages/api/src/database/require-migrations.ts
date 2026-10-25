@@ -1,6 +1,6 @@
 import dataSource from './data-source';
 
-export async function requireMigrations(): Promise<void> {
+export async function requireMigrations(migrateCommand: string): Promise<void> {
   await dataSource.initialize();
 
   try {
@@ -9,7 +9,7 @@ export async function requireMigrations(): Promise<void> {
     );
     if (!history.table) {
       throw new Error(
-        'Database migration history is missing. Run pnpm prod:migrate before starting the production API.',
+        `Database migration history is missing. Run ${migrateCommand} before starting the API.`,
       );
     }
 
@@ -17,7 +17,7 @@ export async function requireMigrations(): Promise<void> {
 
     if (hasPendingMigrations) {
       throw new Error(
-        'Database has unapplied migrations. Run pnpm prod:migrate before starting the production API.',
+        `Database has unapplied migrations. Run ${migrateCommand} before starting the API.`,
       );
     }
   } finally {

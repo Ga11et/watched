@@ -13,7 +13,6 @@ export function getDatabaseOptions(): PostgresConnectionOptions {
 function buildProdOptions(): PostgresConnectionOptions {
   return {
     ...buildBaseOptions(),
-    synchronize: false,
     installExtensions: false,
   };
 }
@@ -21,7 +20,6 @@ function buildProdOptions(): PostgresConnectionOptions {
 function buildDevOptions(): PostgresConnectionOptions {
   return {
     ...buildBaseOptions(),
-    synchronize: true,
     installExtensions: true,
   };
 }
@@ -55,6 +53,7 @@ function buildBaseOptions(): PostgresConnectionOptions {
     database: process.env.POSTGRES_DB,
     entities: [join(__dirname, '../**/*.entity{.ts,.js}')],
     migrations: [join(__dirname, 'migrations/*{.ts,.js}')],
+    synchronize: false,
     migrationsRun: false,
   };
 }

@@ -1,0 +1,72 @@
+name: watched-development
+
+services:
+  db:
+    image: postgres:16-alpine
+    env_file:
+      - .env.development.api.local
+    ports:
+      - '127.0.0.1:33020:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 2s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api.dev
+    image: watched-api:dev
+    init: true
+    env_file:
+      - .env.development.api.local
+    ports:
+      - '127.0.0.1:33010:33010'
+    volumes:
+      - ./packages/api:/workspace/packages/api
+      # Keep image-installed pnpm symlinks; the root store stays in the image.
+      - /workspace/packages/api/node_modules
+    healthcheck:
+      test: >-
+        node -e "fetch('http://127.0.0.1:' + process.env.PORT)
+        .then(r => process.exit(r.ok ? 0 : 1))
+        .catch(() => process.exit(1))"
+      interval: 2s
+      timeout: 3s
+      start_period: 20s
+      retries: 30
+    depends_on:
+      db:
+        condition: service_healthy
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client.dev
+    image: watched-client:dev
+    init: true
+    env_file:
+      - .env.development.client.local
+    ports:
+      - '127.0.0.1:33000:33000'
+    volumes:
+      - ./packages/client:/workspace/packages/client
+      - /workspace/packages/client/node_modules
+    healthcheck:
+      test: >-
+        node -e "fetch('http://127.0.0.1:33000/login')
+        .then(r => process.exit(r.ok ? 0 : 1))
+        .catch(() => process.exit(1))"
+      interval: 2s
+      timeout: 3s
+      start_period: 60s
+      retries: 30
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:

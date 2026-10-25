@@ -2,7 +2,8 @@
 /**
  * E2E тесты модуля authors.
  * Публичных эндпоинтов нет: все GET защищены как минимум ролью GUEST.
- * Запуск: DB_NAME_TEST=watched_test DB_PORT=5434 npm run test:e2e -- test/authors.e2e-spec.ts
+ * Запуск: pnpm test:api:e2e -- test/core-entities/authors.e2e-spec.ts
+ * Тестовая БД поднимается автоматически.
  */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
@@ -34,11 +35,11 @@ const TEST_DB_NAME = 'watched_test';
 
 const e2eDbConfig = {
   type: 'postgres' as const,
-  host: '127.0.0.1',
-  port: 5434,
-  username: 'watched',
-  password: 'watched',
-  database: TEST_DB_NAME,
+  host: process.env.DB_HOST || '127.0.0.1',
+  port: +(process.env.DB_PORT || 33021),
+  username: process.env.DB_USER || 'watched',
+  password: process.env.DB_PASSWORD || 'watched',
+  database: process.env.DB_NAME_TEST || TEST_DB_NAME,
   dropSchema: true,
   synchronize: true,
   autoLoadEntities: true,
