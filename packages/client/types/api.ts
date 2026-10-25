@@ -10,6 +10,9 @@ interface BaseEntity {
   updatedAt: string
 }
 
+export type SortOrder = 'ASC' | 'DESC'
+
+// Пользователи
 export interface User extends BaseEntity {
   username: string | null
   email?: string | null
@@ -18,27 +21,17 @@ export interface User extends BaseEntity {
   isActive: boolean
 }
 
+export interface UpdateUserDto {
+  name?: string
+  username?: string | null
+  email?: string | null
+}
+
 // Авторы
 export interface Author extends BaseEntity {
   fullName: string
   photo?: string | null
   comment?: string | null
-}
-
-// Разработчики
-export interface Developer extends BaseEntity {
-  fullName: string
-  photo?: string | null
-  comment?: string | null
-  games?: Game[]
-}
-
-// Издатели
-export interface Publisher extends BaseEntity {
-  fullName: string
-  photo?: string | null
-  comment?: string | null
-  games?: Game[]
 }
 
 // Книги
@@ -50,26 +43,6 @@ export interface Book extends BaseEntity {
   comment?: string
   cover?: string
   authors?: Author[]
-}
-
-export interface UserBook extends BaseEntity {
-  userId: string
-  rating?: number | null
-  readAt?: string | null
-  comment?: string | null
-  book: Book
-}
-
-export interface UpdateUserBookDto {
-  rating?: number
-  readAt?: string
-  comment?: string
-}
-
-export interface UserBookStats {
-  total: number
-  thisMonth: number
-  avgRating: number | null
 }
 
 export interface CreateBookDto {
@@ -90,6 +63,54 @@ export interface BookStats {
   avgRating: number
 }
 
+export type SortableBookFields =
+  | 'title'
+  | 'author'
+  | 'genre'
+  | 'rating'
+  | 'readAt'
+  | 'publishYear'
+  | 'createdAt'
+
+// Книги пользователя
+export interface UserBook extends BaseEntity {
+  userId: string
+  rating?: number | null
+  readAt?: string | null
+  comment?: string | null
+  book: Book
+}
+
+export interface UpdateUserBookDto {
+  rating?: number
+  readAt?: string
+  comment?: string
+}
+
+export interface UserBookStats {
+  total: number
+  thisMonth: number
+  avgRating: number | null
+}
+
+// Режиссёры
+export interface Director extends BaseEntity {
+  fullName: string
+  photo: string | null
+  comment: string | null
+}
+
+export interface CreateDirectorDto {
+  name: string
+  bio?: string
+  birthYear?: number
+  country?: string
+}
+
+export interface DirectorStats {
+  total: number
+}
+
 // Фильмы
 export interface Movie extends BaseEntity {
   title: string
@@ -99,18 +120,28 @@ export interface Movie extends BaseEntity {
   directors: Director[]
 }
 
+export interface CreateMovieDto {
+  title: string
+  genre?: string
+  directorIds?: string[]
+  releaseYear?: number
+}
+
+export interface MovieStats {
+  total: number
+  thisMonth: number
+  avgRating: number
+}
+
+export type SortableMovieFields = 'title' | 'genre' | 'releaseYear' | 'createdAt'
+
+// Фильмы пользователя
 export interface UserMovie extends BaseEntity {
   userId: string
   rating: number | null // 0-100
   watchedAt: string | null
   comment: string | null
   movie: Movie
-}
-
-export interface UserMovieStats {
-  total: number
-  thisMonth: number
-  avgRating: number | null
 }
 
 export interface CreateUserMovieDto {
@@ -126,17 +157,26 @@ export interface UpdateUserMovieDto {
   comment?: string | null
 }
 
-export interface CreateMovieDto {
-  title: string
-  genre?: string
-  directorIds?: string[]
-  releaseYear?: number
-}
-
-export interface MovieStats {
+export interface UserMovieStats {
   total: number
   thisMonth: number
-  avgRating: number
+  avgRating: number | null
+}
+
+// Разработчики
+export interface Developer extends BaseEntity {
+  fullName: string
+  photo?: string | null
+  comment?: string | null
+  games?: Game[]
+}
+
+// Издатели
+export interface Publisher extends BaseEntity {
+  fullName: string
+  photo?: string | null
+  comment?: string | null
+  games?: Game[]
 }
 
 // Игры
@@ -167,6 +207,8 @@ export interface GameStats {
   avgRating: number
 }
 
+export type SortableGameFields = 'title' | 'rating' | 'completionDate' | 'createdAt'
+
 // Сериалы
 export interface Series extends BaseEntity {
   title: string
@@ -196,22 +238,22 @@ export interface SeriesStats {
   avgRating: number
 }
 
-// Режиссёры
-export interface Director extends BaseEntity {
-  fullName: string
-  photo: string | null
-  comment: string | null
-}
+export type SortableSeriesFields = 'title' | 'genre' | 'rating' | 'watchedAt' | 'createdAt'
 
-export interface CreateDirectorDto {
-  name: string
-  bio?: string
-  birthYear?: number
-  country?: string
-}
-
-export interface DirectorStats {
-  total: number
+// Главная страница
+export interface DashboardData {
+  recentMovies: Movie[]
+  recentGames: Game[]
+  recentDirectors: Director[]
+  recentSeries: Series[]
+  recentBooks: Book[]
+  stats: {
+    movies: MovieStats
+    games: GameStats
+    directors: DirectorStats
+    series: SeriesStats
+    books: BookStats
+  }
 }
 
 // Google Books API
@@ -259,42 +301,3 @@ export interface TmdbSeries {
   origin_country?: string[]
   number_of_seasons?: number
 }
-
-// API Responses
-export interface ApiResponse<T> {
-  data: T[]
-  meta?: {
-    total: number
-    page: number
-    limit: number
-  }
-}
-
-export interface DashboardData {
-  recentMovies: Movie[]
-  recentGames: Game[]
-  recentDirectors: Director[]
-  recentSeries: Series[]
-  recentBooks: Book[]
-  stats: {
-    movies: MovieStats
-    games: GameStats
-    directors: DirectorStats
-    series: SeriesStats
-    books: BookStats
-  }
-}
-
-// Сортировка
-export type SortOrder = 'ASC' | 'DESC'
-export type SortableMovieFields = 'title' | 'genre' | 'releaseYear' | 'createdAt'
-export type SortableGameFields = 'title' | 'rating' | 'completionDate' | 'createdAt'
-export type SortableSeriesFields = 'title' | 'genre' | 'rating' | 'watchedAt' | 'createdAt'
-export type SortableBookFields =
-  | 'title'
-  | 'author'
-  | 'genre'
-  | 'rating'
-  | 'readAt'
-  | 'publishYear'
-  | 'createdAt'
