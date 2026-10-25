@@ -55,9 +55,9 @@ export class UsersService {
       role: user.role,
       isActive: user.isActive,
       createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString(),
       ...(canViewPrivateUserFields(actor, user.id) && {
         email: user.email,
-        updatedAt: user.updatedAt.toISOString(),
       }),
     };
   }

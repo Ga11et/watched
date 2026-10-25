@@ -69,7 +69,7 @@ type ApiUser = {
   email?: string | null;
   role: UserRole;
   isActive: boolean;
-  updatedAt?: string;
+  updatedAt: string;
 };
 
 const IDENTIFIER_REQUIRED = 'Username or email is required';
@@ -220,13 +220,11 @@ describe('UsersController (e2e)', () => {
     expect(body).toMatchObject({
       id: user.id,
       email: user.email,
-      updatedAt: user.updatedAt.toISOString(),
     });
   };
 
   const expectPrivateFieldsHidden = (body: ApiUser): void => {
     expect(body).not.toHaveProperty('email');
-    expect(body).not.toHaveProperty('updatedAt');
   };
 
   const expectViolations = (
@@ -275,7 +273,7 @@ describe('UsersController (e2e)', () => {
 
   describe('GET /users/:identifier', () => {
     it.each([UserRole.ADMIN, UserRole.USER, UserRole.GUEST])(
-      'shows %s the email and updatedAt of their own profile',
+      'shows %s the email of their own profile',
       async (role) => {
         const viewer = await seedUser({ role });
 
@@ -286,7 +284,7 @@ describe('UsersController (e2e)', () => {
       },
     );
 
-    it("shows ADMIN the email and updatedAt of another user's profile", async () => {
+    it("shows ADMIN the email of another user's profile", async () => {
       const other = await seedUser();
 
       expectPrivateFieldsShown(await fetchUser(other.id), other);
@@ -302,7 +300,7 @@ describe('UsersController (e2e)', () => {
     });
 
     it.each([UserRole.USER, UserRole.GUEST])(
-      "omits the email and updatedAt keys of another user's profile for %s",
+      "omits the email key of another user's profile for %s",
       async (role) => {
         const viewer = await seedUser({ role });
         const other = await seedUser();
@@ -310,6 +308,18 @@ describe('UsersController (e2e)', () => {
         expectPrivateFieldsHidden(
           await fetchUser(other.id, jwtService.generateToken(viewer)),
         );
+      },
+    );
+
+    it.each([UserRole.ADMIN, UserRole.USER, UserRole.GUEST])(
+      "shows %s the updatedAt of another user's profile",
+      async (role) => {
+        const viewer = await seedUser({ role });
+        const other = await seedUser();
+
+        expect(
+          await fetchUser(other.id, jwtService.generateToken(viewer)),
+        ).toHaveProperty('updatedAt', other.updatedAt.toISOString());
       },
     );
 
@@ -420,7 +430,7 @@ describe('UsersController (e2e)', () => {
   });
 
   describe('GET /users', () => {
-    it('shows ADMIN the email and updatedAt of every listed user', async () => {
+    it('shows ADMIN the email of every listed user', async () => {
       const other = await seedUser();
       const users = await fetchUsers();
 
@@ -429,14 +439,29 @@ describe('UsersController (e2e)', () => {
         other,
       );
       for (const user of users) {
-        expect(Object.keys(user)).toEqual(
-          expect.arrayContaining(['email', 'updatedAt']),
-        );
+        expect(Object.keys(user)).toEqual(expect.arrayContaining(['email']));
       }
     });
 
+    it.each([UserRole.ADMIN, UserRole.USER, UserRole.GUEST])(
+      'shows %s the updatedAt of every listed user',
+      async (role) => {
+        const viewer = await seedUser({ role });
+        const other = await seedUser();
+        const users = await fetchUsers(jwtService.generateToken(viewer));
+
+        expect(users.find(({ id }) => id === other.id)).toHaveProperty(
+          'updatedAt',
+          other.updatedAt.toISOString(),
+        );
+        for (const user of users) {
+          expect(user).toHaveProperty('updatedAt');
+        }
+      },
+    );
+
     it.each([UserRole.USER, UserRole.GUEST])(
-      'shows %s the email and updatedAt only in their own list item',
+      'shows %s the email only in their own list item',
       async (role) => {
         const viewer = await seedUser({ role });
         await seedUser();

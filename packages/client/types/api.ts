@@ -12,7 +12,7 @@ interface BaseEntity {
 
 export interface User extends BaseEntity {
   username: string | null
-  email: string | null
+  email?: string | null
   name: string
   role: 'ADMIN' | 'USER' | 'GUEST'
   isActive: boolean
