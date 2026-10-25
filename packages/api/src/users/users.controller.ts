@@ -21,6 +21,7 @@ import {
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { UserDto } from './dto/user.dto';
+import { UserDeletionSummaryDto } from './dto/user-deletion-summary.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangeUserRoleDto } from './dto/change-user-role.dto';
 import { UserRole } from './entities/user.entity';
@@ -236,6 +237,48 @@ export class UsersController {
 
     const user = await this.usersService.deactivateUser(identifier, req.user);
     return this.usersService.toUserDto(user, req.user);
+  }
+
+  @Get(':identifier/deletion-summary')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get counts of user list entries to be deleted (admin only)',
+  })
+  @ApiParam({
+    name: 'identifier',
+    type: 'string',
+    description: 'User UUID or username',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Deletion summary',
+    type: UserDeletionSummaryDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Cannot delete self',
+  })
+  async getDeletionSummary(
+    @Request() req: AuthRequest,
+    @Param('identifier') identifier: string,
+  ): Promise<UserDeletionSummaryDto> {
+    if (!req.user || !canDeleteUsers(req.user)) {
+      throw new ForbiddenException('Admin access required');
+    }
+
+    return this.usersService.getDeletionSummary(identifier, req.user);
   }
 
   @Delete(':identifier')

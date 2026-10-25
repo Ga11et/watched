@@ -23,6 +23,15 @@ import { ApiExceptionFilter } from '../../src/auth/api-exception.filter';
 import { JwtService } from '../../src/auth/jwt.service';
 import { Author } from '../../src/authors/entities/author.entity';
 import { Book } from '../../src/books/entities/book.entity';
+import { Movie } from '../../src/movies/entities/movie.entity';
+import { Series } from '../../src/series/entities/series.entity';
+import { Game } from '../../src/games/entities/game.entity';
+import { Publisher } from '../../src/publishers/entities/publisher.entity';
+import { Developer } from '../../src/developers/entities/developer.entity';
+import { UserBook } from '../../src/user-lists/entities/user-book.entity';
+import { UserMovie } from '../../src/user-lists/entities/user-movie.entity';
+import { UserSeries } from '../../src/user-lists/entities/user-series.entity';
+import { UserGame } from '../../src/user-lists/entities/user-game.entity';
 import { ApplicationValidationPipe } from '../../src/common/application-validation.pipe';
 import { User, UserRole } from '../../src/users/entities/user.entity';
 import { UsersModule } from '../../src/users/users.module';
@@ -44,7 +53,14 @@ const e2eDbConfig = {
 @Module({
   imports: [
     TypeOrmModule.forRoot(e2eDbConfig),
-    TypeOrmModule.forFeature([Book, Author]),
+    TypeOrmModule.forFeature([
+      Book,
+      Author,
+      Series,
+      Game,
+      Publisher,
+      Developer,
+    ]),
     AuthModule,
     UsersModule,
   ],
@@ -134,6 +150,69 @@ describe('UsersController (e2e)', () => {
     request(app.getHttpServer())
       .patch(`/users/${id}/deactivate`)
       .set('Authorization', `Bearer ${adminToken}`);
+
+  const getSummary = (identifier: string, token?: string) => {
+    const pending = request(app.getHttpServer()).get(
+      `/users/${identifier}/deletion-summary`,
+    );
+
+    return token ? pending.set('Authorization', `Bearer ${token}`) : pending;
+  };
+
+  const deleteUser = (identifier: string, token?: string) => {
+    const pending = request(app.getHttpServer()).delete(`/users/${identifier}`);
+
+    return token ? pending.set('Authorization', `Bearer ${token}`) : pending;
+  };
+
+  type ListEntryCounts = {
+    books?: number;
+    movies?: number;
+    series?: number;
+    games?: number;
+  };
+
+  const seedListEntries = async (
+    user: User,
+    counts: ListEntryCounts,
+  ): Promise<void> => {
+    sequence += 1;
+
+    const books = await dataSource.getRepository(Book).save(
+      Array.from({ length: counts.books ?? 0 }, (_, index) => ({
+        title: `Seed Book ${sequence}.${index}`,
+        authors: [],
+      })),
+    );
+    const movies = await dataSource.getRepository(Movie).save(
+      Array.from({ length: counts.movies ?? 0 }, (_, index) => ({
+        title: `Seed Movie ${sequence}.${index}`,
+      })),
+    );
+    const series = await dataSource.getRepository(Series).save(
+      Array.from({ length: counts.series ?? 0 }, (_, index) => ({
+        title: `Seed Series ${sequence}.${index}`,
+      })),
+    );
+    const games = await dataSource.getRepository(Game).save(
+      Array.from({ length: counts.games ?? 0 }, (_, index) => ({
+        title: `Seed Game ${sequence}.${index}`,
+      })),
+    );
+
+    await dataSource
+      .getRepository(UserBook)
+      .save(books.map((book) => ({ userId: user.id, bookId: book.id })));
+    await dataSource
+      .getRepository(UserMovie)
+      .save(movies.map((movie) => ({ userId: user.id, movieId: movie.id })));
+    await dataSource
+      .getRepository(UserSeries)
+      .save(series.map((item) => ({ userId: user.id, seriesId: item.id })));
+    await dataSource
+      .getRepository(UserGame)
+      .save(games.map((game) => ({ userId: user.id, gameId: game.id })));
+  };
 
   const waitForLockWaiters = async (count: number): Promise<void> => {
     const deadline = Date.now() + 5000;
@@ -1156,6 +1235,231 @@ describe('UsersController (e2e)', () => {
         isActive: false,
         role: UserRole.GUEST,
       });
+    });
+  });
+
+  describe('GET /users/:identifier/deletion-summary', () => {
+    it('returns the counts of the user list entries of every kind, by UUID and username', async () => {
+      const user = await seedUser();
+      await seedListEntries(user, { books: 2, movies: 1, series: 3, games: 4 });
+
+      for (const identifier of [user.id, user.username!]) {
+        const response = await getSummary(identifier, adminToken).expect(200);
+
+        expect(response.body).toEqual({
+          books: 2,
+          movies: 1,
+          series: 3,
+          games: 4,
+        });
+      }
+    });
+
+    it('does not count the list entries of other users', async () => {
+      const user = await seedUser();
+      const other = await seedUser();
+      await seedListEntries(user, { books: 1 });
+      await seedListEntries(other, { movies: 2, series: 1, games: 3 });
+
+      const response = await getSummary(user.id, adminToken).expect(200);
+
+      expect(response.body).toEqual({
+        books: 1,
+        movies: 0,
+        series: 0,
+        games: 0,
+      });
+    });
+
+    it('returns zeros for a user without list entries', async () => {
+      const user = await seedUser();
+
+      const response = await getSummary(user.id, adminToken).expect(200);
+
+      expect(response.body).toEqual({
+        books: 0,
+        movies: 0,
+        series: 0,
+        games: 0,
+      });
+    });
+
+    it('returns 401 without a token', async () => {
+      const user = await seedUser();
+
+      const response = await getSummary(user.id).expect(401);
+
+      expect(response.body).toMatchObject({ status: 401 });
+      expect(typeof response.body.message).toBe('string');
+    });
+
+    it.each([UserRole.USER, UserRole.GUEST])(
+      'returns 403 for %s',
+      async (role) => {
+        const viewer = await seedUser({ role });
+        const user = await seedUser();
+
+        const response = await getSummary(
+          user.id,
+          jwtService.generateToken(viewer),
+        ).expect(403);
+
+        expect(response.body).toMatchObject({
+          status: 403,
+          message: 'Admin access required',
+        });
+      },
+    );
+
+    it('returns 404 for a missing user by UUID and username', async () => {
+      for (const identifier of [MISSING_ID, MISSING_USERNAME]) {
+        const response = await getSummary(identifier, adminToken).expect(404);
+
+        expect(response.body).toMatchObject({
+          status: 404,
+          message: 'User not found',
+        });
+      }
+    });
+
+    it('returns 409 when ADMIN asks for their own summary', async () => {
+      const admin = await seedUser({ role: UserRole.ADMIN });
+      const token = jwtService.generateToken(admin);
+
+      for (const identifier of [admin.id, admin.username!]) {
+        const response = await getSummary(identifier, token).expect(409);
+
+        expect(response.body).toMatchObject({
+          status: 409,
+          message: 'Cannot delete self',
+        });
+      }
+    });
+  });
+
+  describe('DELETE /users/:identifier', () => {
+    const listEntryCount = async (userId: string): Promise<number> => {
+      const counts = await Promise.all(
+        [UserBook, UserMovie, UserSeries, UserGame].map((entity) =>
+          dataSource.getRepository(entity).count({ where: { userId } }),
+        ),
+      );
+
+      return counts.reduce((total, count) => total + count, 0);
+    };
+
+    it("removes all of the user's list entries together with the user, by UUID and username", async () => {
+      for (const useUsername of [false, true]) {
+        const user = await seedUser();
+        await seedListEntries(user, {
+          books: 2,
+          movies: 1,
+          series: 3,
+          games: 4,
+        });
+
+        await deleteUser(
+          useUsername ? user.username! : user.id,
+          adminToken,
+        ).expect(200);
+
+        expect(await listEntryCount(user.id)).toBe(0);
+      }
+    });
+
+    it("keeps other users' list entries and the catalog rows", async () => {
+      const user = await seedUser();
+      const other = await seedUser();
+      await seedListEntries(user, { books: 1, movies: 1, series: 1, games: 1 });
+      await seedListEntries(other, {
+        books: 1,
+        movies: 1,
+        series: 1,
+        games: 1,
+      });
+      const catalogCounts = async () =>
+        Promise.all(
+          [Book, Movie, Series, Game].map((entity) =>
+            dataSource.getRepository(entity).count(),
+          ),
+        );
+      const before = await catalogCounts();
+
+      await deleteUser(user.id, adminToken).expect(200);
+
+      expect(await listEntryCount(other.id)).toBe(4);
+      expect(await catalogCounts()).toEqual(before);
+    });
+
+    it('answers 404 on the profile and the deletion summary of a deleted user', async () => {
+      const user = await seedUser();
+
+      await deleteUser(user.id, adminToken).expect(200);
+
+      for (const identifier of [user.id, user.username!]) {
+        await getUser(identifier, adminToken).expect(404);
+        const response = await getSummary(identifier, adminToken).expect(404);
+
+        expect(response.body).toMatchObject({
+          status: 404,
+          message: 'User not found',
+        });
+      }
+    });
+
+    it('returns 401 without a token', async () => {
+      const user = await seedUser();
+
+      const response = await deleteUser(user.id).expect(401);
+
+      expect(response.body).toMatchObject({ status: 401 });
+      expect(typeof response.body.message).toBe('string');
+      expect(await fetchUser(user.id)).toMatchObject({ id: user.id });
+    });
+
+    it.each([UserRole.USER, UserRole.GUEST])(
+      'returns 403 for %s and keeps the target',
+      async (role) => {
+        const viewer = await seedUser({ role });
+        const user = await seedUser();
+
+        const response = await deleteUser(
+          user.id,
+          jwtService.generateToken(viewer),
+        ).expect(403);
+
+        expect(response.body).toMatchObject({
+          status: 403,
+          message: 'Admin access required',
+        });
+        expect(await fetchUser(user.id)).toMatchObject({ id: user.id });
+      },
+    );
+
+    it('returns 404 for a missing user by UUID and username', async () => {
+      for (const identifier of [MISSING_ID, MISSING_USERNAME]) {
+        const response = await deleteUser(identifier, adminToken).expect(404);
+
+        expect(response.body).toMatchObject({
+          status: 404,
+          message: 'User not found',
+        });
+      }
+    });
+
+    it('returns 409 when ADMIN deletes themselves and keeps the profile', async () => {
+      const admin = await seedUser({ role: UserRole.ADMIN });
+      const token = jwtService.generateToken(admin);
+
+      for (const identifier of [admin.id, admin.username!]) {
+        const response = await deleteUser(identifier, token).expect(409);
+
+        expect(response.body).toMatchObject({
+          status: 409,
+          message: 'Cannot delete self',
+        });
+      }
+      expect(await fetchUser(admin.id)).toMatchObject({ id: admin.id });
     });
   });
 

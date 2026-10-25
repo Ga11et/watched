@@ -23,6 +23,20 @@ const canEdit = computed(() => {
 
   return viewer.id === user.value.id
 })
+
+// Админ удаляет любой чужой профиль, включая неактивных и других админов.
+const canDelete = computed(() => {
+  const viewer = auth.user.value
+
+  return Boolean(user.value && viewer && viewer.role === 'ADMIN' && viewer.id !== user.value.id)
+})
+
+const deleteDialogOpen = ref(false)
+
+const onDeleted = async () => {
+  clearNuxtData((key) => key === 'users-list' || key.startsWith('user-profile-'))
+  await navigateTo('/users')
+}
 </script>
 
 <template>
@@ -84,6 +98,14 @@ const canEdit = computed(() => {
           >
             Редактировать
           </NuxtLink>
+          <button
+            v-if="canDelete"
+            type="button"
+            class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+            @click="deleteDialogOpen = true"
+          >
+            Удалить
+          </button>
         </div>
       </div>
 
@@ -91,5 +113,12 @@ const canEdit = computed(() => {
         <EntitiesUserOutputsDetails :user />
       </div>
     </div>
+
+    <EntitiesUserDialogsDelete
+      v-if="user && canDelete"
+      v-model:open="deleteDialogOpen"
+      :user
+      @deleted="onDeleted"
+    />
   </div>
 </template>

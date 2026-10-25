@@ -25,6 +25,7 @@ import { UserMovie } from '../user-lists/entities/user-movie.entity';
 import { UserSeries } from '../user-lists/entities/user-series.entity';
 import { UserGame } from '../user-lists/entities/user-game.entity';
 import { UserDto } from './dto/user.dto';
+import { UserDeletionSummaryDto } from './dto/user-deletion-summary.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangeUserRoleDto } from './dto/change-user-role.dto';
 import { isUuid } from '../common/utils/uuid.util';
@@ -175,6 +176,26 @@ export class UsersService {
     });
   }
 
+  async getDeletionSummary(
+    identifier: string,
+    actor: AuthUser,
+  ): Promise<UserDeletionSummaryDto> {
+    const user = await this.getUserByIdentifier(identifier);
+
+    if (user.id === actor.id) {
+      throw new ConflictException('Cannot delete self');
+    }
+
+    const [books, movies, series, games] = await Promise.all([
+      this.userBooksRepository.count({ where: { userId: user.id } }),
+      this.userMoviesRepository.count({ where: { userId: user.id } }),
+      this.userSeriesRepository.count({ where: { userId: user.id } }),
+      this.userGamesRepository.count({ where: { userId: user.id } }),
+    ]);
+
+    return { books, movies, series, games };
+  }
+
   async deleteUser(identifier: string, actor: AuthUser): Promise<void> {
     const user = await this.getUserByIdentifier(identifier);
 
@@ -182,12 +203,18 @@ export class UsersService {
       throw new ConflictException('Cannot delete self');
     }
 
-    await this.userBooksRepository.delete({ userId: user.id });
-    await this.userMoviesRepository.delete({ userId: user.id });
-    await this.userSeriesRepository.delete({ userId: user.id });
-    await this.userGamesRepository.delete({ userId: user.id });
+    await this.usersRepository.manager.transaction(async (manager) => {
+      await manager.delete(UserBook, { userId: user.id });
+      await manager.delete(UserMovie, { userId: user.id });
+      await manager.delete(UserSeries, { userId: user.id });
+      await manager.delete(UserGame, { userId: user.id });
 
-    await this.usersRepository.remove(user);
+      const { affected } = await manager.delete(User, { id: user.id });
+
+      if (!affected) {
+        throw new NotFoundException('User not found');
+      }
+    });
   }
 
   async changeUserRole(

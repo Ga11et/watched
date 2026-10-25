@@ -21,6 +21,13 @@ export interface User extends BaseEntity {
   isActive: boolean
 }
 
+export interface UserDeletionSummary {
+  books: number
+  movies: number
+  series: number
+  games: number
+}
+
 export interface UpdateUserDto {
   name?: string
   username?: string | null
