@@ -570,7 +570,7 @@ describe('Users Module E2E Tests', () => {
 
     it('should return 403 for non-ADMIN user', () => {
       return request(app.getHttpServer())
-        .patch(`/users/${testUser.id}`)
+        .patch(`/users/${adminUser.id}`)
         .set('Authorization', `Bearer ${userToken}`)
         .send({
           name: 'New Name',
@@ -929,7 +929,7 @@ describe('Users Module E2E Tests', () => {
   describe('Role-Based Access Control', () => {
     it('USER should not access admin endpoints', () => {
       return request(app.getHttpServer())
-        .patch(`/users/${testUser.id}`)
+        .patch(`/users/${adminUser.id}`)
         .set('Authorization', `Bearer ${userToken}`)
         .send({
           name: 'New Name',

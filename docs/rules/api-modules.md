@@ -31,5 +31,4 @@
 
 - Общий тип `AuthUser` объявлен в `auth/auth.middleware.ts` вместо `auth/auth.types.ts`.
 - Общий тип `JwtPayload` объявлен в `auth/jwt.service.ts` вместо `auth/auth.types.ts`.
-- Несколько классов в одном DTO-файле: `users/dto/update-user.dto.ts` (2), `user-lists/dto/user-list.dto.ts` (8).
-- `users/users.controller.ts` проверяет роль `ADMIN` прямо в коде (4 места) вместо функций политики.
+- Несколько классов в одном DTO-файле: `user-lists/dto/user-list.dto.ts` (8).

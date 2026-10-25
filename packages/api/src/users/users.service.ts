@@ -1,14 +1,15 @@
 import {
   Injectable,
+  ForbiddenException,
   NotFoundException,
   UnprocessableEntityException,
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { User, UserRole } from './entities/user.entity';
 import {
-  canFilterUsersByRole,
+  canEditUser,
   canSearchUsersByEmail,
   canViewInactiveUser,
   canViewPrivateUserFields,
@@ -24,7 +25,8 @@ import { UserMovie } from '../user-lists/entities/user-movie.entity';
 import { UserSeries } from '../user-lists/entities/user-series.entity';
 import { UserGame } from '../user-lists/entities/user-game.entity';
 import { UserDto } from './dto/user.dto';
-import { UpdateUserDto, ChangeUserRoleDto } from './dto/update-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { ChangeUserRoleDto } from './dto/change-user-role.dto';
 import { isUuid } from '../common/utils/uuid.util';
 import type { AuthUser } from '../auth/auth.middleware';
 
@@ -62,10 +64,7 @@ export class UsersService {
     };
   }
 
-  async getUserByIdentifier(
-    identifier: string,
-    actor: AuthUser,
-  ): Promise<User> {
+  async getUserByIdentifier(identifier: string): Promise<User> {
     const user = isUuid(identifier)
       ? await this.usersRepository.findOne({ where: { id: identifier } })
       : await this.usersRepository
@@ -75,7 +74,7 @@ export class UsersService {
           })
           .getOne();
 
-    if (!user || (!user.isActive && !canViewInactiveUser(actor))) {
+    if (!user) {
       throw new NotFoundException('User not found');
     }
 
@@ -84,7 +83,7 @@ export class UsersService {
 
   async getAllUsers(
     actor: AuthUser,
-    filters?: {
+    filters: {
       search?: string;
       role?: UserRole;
       isActive?: boolean;
@@ -92,21 +91,17 @@ export class UsersService {
   ): Promise<User[]> {
     let query = this.usersRepository.createQueryBuilder('user');
 
-    if (!canViewInactiveUser(actor)) {
-      query = query.where('user.isActive = :isActive', { isActive: true });
-    } else {
-      if (filters?.isActive !== undefined) {
-        query = query.where('user.isActive = :isActive', {
-          isActive: filters.isActive,
-        });
-      }
+    if (filters.isActive !== undefined) {
+      query = query.where('user.isActive = :isActive', {
+        isActive: filters.isActive,
+      });
     }
 
-    if (canFilterUsersByRole(actor) && filters?.role) {
+    if (filters.role) {
       query = query.andWhere('user.role = :role', { role: filters.role });
     }
 
-    if (filters?.search) {
+    if (filters.search) {
       const searchTerm = `%${filters.search.toLowerCase()}%`;
       const emailCondition = canSearchUsersByEmail(actor)
         ? ' OR LOWER(user.email) LIKE :search'
@@ -122,41 +117,66 @@ export class UsersService {
     return query.getMany();
   }
 
-  async updateUserProfile(
+  async updateUser(
     identifier: string,
     dto: UpdateUserDto,
     actor: AuthUser,
-  ): Promise<UserDto> {
-    const fields: EditableUserFields = normalizeUser(dto);
-
-    if (dto.role !== undefined) {
-      fields.role = dto.role;
-    }
-
+  ): Promise<User> {
     const id = isUuid(identifier)
       ? identifier
-      : (await this.getUserByIdentifier(identifier, actor)).id;
-    const user = await this.editUser(id, fields);
+      : (await this.getUserByIdentifier(identifier)).id;
 
-    return this.toUserDto(user, actor);
+    try {
+      return await this.usersRepository.manager.transaction(async (manager) => {
+        const current = await manager.findOne(User, {
+          where: { id },
+          lock: { mode: 'pessimistic_write' },
+        });
+
+        if (!current) {
+          throw new NotFoundException('User not found');
+        }
+
+        if (!current.isActive && !canViewInactiveUser(actor)) {
+          throw new NotFoundException('User not found');
+        }
+
+        if (!canEditUser(actor, current.id)) {
+          throw new ForbiddenException('Cannot edit this user');
+        }
+
+        return this.saveUser(manager, current, normalizeUser(dto));
+      });
+    } catch (error) {
+      throw normalizeConstraintError(error) ?? error;
+    }
   }
 
-  async deactivateUser(identifier: string, actor: AuthUser): Promise<UserDto> {
+  async deactivateUser(identifier: string, actor: AuthUser): Promise<User> {
     const id = isUuid(identifier)
       ? identifier
-      : (await this.getUserByIdentifier(identifier, actor)).id;
+      : (await this.getUserByIdentifier(identifier)).id;
 
     if (id === actor.id) {
       throw new ConflictException('Cannot deactivate self');
     }
 
-    const user = await this.editUser(id, { isActive: false });
+    return this.usersRepository.manager.transaction(async (manager) => {
+      const current = await manager.findOne(User, {
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
 
-    return this.toUserDto(user, actor);
+      if (!current) {
+        throw new NotFoundException('User not found');
+      }
+
+      return this.saveUser(manager, current, { isActive: false });
+    });
   }
 
   async deleteUser(identifier: string, actor: AuthUser): Promise<void> {
-    const user = await this.getUserByIdentifier(identifier, actor);
+    const user = await this.getUserByIdentifier(identifier);
 
     if (user.id === actor.id) {
       throw new ConflictException('Cannot delete self');
@@ -173,54 +193,57 @@ export class UsersService {
   async changeUserRole(
     identifier: string,
     dto: ChangeUserRoleDto,
-    actor: AuthUser,
-  ): Promise<UserDto> {
+  ): Promise<User> {
     const id = isUuid(identifier)
       ? identifier
-      : (await this.getUserByIdentifier(identifier, actor)).id;
+      : (await this.getUserByIdentifier(identifier)).id;
 
-    const user = await this.editUser(id, { role: dto.role });
+    return this.usersRepository.manager.transaction(async (manager) => {
+      const current = await manager.findOne(User, {
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
 
-    return this.toUserDto(user, actor);
+      if (!current) {
+        throw new NotFoundException('User not found');
+      }
+
+      return this.saveUser(manager, current, { role: dto.role });
+    });
   }
 
   /**
-   * Locks the current row by UUID, applies the fields, checks the resulting
-   * profile and always writes the given fields, even when nothing actually changes.
+   * Checks the resulting profile of the locked row and writes only the fields
+   * whose values actually differ. When nothing differs no UPDATE runs at all.
    */
-  private async editUser(
-    userId: string,
+  private async saveUser(
+    manager: EntityManager,
+    current: User,
     fields: EditableUserFields,
   ): Promise<User> {
-    try {
-      return await this.usersRepository.manager.transaction(async (manager) => {
-        const current = await manager.findOne(User, {
-          where: { id: userId },
-          lock: { mode: 'pessimistic_write' },
-        });
+    const next = { ...current, ...fields };
+    const violations = validateUser(next);
 
-        if (!current) {
-          throw new NotFoundException('User not found');
-        }
-
-        const next = { ...current, ...fields };
-        const violations = validateUser(next);
-
-        if (violations.length > 0) {
-          throw new UnprocessableEntityException({
-            status: 422,
-            message: violations[0].error,
-            violations,
-          });
-        }
-
-        await assertAvailable(manager, next, current);
-        await manager.update(User, { id: userId }, fields);
-
-        return manager.findOneByOrFail(User, { id: userId });
+    if (violations.length > 0) {
+      throw new UnprocessableEntityException({
+        status: 422,
+        message: violations[0].error,
+        violations,
       });
-    } catch (error) {
-      throw normalizeConstraintError(error) ?? error;
     }
+
+    await assertAvailable(manager, next, current);
+
+    const changed = Object.fromEntries(
+      Object.entries(fields).filter(
+        ([key, value]) => value !== current[key as keyof User],
+      ),
+    );
+
+    if (Object.keys(changed).length > 0) {
+      await manager.update(User, { id: current.id }, changed);
+    }
+
+    return manager.findOneByOrFail(User, { id: current.id });
   }
 }

@@ -1,6 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsEnum, ValidateIf } from 'class-validator';
-import { UserRole } from '../entities/user.entity';
+import { IsOptional, IsString, ValidateIf } from 'class-validator';
 
 export class UpdateUserDto {
   @ApiPropertyOptional({
@@ -33,23 +32,4 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   email?: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Роль пользователя',
-    enum: UserRole,
-    example: UserRole.USER,
-  })
-  @ValidateIf((dto: UpdateUserDto) => dto.role !== undefined)
-  @IsEnum(UserRole)
-  role?: UserRole;
-}
-
-export class ChangeUserRoleDto {
-  @ApiPropertyOptional({
-    description: 'Роль пользователя',
-    enum: UserRole,
-    example: UserRole.USER,
-  })
-  @IsEnum(UserRole)
-  role: UserRole;
 }

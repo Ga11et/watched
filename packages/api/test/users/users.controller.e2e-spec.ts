@@ -14,6 +14,7 @@ import {
   DataSource,
   EntityManager,
   QueryFailedError,
+  QueryRunner,
   Repository,
 } from 'typeorm';
 import { AuthModule } from '../../src/auth/auth.module';
@@ -76,8 +77,6 @@ const IDENTIFIER_REQUIRED = 'Username or email is required';
 const USERNAME_FORMAT =
   'Username must contain 1 to 50 Latin letters, digits or underscores';
 const EMAIL_FORMAT = 'Email must be a valid email address';
-const ROLE_ENUM =
-  'role must be one of the following values: ADMIN, USER, GUEST';
 const BOTH_IDENTIFIERS_MISSING: Violation[] = [
   { field: 'username', error: IDENTIFIER_REQUIRED },
   { field: 'email', error: IDENTIFIER_REQUIRED },
@@ -142,7 +141,8 @@ describe('UsersController (e2e)', () => {
     while (Date.now() < deadline) {
       const [{ waiting }] = await dataSource.query<{ waiting: number }[]>(
         `SELECT count(*)::int AS waiting FROM pg_stat_activity
-         WHERE datname = current_database() AND wait_event_type = 'Lock'`,
+         WHERE datname = current_database() AND wait_event_type = 'Lock'
+           AND query ILIKE '%"user"%'`,
       );
 
       if (waiting >= count) {
@@ -159,6 +159,7 @@ describe('UsersController (e2e)', () => {
   const sendQueuedBehindRowLock = async (
     id: string,
     requests: request.Test[],
+    beforeRelease?: (queryRunner: QueryRunner) => Promise<void>,
   ): Promise<request.Response[]> => {
     const queryRunner = dataSource.createQueryRunner();
     const responses: Promise<request.Response>[] = [];
@@ -176,6 +177,8 @@ describe('UsersController (e2e)', () => {
         responses.push(pending.then((response) => response));
         await waitForLockWaiters(responses.length);
       }
+
+      await beforeRelease?.(queryRunner);
     } finally {
       await queryRunner.commitTransaction();
       await queryRunner.release();
@@ -571,14 +574,12 @@ describe('UsersController (e2e)', () => {
       });
     });
 
-    it('rejects a name-only or role-only change while the stored username is invalid', async () => {
+    it('rejects a name-only change while the stored username is invalid', async () => {
       const legacy = await seedUser({ username: 'legacy-user' });
 
-      for (const body of [{ name: 'Only Name' }, { role: UserRole.GUEST }]) {
-        expectViolations(await patchUser(legacy.id, body), [
-          { field: 'username', error: USERNAME_FORMAT },
-        ]);
-      }
+      expectViolations(await patchUser(legacy.id, { name: 'Only Name' }), [
+        { field: 'username', error: USERNAME_FORMAT },
+      ]);
       expect(await fetchUser(legacy.id)).toMatchObject({
         name: legacy.name,
         role: UserRole.USER,
@@ -608,15 +609,15 @@ describe('UsersController (e2e)', () => {
       });
     });
 
-    it('rejects null for name and role', async () => {
+    it('rejects null for name and a role field', async () => {
       const user = await seedUser();
 
       expectViolations(await patchUser(user.id, { name: null }), [
         { field: 'name', error: 'name must be a string' },
       ]);
-      expectViolations(await patchUser(user.id, { role: null }), [
-        { field: 'role', error: ROLE_ENUM },
-      ]);
+      const roleResponse = await patchUser(user.id, { role: null });
+      expect(roleResponse.status).toBe(422);
+      expect(roleResponse.body.message).toBe('property role should not exist');
       expect(await fetchUser(user.id)).toMatchObject({
         name: user.name,
         role: UserRole.USER,
@@ -693,7 +694,7 @@ describe('UsersController (e2e)', () => {
       expect(blank.body.email).toBeNull();
     });
 
-    it('rejects non-string profile fields and unknown roles', async () => {
+    it('rejects non-string profile fields', async () => {
       const user = await seedUser();
 
       for (const [field, value] of [
@@ -706,30 +707,36 @@ describe('UsersController (e2e)', () => {
           { field, error: `${field} must be a string` },
         ]);
       }
-
-      for (const role of [42, 'OWNER']) {
-        expectViolations(await patchUser(user.id, { role }), [
-          { field: 'role', error: ROLE_ENUM },
-        ]);
-      }
     });
 
-    it('writes an empty or unchanged PATCH and moves updatedAt', async () => {
+    it('writes an empty or unchanged PATCH without touching updatedAt', async () => {
       const user = await seedUser({
         name: 'Same Name',
         username: 'same_name',
         email: 'same@test.dev',
       });
+      const ownerToken = jwtService.generateToken(user);
 
-      for (const body of [
-        {},
-        {
-          name: '  Same Name  ',
-          username: ' same_name ',
-          email: 'same@test.dev ',
-          role: UserRole.USER,
-        },
-      ]) {
+      for (const [body, token] of [
+        [{}, undefined],
+        [{}, ownerToken],
+        [
+          {
+            name: '  Same Name  ',
+            username: ' same_name ',
+            email: 'same@test.dev ',
+          },
+          ownerToken,
+        ],
+        [
+          {
+            name: '  Same Name  ',
+            username: ' same_name ',
+            email: 'same@test.dev ',
+          },
+          undefined,
+        ],
+      ] as const) {
         await dataSource.query(
           'UPDATE "user" SET "updatedAt" = $1 WHERE "id" = $2',
           ['2001-02-03 04:05:06', user.id],
@@ -738,12 +745,103 @@ describe('UsersController (e2e)', () => {
           user.id,
         );
 
-        const response = await patchUser(user.id, body).expect(200);
+        const response = await patchUser(user.id, body, token).expect(200);
         const { updatedAt, ...after } = response.body as ApiUser;
 
         expect(after).toEqual(unchanged);
-        expect(updatedAt).not.toBe(previousUpdatedAt);
+        expect(updatedAt).toBe(previousUpdatedAt);
       }
+    });
+
+    it('rejects an empty PATCH from another USER with 403', async () => {
+      const viewer = await seedUser();
+      const other = await seedUser();
+
+      const response = await patchUser(
+        other.id,
+        {},
+        jwtService.generateToken(viewer),
+      );
+
+      expect(response.status).toBe(403);
+      expect(response.body).toMatchObject({
+        message: 'Cannot edit this user',
+      });
+    });
+
+    it('rejects an empty owner PATCH while the stored profile is invalid', async () => {
+      const legacy = await seedUser({ username: 'legacy-owner-empty' });
+
+      expectViolations(
+        await patchUser(legacy.id, {}, jwtService.generateToken(legacy)),
+        [{ field: 'username', error: USERNAME_FORMAT }],
+      );
+    });
+
+    it('rejects the owner clearing both identifiers and keeps the stored ones', async () => {
+      const owner = await seedUser();
+      const token = jwtService.generateToken(owner);
+
+      expectViolations(
+        await patchUser(owner.id, { username: null, email: '   ' }, token),
+        BOTH_IDENTIFIERS_MISSING,
+      );
+      expect(await fetchUser(owner.id)).toMatchObject({
+        username: owner.username,
+        email: owner.email,
+      });
+    });
+
+    it('rejects a name-only owner change while the stored username is invalid', async () => {
+      const legacy = await seedUser({ username: 'legacy-owner-invalid' });
+      const token = jwtService.generateToken(legacy);
+
+      expectViolations(
+        await patchUser(legacy.id, { name: 'Only Name' }, token),
+        [{ field: 'username', error: USERNAME_FORMAT }],
+      );
+      expect((await fetchUser(legacy.id)).name).toBe(legacy.name);
+    });
+
+    it('trims the owner email and turns a blank one into null', async () => {
+      const owner = await seedUser();
+      const token = jwtService.generateToken(owner);
+
+      const trimmed = await patchUser(
+        owner.id,
+        { email: '  Owner.Email@Test.dev  ' },
+        token,
+      ).expect(200);
+      expect(trimmed.body.email).toBe('Owner.Email@Test.dev');
+
+      const blank = await patchUser(owner.id, { email: '   ' }, token).expect(
+        200,
+      );
+      expect(blank.body.email).toBeNull();
+    });
+
+    it('lets the owner change only the case of their own username', async () => {
+      const owner = await seedUser({ username: 'case_owner' });
+      const token = jwtService.generateToken(owner);
+
+      const response = await patchUser(
+        owner.id,
+        { username: 'Case_Owner' },
+        token,
+      ).expect(200);
+      expect(response.body.username).toBe('Case_Owner');
+    });
+
+    it("rejects the owner taking another user's username in a different case", async () => {
+      await seedUser({ username: 'taken_name' });
+      const owner = await seedUser();
+      const token = jwtService.generateToken(owner);
+
+      expectViolations(
+        await patchUser(owner.id, { username: 'Taken_Name' }, token),
+        [{ field: 'username', error: 'Username already exists' }],
+      );
+      expect((await fetchUser(owner.id)).username).toBe(owner.username);
     });
 
     it('rejects an empty PATCH while the stored profile is invalid', async () => {
@@ -832,15 +930,200 @@ describe('UsersController (e2e)', () => {
       });
     });
 
-    it('still forbids USER to edit, including their own profile', async () => {
+    type TargetKind = 'own' | 'other active' | 'other inactive' | 'missing';
+
+    it.each<[UserRole, TargetKind, number]>([
+      [UserRole.ADMIN, 'own', 200],
+      [UserRole.ADMIN, 'other active', 200],
+      [UserRole.ADMIN, 'other inactive', 200],
+      [UserRole.ADMIN, 'missing', 404],
+      [UserRole.USER, 'own', 200],
+      [UserRole.USER, 'other active', 403],
+      [UserRole.USER, 'other inactive', 404],
+      [UserRole.USER, 'missing', 404],
+      [UserRole.GUEST, 'own', 403],
+      [UserRole.GUEST, 'other active', 403],
+      [UserRole.GUEST, 'other inactive', 404],
+      [UserRole.GUEST, 'missing', 404],
+    ])(
+      'answers %s editing %s profile with %i, by UUID and username',
+      async (role, kind, expectedStatus) => {
+        const viewer = await seedUser({ role });
+        const token = jwtService.generateToken(viewer);
+        const target =
+          kind === 'own'
+            ? viewer
+            : kind === 'missing'
+              ? null
+              : await seedUser({ isActive: kind === 'other active' });
+        const identifiers: [string, string][] = target
+          ? [
+              [target.id, MISSING_ID],
+              [target.username!, MISSING_USERNAME],
+            ]
+          : [
+              [MISSING_ID, MISSING_ID],
+              [MISSING_USERNAME, MISSING_USERNAME],
+            ];
+        const name = `Edited By ${role}`;
+
+        for (const [identifier, missingIdentifier] of identifiers) {
+          const response = await patchUser(identifier, { name }, token);
+
+          expect(response.status).toBe(expectedStatus);
+          if (expectedStatus === 200) {
+            expect(response.body).toMatchObject({
+              id: target!.id,
+              name,
+              email: target!.email,
+            });
+          } else if (expectedStatus === 404) {
+            const missing = await patchUser(missingIdentifier, { name }, token);
+            expect(response.body).toEqual(missing.body);
+          } else {
+            expect(response.body).toMatchObject({
+              status: 403,
+              message: 'Cannot edit this user',
+            });
+          }
+        }
+
+        if (target && expectedStatus !== 200) {
+          expect(await fetchUser(target.id)).toMatchObject({
+            name: target.name,
+            username: target.username,
+            email: target.email,
+          });
+        }
+      },
+    );
+    it('returns 401 without a token, even for an invalid body', async () => {
       const user = await seedUser();
 
-      await patchUser(
-        user.id,
-        { name: 'Self Edit' },
-        jwtService.generateToken(user),
-      ).expect(403);
+      for (const body of [
+        { name: 'No Token' },
+        { role: 'OWNER', password: 'x' },
+      ]) {
+        const response = await request(app.getHttpServer())
+          .patch(`/users/${user.id}`)
+          .send(body);
+
+        expect(response.status).toBe(401);
+      }
       expect((await fetchUser(user.id)).name).toBe(user.name);
+    });
+
+    it('rejects a deactivated owner with 401 on their own profile', async () => {
+      const owner = await seedUser();
+      const token = jwtService.generateToken(owner);
+
+      await patchUser(owner.id, { name: 'Still Active' }, token).expect(200);
+      await deactivate(owner.id).expect(200);
+
+      await patchUser(owner.id, { name: 'After Deactivation' }, token).expect(
+        401,
+      );
+      expect((await fetchUser(owner.id)).name).toBe('Still Active');
+    });
+
+    it.each([UserRole.ADMIN, UserRole.USER, UserRole.GUEST])(
+      'rejects any role field from %s on every kind of target with 422',
+      async (viewerRole) => {
+        const viewer = await seedUser({ role: viewerRole });
+        const token = jwtService.generateToken(viewer);
+        const other = await seedUser();
+        const inactive = await seedUser({ isActive: false });
+        const targets = [viewer, other, inactive];
+
+        for (const role of [UserRole.USER, UserRole.ADMIN, null, 'OWNER']) {
+          for (const { id } of [...targets, { id: MISSING_ID }]) {
+            const response = await patchUser(id, { role }, token);
+
+            expect(response.status).toBe(422);
+            expect(response.body.message).toBe(
+              'property role should not exist',
+            );
+          }
+        }
+
+        for (const target of targets) {
+          expect(await fetchUser(target.id)).toMatchObject({
+            name: target.name,
+            role: target.role,
+          });
+        }
+      },
+    );
+
+    it('rejects unknown and non-editable fields from the owner', async () => {
+      const owner = await seedUser();
+      const token = jwtService.generateToken(owner);
+
+      for (const body of [{ password: 'new-password' }, { isActive: false }]) {
+        const response = await patchUser(owner.id, body, token);
+        expect(response.status).toBe(422);
+      }
+      expect(await fetchUser(owner.id)).toMatchObject({
+        name: owner.name,
+        isActive: true,
+      });
+    });
+
+    it('forbids a demoted owner on the next PATCH with the old JWT', async () => {
+      const owner = await seedUser();
+      const token = jwtService.generateToken(owner);
+
+      await patchUser(owner.id, { name: 'Before Demotion' }, token).expect(200);
+      await changeRole(owner.id, UserRole.GUEST).expect(200);
+
+      const response = await patchUser(
+        owner.id,
+        { name: 'After Demotion' },
+        token,
+      );
+
+      expect(response.status).toBe(403);
+      expect(response.body).toMatchObject({
+        message: 'Cannot edit this user',
+      });
+      expect((await fetchUser(owner.id)).name).toBe('Before Demotion');
+    });
+
+    it('maps a 23505 on the username index to 422 on the owner path', async () => {
+      const owner = await seedUser();
+      const token = jwtService.generateToken(owner);
+      const updateSpy = jest
+        .spyOn(EntityManager.prototype, 'update')
+        .mockRejectedValueOnce(
+          new QueryFailedError(
+            'UPDATE "user"',
+            [],
+            Object.assign(
+              new Error(
+                'duplicate key value violates unique constraint "user_username_lower_uq"',
+              ),
+              { code: '23505', constraint: 'user_username_lower_uq' },
+            ),
+          ),
+        );
+
+      try {
+        expectViolations(
+          await patchUser(
+            owner.id,
+            { name: 'Rolled Back', username: 'raced_owner' },
+            token,
+          ),
+          [{ field: 'username', error: 'Username already exists' }],
+        );
+      } finally {
+        updateSpy.mockRestore();
+      }
+
+      expect(await fetchUser(owner.id)).toMatchObject({
+        name: owner.name,
+        username: owner.username,
+      });
     });
   });
 
@@ -948,5 +1231,42 @@ describe('UsersController (e2e)', () => {
         isActive: false,
       });
     });
+
+    it.each(['admin', 'owner'] as const)(
+      'keeps editing the same row by UUID when its username changes mid-request (%s)',
+      async (actorKind) => {
+        const raceName = `race_target_${actorKind}`;
+        const target = await seedUser({ username: raceName });
+        const other = await seedUser();
+        const token =
+          actorKind === 'owner' ? jwtService.generateToken(target) : adminToken;
+
+        const [response] = await sendQueuedBehindRowLock(
+          target.id,
+          [patchUser(raceName, { name: 'Renamed' }, token)],
+          async (queryRunner) => {
+            await queryRunner.query(
+              'UPDATE "user" SET "username" = $1 WHERE "id" = $2',
+              [`${raceName}_old`, target.id],
+            );
+            await queryRunner.query(
+              'UPDATE "user" SET "username" = $1 WHERE "id" = $2',
+              [raceName, other.id],
+            );
+          },
+        );
+
+        expect(response.status).toBe(200);
+        expect(response.body).toMatchObject({
+          id: target.id,
+          name: 'Renamed',
+          username: `${raceName}_old`,
+        });
+        expect(await fetchUser(other.id)).toMatchObject({
+          name: other.name,
+          username: raceName,
+        });
+      },
+    );
   });
 });

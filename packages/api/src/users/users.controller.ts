@@ -7,6 +7,7 @@ import {
   Body,
   Request,
   ForbiddenException,
+  NotFoundException,
   Query,
   ParseBoolPipe,
 } from '@nestjs/common';
@@ -20,8 +21,16 @@ import {
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { UserDto } from './dto/user.dto';
-import { UpdateUserDto, ChangeUserRoleDto } from './dto/update-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { ChangeUserRoleDto } from './dto/change-user-role.dto';
 import { UserRole } from './entities/user.entity';
+import {
+  canChangeUserRole,
+  canDeactivateUsers,
+  canDeleteUsers,
+  canFilterUsersByRole,
+  canViewInactiveUser,
+} from './users.policy';
 import type { AuthUser } from '../auth/auth.middleware';
 
 interface AuthRequest {
@@ -64,10 +73,12 @@ export class UsersController {
       throw new ForbiddenException('Unauthorized');
     }
 
-    const user = await this.usersService.getUserByIdentifier(
-      identifier,
-      req.user,
-    );
+    const user = await this.usersService.getUserByIdentifier(identifier);
+
+    if (!user.isActive && !canViewInactiveUser(req.user)) {
+      throw new NotFoundException('User not found');
+    }
+
     return this.usersService.toUserDto(user, req.user);
   }
 
@@ -118,10 +129,21 @@ export class UsersController {
     }
 
     const actor = req.user;
+    let roleFilter: UserRole | undefined;
+    let isActiveFilter: boolean | undefined = true;
+
+    if (canFilterUsersByRole(actor)) {
+      roleFilter = role;
+    }
+
+    if (canViewInactiveUser(actor)) {
+      isActiveFilter = typeof isActive === 'boolean' ? isActive : undefined;
+    }
+
     const users = await this.usersService.getAllUsers(actor, {
       search,
-      role,
-      isActive: typeof isActive === 'boolean' ? isActive : undefined,
+      role: roleFilter,
+      isActive: isActiveFilter,
     });
 
     return users.map((user) => this.usersService.toUserDto(user, actor));
@@ -129,7 +151,7 @@ export class UsersController {
 
   @Patch(':identifier')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update user (admin only)' })
+  @ApiOperation({ summary: 'Update user profile (owner or ADMIN)' })
   @ApiParam({
     name: 'identifier',
     type: 'string',
@@ -146,26 +168,29 @@ export class UsersController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden',
+    description: 'Not allowed to edit this user',
   })
   @ApiResponse({
     status: 404,
-    description: 'User not found',
+    description:
+      'User not found; an inactive user is reported the same way to everyone except ADMIN',
   })
   @ApiResponse({
     status: 422,
-    description: 'Unprocessable entity',
+    description:
+      'Invalid body (including any role or other non-editable field), invalid resulting profile, or taken username/email',
   })
   async updateUser(
     @Request() req: AuthRequest,
     @Param('identifier') identifier: string,
     @Body() dto: UpdateUserDto,
   ): Promise<UserDto> {
-    if (!req.user || req.user.role !== UserRole.ADMIN) {
-      throw new ForbiddenException('Admin access required');
+    if (!req.user) {
+      throw new ForbiddenException('Unauthorized');
     }
 
-    return this.usersService.updateUserProfile(identifier, dto, req.user);
+    const user = await this.usersService.updateUser(identifier, dto, req.user);
+    return this.usersService.toUserDto(user, req.user);
   }
 
   @Patch(':identifier/deactivate')
@@ -205,11 +230,12 @@ export class UsersController {
     @Request() req: AuthRequest,
     @Param('identifier') identifier: string,
   ): Promise<UserDto> {
-    if (!req.user || req.user.role !== UserRole.ADMIN) {
+    if (!req.user || !canDeactivateUsers(req.user)) {
       throw new ForbiddenException('Admin access required');
     }
 
-    return this.usersService.deactivateUser(identifier, req.user);
+    const user = await this.usersService.deactivateUser(identifier, req.user);
+    return this.usersService.toUserDto(user, req.user);
   }
 
   @Delete(':identifier')
@@ -246,7 +272,7 @@ export class UsersController {
     @Request() req: AuthRequest,
     @Param('identifier') identifier: string,
   ): Promise<void> {
-    if (!req.user || req.user.role !== UserRole.ADMIN) {
+    if (!req.user || !canDeleteUsers(req.user)) {
       throw new ForbiddenException('Admin access required');
     }
 
@@ -287,10 +313,11 @@ export class UsersController {
     @Param('identifier') identifier: string,
     @Body() dto: ChangeUserRoleDto,
   ): Promise<UserDto> {
-    if (!req.user || req.user.role !== UserRole.ADMIN) {
+    if (!req.user || !canChangeUserRole(req.user)) {
       throw new ForbiddenException('Admin access required');
     }
 
-    return this.usersService.changeUserRole(identifier, dto, req.user);
+    const user = await this.usersService.changeUserRole(identifier, dto);
+    return this.usersService.toUserDto(user, req.user);
   }
 }
