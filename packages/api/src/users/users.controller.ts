@@ -53,7 +53,8 @@ export class UsersController {
   })
   @ApiResponse({
     status: 404,
-    description: 'User not found',
+    description:
+      'User not found; an inactive user is reported the same way to everyone except ADMIN',
   })
   async getUser(
     @Request() req: AuthRequest,
@@ -63,7 +64,10 @@ export class UsersController {
       throw new ForbiddenException('Unauthorized');
     }
 
-    const user = await this.usersService.getUserByIdentifier(identifier);
+    const user = await this.usersService.getUserByIdentifier(
+      identifier,
+      req.user,
+    );
     return this.usersService.toUserDto(user, req.user);
   }
 

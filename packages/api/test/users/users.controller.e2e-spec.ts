@@ -82,6 +82,8 @@ const BOTH_IDENTIFIERS_MISSING: Violation[] = [
   { field: 'username', error: IDENTIFIER_REQUIRED },
   { field: 'email', error: IDENTIFIER_REQUIRED },
 ];
+const MISSING_ID = '00000000-0000-4000-8000-000000000404';
+const MISSING_USERNAME = 'missing_user';
 
 describe('UsersController (e2e)', () => {
   let app: INestApplication<App>;
@@ -107,6 +109,11 @@ describe('UsersController (e2e)', () => {
       }),
     );
   };
+
+  const getUser = (identifier: string, token = adminToken) =>
+    request(app.getHttpServer())
+      .get(`/users/${identifier}`)
+      .set('Authorization', `Bearer ${token}`);
 
   const patchUser = (
     identifier: string,
@@ -181,10 +188,7 @@ describe('UsersController (e2e)', () => {
     id: string,
     token = adminToken,
   ): Promise<ApiUser> => {
-    const response = await request(app.getHttpServer())
-      .get(`/users/${id}`)
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200);
+    const response = await getUser(id, token).expect(200);
 
     return response.body as ApiUser;
   };
@@ -320,6 +324,99 @@ describe('UsersController (e2e)', () => {
 
       expectPrivateFieldsHidden(await fetchUser(other.id, oldToken));
     });
+
+    it.each([UserRole.ADMIN, UserRole.USER, UserRole.GUEST])(
+      'shows %s an active profile by UUID and username',
+      async (role) => {
+        const token = jwtService.generateToken(await seedUser({ role }));
+        const active = await seedUser();
+
+        for (const identifier of [active.id, active.username!]) {
+          const response = await getUser(identifier, token).expect(200);
+
+          expect(response.body).toMatchObject({
+            id: active.id,
+            isActive: true,
+          });
+        }
+      },
+    );
+
+    it('shows ADMIN an inactive profile with isActive: false by UUID and username', async () => {
+      const inactive = await seedUser({ isActive: false });
+
+      for (const identifier of [inactive.id, inactive.username!]) {
+        const response = await getUser(identifier).expect(200);
+
+        expect(response.body).toMatchObject({
+          id: inactive.id,
+          isActive: false,
+        });
+      }
+    });
+
+    it.each([UserRole.USER, UserRole.GUEST])(
+      'answers %s about an inactive profile exactly as about a missing one, by UUID and username',
+      async (role) => {
+        const token = jwtService.generateToken(await seedUser({ role }));
+        const inactive = await seedUser({ isActive: false });
+
+        for (const [identifier, missingIdentifier] of [
+          [inactive.id, MISSING_ID],
+          [inactive.username!, MISSING_USERNAME],
+        ]) {
+          const missing = await getUser(missingIdentifier, token).expect(404);
+          const hidden = await getUser(identifier, token);
+
+          expect(missing.body).toMatchObject({ message: 'User not found' });
+          expect(hidden.status).toBe(missing.status);
+          expect(hidden.body).toEqual(missing.body);
+        }
+      },
+    );
+
+    it.each([UserRole.ADMIN, UserRole.USER, UserRole.GUEST])(
+      'answers %s with 404 "User not found" for a missing profile by UUID and username',
+      async (role) => {
+        const token = jwtService.generateToken(await seedUser({ role }));
+
+        for (const identifier of [MISSING_ID, MISSING_USERNAME]) {
+          const response = await getUser(identifier, token).expect(404);
+
+          expect(response.body).toMatchObject({
+            status: 404,
+            message: 'User not found',
+          });
+        }
+      },
+    );
+
+    it('hides an inactive profile from a demoted ADMIN on the next request with the old JWT', async () => {
+      const demoted = await seedUser({ role: UserRole.ADMIN });
+      const inactive = await seedUser({ isActive: false });
+      const oldToken = jwtService.generateToken(demoted);
+
+      await getUser(inactive.id, oldToken).expect(200);
+
+      await changeRole(demoted.id, UserRole.USER).expect(200);
+
+      for (const identifier of [inactive.id, inactive.username!]) {
+        await getUser(identifier, oldToken).expect(404);
+      }
+    });
+
+    it('rejects a deactivated owner with 401 on their own profile by UUID and username', async () => {
+      const owner = await seedUser();
+      const token = jwtService.generateToken(owner);
+
+      await getUser(owner.id, token).expect(200);
+
+      await deactivate(owner.id).expect(200);
+
+      for (const identifier of [owner.id, owner.username!]) {
+        await getUser(identifier, token).expect(401);
+      }
+    });
   });
 
   describe('GET /users', () => {
@@ -398,6 +495,31 @@ describe('UsersController (e2e)', () => {
         ]);
       },
     );
+
+    it.each([UserRole.USER, UserRole.GUEST])(
+      'lists only active users for %s, even when asked for inactive ones',
+      async (role) => {
+        const active = await seedUser();
+        const inactive = await seedUser({ isActive: false });
+        const token = jwtService.generateToken(await seedUser({ role }));
+        const queries: Record<string, string>[] = [{}, { isActive: 'false' }];
+
+        for (const query of queries) {
+          const ids = (await fetchUsers(token, query)).map(({ id }) => id);
+
+          expect(ids).toContain(active.id);
+          expect(ids).not.toContain(inactive.id);
+        }
+      },
+    );
+
+    it('lists inactive users with isActive: false for ADMIN', async () => {
+      const inactive = await seedUser({ isActive: false });
+
+      expect(await fetchUsers()).toContainEqual(
+        expect.objectContaining({ id: inactive.id, isActive: false }),
+      );
+    });
   });
 
   describe('PATCH /users/:identifier', () => {

@@ -62,7 +62,10 @@ export class UsersService {
     };
   }
 
-  async getUserByIdentifier(identifier: string): Promise<User> {
+  async getUserByIdentifier(
+    identifier: string,
+    actor: AuthUser,
+  ): Promise<User> {
     const user = isUuid(identifier)
       ? await this.usersRepository.findOne({ where: { id: identifier } })
       : await this.usersRepository
@@ -72,7 +75,7 @@ export class UsersService {
           })
           .getOne();
 
-    if (!user) {
+    if (!user || (!user.isActive && !canViewInactiveUser(actor))) {
       throw new NotFoundException('User not found');
     }
 
@@ -132,7 +135,7 @@ export class UsersService {
 
     const id = isUuid(identifier)
       ? identifier
-      : (await this.getUserByIdentifier(identifier)).id;
+      : (await this.getUserByIdentifier(identifier, actor)).id;
     const user = await this.editUser(id, fields);
 
     return this.toUserDto(user, actor);
@@ -141,7 +144,7 @@ export class UsersService {
   async deactivateUser(identifier: string, actor: AuthUser): Promise<UserDto> {
     const id = isUuid(identifier)
       ? identifier
-      : (await this.getUserByIdentifier(identifier)).id;
+      : (await this.getUserByIdentifier(identifier, actor)).id;
 
     if (id === actor.id) {
       throw new ConflictException('Cannot deactivate self');
@@ -153,7 +156,7 @@ export class UsersService {
   }
 
   async deleteUser(identifier: string, actor: AuthUser): Promise<void> {
-    const user = await this.getUserByIdentifier(identifier);
+    const user = await this.getUserByIdentifier(identifier, actor);
 
     if (user.id === actor.id) {
       throw new ConflictException('Cannot delete self');
@@ -174,7 +177,7 @@ export class UsersService {
   ): Promise<UserDto> {
     const id = isUuid(identifier)
       ? identifier
-      : (await this.getUserByIdentifier(identifier)).id;
+      : (await this.getUserByIdentifier(identifier, actor)).id;
 
     const user = await this.editUser(id, { role: dto.role });
 
