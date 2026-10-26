@@ -74,19 +74,18 @@ const submit = async () => {
       :error="fieldErrors.username"
     />
 
-    <CommonInputsTextInput
+    <CommonInputsEmailInput
       id="register-email"
       v-model="form.email"
-      type="email"
       label="Email"
       placeholder="you@example.com"
       :error="fieldErrors.email"
     />
 
-    <CommonInputsTextInput
+    <CommonInputsPasswordInput
       id="register-password"
       v-model="form.password"
-      type="password"
+      autocomplete="new-password"
       label="Пароль"
       placeholder="Минимум 6 символов"
       :error="fieldErrors.password"

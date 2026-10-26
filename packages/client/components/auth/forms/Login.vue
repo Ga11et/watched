@@ -60,10 +60,10 @@ const submit = async () => {
       :error="fieldErrors.identifier"
     />
 
-    <CommonInputsTextInput
+    <CommonInputsPasswordInput
       id="login-password"
       v-model="form.password"
-      type="password"
+      autocomplete="current-password"
       label="Пароль"
       placeholder="Введите пароль"
       :error="fieldErrors.password"
