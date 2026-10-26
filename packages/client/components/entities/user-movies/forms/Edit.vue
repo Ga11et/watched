@@ -195,12 +195,8 @@ const onSubmit = async () => {
     clearNuxtData([`user-movie-${props.userMovieId}`, 'user-movies'])
     await router.push(`/user-movies/${props.userMovieId}`)
   } catch (error: unknown) {
-    const { message, fieldErrors } = parseFormRequestError(error, [
-      'rating',
-      'watchedAt',
-      'comment',
-    ])
-    errors.value = fieldErrors
+    const { message, violations } = parseRequestError(error)
+    errors.value = violations
     saveError.value = message
   } finally {
     submitting.value = false

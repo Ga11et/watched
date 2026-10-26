@@ -147,7 +147,7 @@ describe('MoviesController (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Произошла ошибка при создании фильма',
-        violations: [{ field: 'title', error: 'Название обязательно' }],
+        violations: { title: 'Название обязательно' },
       });
     });
 
@@ -160,12 +160,7 @@ describe('MoviesController (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Произошла ошибка при обработке режиссёров фильма',
-        violations: [
-          {
-            field: 'directorIds',
-            error: 'Один или несколько режиссёров не найдены',
-          },
-        ],
+        violations: { directorIds: 'Один или несколько режиссёров не найдены' },
       });
     });
 
@@ -175,7 +170,7 @@ describe('MoviesController (e2e)', () => {
       expect(response.body).toEqual({
         status: 401,
         message: 'Authorization token required',
-        violations: [],
+        violations: {},
       });
     });
 
@@ -185,7 +180,7 @@ describe('MoviesController (e2e)', () => {
       expect(response.body).toEqual({
         status: 403,
         message: 'Admin access required',
-        violations: [],
+        violations: {},
       });
     });
   });
@@ -205,9 +200,7 @@ describe('MoviesController (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Произошла ошибка при обновлении фильма',
-        violations: [
-          { field: 'title', error: 'Название не может быть пустым' },
-        ],
+        violations: { title: 'Название не может быть пустым' },
       });
     });
   });
@@ -222,7 +215,7 @@ describe('MoviesController (e2e)', () => {
       expect(response.body).toEqual({
         status: 404,
         message: `Фильм с ID ${MISSING_ID} не найден`,
-        violations: [],
+        violations: {},
       });
     });
   });

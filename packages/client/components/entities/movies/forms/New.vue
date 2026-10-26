@@ -288,14 +288,8 @@ const onSubmit = async () => {
 
     navigateTo('/movies')
   } catch (e) {
-    const { message, fieldErrors } = parseFormRequestError(e, [
-      'title',
-      'genre',
-      'releaseYear',
-      'poster',
-      'directorIds',
-    ])
-    errors.value = fieldErrors
+    const { message, violations } = parseRequestError(e)
+    errors.value = violations
     error.value = message
   } finally {
     submitting.value = false

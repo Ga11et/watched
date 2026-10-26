@@ -147,9 +147,7 @@ describe('DevelopersController (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Произошла ошибка при создании разработчика',
-        violations: [
-          { field: 'fullName', error: 'Название разработчика обязательно' },
-        ],
+        violations: { fullName: 'Название разработчика обязательно' },
       });
     });
 
@@ -159,7 +157,7 @@ describe('DevelopersController (e2e)', () => {
       expect(response.body).toEqual({
         status: 401,
         message: 'Authorization token required',
-        violations: [],
+        violations: {},
       });
     });
 
@@ -169,7 +167,7 @@ describe('DevelopersController (e2e)', () => {
       expect(response.body).toEqual({
         status: 403,
         message: 'Admin access required',
-        violations: [],
+        violations: {},
       });
     });
   });
@@ -190,12 +188,7 @@ describe('DevelopersController (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Произошла ошибка при обновлении разработчика',
-        violations: [
-          {
-            field: 'fullName',
-            error: 'Название разработчика не может быть пустым',
-          },
-        ],
+        violations: { fullName: 'Название разработчика не может быть пустым' },
       });
     });
   });
@@ -210,7 +203,7 @@ describe('DevelopersController (e2e)', () => {
       expect(response.body).toEqual({
         status: 404,
         message: `Разработчик с ID ${MISSING_ID} не найден`,
-        violations: [],
+        violations: {},
       });
     });
   });

@@ -187,15 +187,8 @@ const onSubmit = async () => {
 
     await router.push('/books')
   } catch (e: unknown) {
-    const { message, fieldErrors } = parseFormRequestError(e, [
-      'title',
-      'genre',
-      'publishYear',
-      'pageCount',
-      'cover',
-      'comment',
-    ])
-    errors.value = fieldErrors
+    const { message, violations } = parseRequestError(e)
+    errors.value = violations
     error.value = message
   } finally {
     submitting.value = false

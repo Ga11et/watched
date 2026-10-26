@@ -136,9 +136,7 @@ describe('UserListsController (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Произошла ошибка при сохранении книги',
-        violations: [
-          { field: 'authorIds', error: `Авторы не найдены: ${MISSING_ID}` },
-        ],
+        violations: { authorIds: `Авторы не найдены: ${MISSING_ID}` },
       });
     });
 
@@ -151,12 +149,25 @@ describe('UserListsController (e2e)', () => {
       expect(response.body).toEqual({
         status: 401,
         message: 'Authorization token required',
-        violations: [],
+        violations: {},
       });
     });
   });
 
   describe('GET /user-books/:id', () => {
+    it('returns an id violation for a malformed UUID', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/user-books/not-a-uuid')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(404);
+
+      expect(response.body).toEqual({
+        status: 404,
+        message: 'Validation failed (uuid is expected)',
+        violations: { id: 'Validation failed (uuid is expected)' },
+      });
+    });
+
     it('returns empty violations when the record is missing', async () => {
       const response = await request(app.getHttpServer())
         .get(`/user-books/${MISSING_ID}`)
@@ -166,7 +177,7 @@ describe('UserListsController (e2e)', () => {
       expect(response.body).toEqual({
         status: 404,
         message: 'UserBook not found',
-        violations: [],
+        violations: {},
       });
     });
   });

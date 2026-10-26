@@ -7,11 +7,6 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
-interface Violation {
-  field: string;
-  error: string;
-}
-
 @Catch()
 export class ApiExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
@@ -37,7 +32,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
     response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       status: HttpStatus.INTERNAL_SERVER_ERROR,
       message: 'Internal server error',
-      violations: [],
+      violations: {},
     });
   }
 
@@ -62,44 +57,50 @@ export class ApiExceptionFilter implements ExceptionFilter {
   private resolveViolations(
     payload: string | object,
     request: Request,
-  ): Violation[] {
+  ): Record<string, string> {
     if (typeof payload !== 'string') {
       const directViolations = (payload as { violations?: unknown }).violations;
 
-      if (Array.isArray(directViolations)) {
-        return directViolations as Violation[];
+      if (
+        directViolations !== null &&
+        typeof directViolations === 'object' &&
+        !Array.isArray(directViolations)
+      ) {
+        return Object.fromEntries(
+          Object.entries(directViolations).filter(
+            (entry): entry is [string, string] => typeof entry[1] === 'string',
+          ),
+        );
       }
 
       const message = (payload as { message?: unknown }).message;
       if (Array.isArray(message)) {
-        return message.map((entry) =>
-          this.mapMessageToViolation(String(entry)),
-        );
+        const violations = new Map<string, string>();
+        for (const entry of message) {
+          const text = String(entry);
+          const field = this.resolveMessageField(text);
+          if (!violations.has(field)) {
+            violations.set(field, text);
+          }
+        }
+        return Object.fromEntries(violations);
       }
 
       if (this.isUuidValidationMessage(message)) {
-        return [
-          {
-            field: this.resolveUuidField(request),
-            error: String(message),
-          },
-        ];
+        return { [this.resolveUuidField(request)]: String(message) };
       }
     }
 
-    return [];
+    return {};
   }
 
-  private mapMessageToViolation(message: string): Violation {
+  private resolveMessageField(message: string): string {
     const parts = message.trim().split(/\s+/);
     const candidateField = parts[0] || 'request';
 
-    return {
-      field: /^[a-zA-Z][a-zA-Z0-9_]*$/.test(candidateField)
-        ? candidateField
-        : 'request',
-      error: message,
-    };
+    return /^[a-zA-Z][a-zA-Z0-9_]*$/.test(candidateField)
+      ? candidateField
+      : 'request';
   }
 
   private isUuidValidationMessage(message: unknown): boolean {

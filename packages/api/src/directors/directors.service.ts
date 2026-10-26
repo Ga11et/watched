@@ -39,7 +39,7 @@ export class DirectorsService {
     if (!createDirectorDto.fullName?.trim()) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при создании режиссёра',
-        violations: [{ field: 'fullName', error: 'ФИО обязательно' }],
+        violations: { fullName: 'ФИО обязательно' },
       });
     }
 
@@ -110,7 +110,7 @@ export class DirectorsService {
     ) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при обновлении режиссёра',
-        violations: [{ field: 'fullName', error: 'ФИО не может быть пустым' }],
+        violations: { fullName: 'ФИО не может быть пустым' },
       });
     }
 

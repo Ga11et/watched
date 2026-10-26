@@ -40,7 +40,7 @@ export class MoviesService {
     if (!createMovieDto.title?.trim()) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при создании фильма',
-        violations: [{ field: 'title', error: 'Название обязательно' }],
+        violations: { title: 'Название обязательно' },
       });
     }
 
@@ -129,9 +129,7 @@ export class MoviesService {
     if (updateMovieDto.title !== undefined && !updateMovieDto.title?.trim()) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при обновлении фильма',
-        violations: [
-          { field: 'title', error: 'Название не может быть пустым' },
-        ],
+        violations: { title: 'Название не может быть пустым' },
       });
     }
 
@@ -241,12 +239,7 @@ export class MoviesService {
     if (directors.length !== directorIds.length) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при обработке режиссёров фильма',
-        violations: [
-          {
-            field: 'directorIds',
-            error: 'Один или несколько режиссёров не найдены',
-          },
-        ],
+        violations: { directorIds: 'Один или несколько режиссёров не найдены' },
       });
     }
 

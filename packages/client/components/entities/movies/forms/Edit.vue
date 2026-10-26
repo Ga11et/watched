@@ -298,14 +298,8 @@ const onSubmit = async () => {
 
     await router.push(`/movies/${props.movieId}`)
   } catch (e) {
-    const { message, fieldErrors } = parseFormRequestError(e, [
-      'title',
-      'genre',
-      'releaseYear',
-      'poster',
-      'directorIds',
-    ])
-    errors.value = fieldErrors
+    const { message, violations } = parseRequestError(e)
+    errors.value = violations
     error.value = message
   } finally {
     submitting.value = false

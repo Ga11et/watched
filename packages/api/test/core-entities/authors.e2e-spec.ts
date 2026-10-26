@@ -370,11 +370,9 @@ describe('Authors Module E2E Tests', () => {
         .send({ fullName: '   ' })
         .expect(422)
         .expect((res) => {
-          expect(res.body.violations).toBeDefined();
-          const v = (res.body.violations as Array<{ field: string }>).find(
-            (x: { field: string }) => x.field === 'fullName',
-          );
-          expect(v).toBeDefined();
+          expect(res.body.violations).toEqual({
+            fullName: 'Имя автора обязательно',
+          });
         });
     });
 

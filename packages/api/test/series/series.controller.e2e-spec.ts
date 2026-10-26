@@ -147,7 +147,7 @@ describe('SeriesController (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Произошла ошибка при создании сериала',
-        violations: [{ field: 'title', error: 'Название обязательно' }],
+        violations: { title: 'Название обязательно' },
       });
     });
 
@@ -160,13 +160,10 @@ describe('SeriesController (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Произошла ошибка при создании сериала',
-        violations: [
-          {
-            field: 'watchedSeasons',
-            error:
-              'Просмотренных сезонов не может быть больше общего количества',
-          },
-        ],
+        violations: {
+          watchedSeasons:
+            'Просмотренных сезонов не может быть больше общего количества',
+        },
       });
     });
 
@@ -176,7 +173,7 @@ describe('SeriesController (e2e)', () => {
       expect(response.body).toEqual({
         status: 401,
         message: 'Authorization token required',
-        violations: [],
+        violations: {},
       });
     });
 
@@ -186,7 +183,7 @@ describe('SeriesController (e2e)', () => {
       expect(response.body).toEqual({
         status: 403,
         message: 'Admin access required',
-        violations: [],
+        violations: {},
       });
     });
   });
@@ -206,9 +203,7 @@ describe('SeriesController (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Произошла ошибка при обновлении сериала',
-        violations: [
-          { field: 'title', error: 'Название не может быть пустым' },
-        ],
+        violations: { title: 'Название не может быть пустым' },
       });
     });
   });
@@ -223,7 +218,7 @@ describe('SeriesController (e2e)', () => {
       expect(response.body).toEqual({
         status: 404,
         message: `Сериал с ID ${MISSING_ID} не найден`,
-        violations: [],
+        violations: {},
       });
     });
   });

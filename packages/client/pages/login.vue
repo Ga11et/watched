@@ -6,9 +6,7 @@ definePageMeta({
   layout: 'auth',
 })
 
-const REGISTER_FIELDS = ['name', 'username', 'email', 'password'] as const
-
-type RegisterErrors = Partial<Record<(typeof REGISTER_FIELDS)[number], string>>
+type RegisterErrors = Partial<Record<'name' | 'username' | 'email' | 'password', string>>
 
 const mode = ref<'login' | 'register'>('login')
 const pending = ref(false)
@@ -70,22 +68,8 @@ const submitRegister = async () => {
     await navigateTo(redirectTo.value)
   } catch (error: unknown) {
     const { message, violations } = parseRequestError(error)
-    const fieldErrors: RegisterErrors = {}
-    let generalMessage = ''
-
-    // Нарушения известных полей показываются у полей, остальные — общим сообщением.
-    for (const { field, error: text } of violations) {
-      const registerField = REGISTER_FIELDS.find((name) => name === field)
-
-      if (registerField) {
-        fieldErrors[registerField] ??= text
-      } else {
-        generalMessage ||= text
-      }
-    }
-
-    registerErrors.value = fieldErrors
-    errorMessage.value = generalMessage || (Object.keys(fieldErrors).length > 0 ? '' : message)
+    registerErrors.value = violations
+    errorMessage.value = message
   } finally {
     pending.value = false
   }

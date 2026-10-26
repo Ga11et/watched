@@ -147,7 +147,7 @@ describe('BooksController (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Произошла ошибка при создании книги',
-        violations: [{ field: 'title', error: 'Название обязательно' }],
+        violations: { title: 'Название обязательно' },
       });
     });
 
@@ -160,9 +160,7 @@ describe('BooksController (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Произошла ошибка при сохранении книги',
-        violations: [
-          { field: 'authorIds', error: `Авторы не найдены: ${MISSING_ID}` },
-        ],
+        violations: { authorIds: `Авторы не найдены: ${MISSING_ID}` },
       });
     });
 
@@ -172,7 +170,7 @@ describe('BooksController (e2e)', () => {
       expect(response.body).toEqual({
         status: 401,
         message: 'Authorization token required',
-        violations: [],
+        violations: {},
       });
     });
 
@@ -182,7 +180,7 @@ describe('BooksController (e2e)', () => {
       expect(response.body).toEqual({
         status: 403,
         message: 'Admin access required',
-        violations: [],
+        violations: {},
       });
     });
   });
@@ -202,9 +200,7 @@ describe('BooksController (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Произошла ошибка при обновлении книги',
-        violations: [
-          { field: 'title', error: 'Название не может быть пустым' },
-        ],
+        violations: { title: 'Название не может быть пустым' },
       });
     });
   });
@@ -219,7 +215,7 @@ describe('BooksController (e2e)', () => {
       expect(response.body).toEqual({
         status: 404,
         message: `Книга с ID ${MISSING_ID} не найдена`,
-        violations: [],
+        violations: {},
       });
     });
   });

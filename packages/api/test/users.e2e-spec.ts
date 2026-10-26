@@ -496,9 +496,7 @@ describe('Users Module E2E Tests', () => {
           expect(res.body).toEqual({
             status: 422,
             message: 'Username already exists',
-            violations: [
-              { field: 'username', error: 'Username already exists' },
-            ],
+            violations: { username: 'Username already exists' },
           });
         });
     });
@@ -515,7 +513,7 @@ describe('Users Module E2E Tests', () => {
           expect(res.body).toEqual({
             status: 422,
             message: 'Email already exists',
-            violations: [{ field: 'email', error: 'Email already exists' }],
+            violations: { email: 'Email already exists' },
           });
         });
     });
@@ -548,9 +546,7 @@ describe('Users Module E2E Tests', () => {
             expect(res.body).toEqual({
               status: 422,
               message: 'Username already exists',
-              violations: [
-                { field: 'username', error: 'Username already exists' },
-              ],
+              violations: { username: 'Username already exists' },
             });
           });
       } finally {

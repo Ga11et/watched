@@ -191,8 +191,8 @@ const onSubmit = async () => {
 
     navigateTo(`/games/developers/${route.params.id}`)
   } catch (e) {
-    const { message, fieldErrors } = parseFormRequestError(e, ['fullName', 'photo'])
-    errors.value = fieldErrors
+    const { message, violations } = parseRequestError(e)
+    errors.value = violations
     error.value = message
   } finally {
     submitting.value = false

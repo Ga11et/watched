@@ -207,17 +207,8 @@ const onSubmit = async () => {
 
     router.push('/')
   } catch (e: unknown) {
-    const { message, fieldErrors } = parseFormRequestError(e, [
-      'title',
-      'rating',
-      'completionDate',
-      'playTimeHours',
-      'cover',
-      'developerIds',
-      'publisherIds',
-      'comment',
-    ])
-    errors.value = fieldErrors
+    const { message, violations } = parseRequestError(e)
+    errors.value = violations
     error.value = message
   } finally {
     submitting.value = false

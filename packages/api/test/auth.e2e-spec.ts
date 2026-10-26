@@ -188,7 +188,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
     expect(response.body).toEqual({
       status: 401,
       message: 'Invalid credentials',
-      violations: [],
+      violations: {},
     });
   };
 
@@ -368,7 +368,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
         expect(response.body).toEqual({
           status: 401,
           message: 'Authorization token required',
-          violations: [],
+          violations: {},
         });
       });
 
@@ -381,7 +381,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
         expect(response.body).toEqual({
           status: 401,
           message: 'Invalid token',
-          violations: [],
+          violations: {},
         });
       });
 
@@ -395,7 +395,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
         expect(response.body).toEqual({
           status: 401,
           message: 'Token expired',
-          violations: [],
+          violations: {},
         });
       });
   });
@@ -453,7 +453,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
           expect(response.body).toEqual({
             status: 500,
             message: 'Internal server error',
-            violations: [],
+            violations: {},
           });
         });
     } finally {
@@ -528,7 +528,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
         expect(response.body).toEqual({
           status: 422,
           message: 'Username already exists',
-          violations: [{ field: 'username', error: 'Username already exists' }],
+          violations: { username: 'Username already exists' },
         });
       });
 
@@ -606,7 +606,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
         expect(response.body).toEqual({
           status: 422,
           message: 'Username already exists',
-          violations: [{ field: 'username', error: 'Username already exists' }],
+          violations: { username: 'Username already exists' },
         });
       });
 
@@ -622,7 +622,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
         expect(response.body).toEqual({
           status: 422,
           message: 'Email already exists',
-          violations: [{ field: 'email', error: 'Email already exists' }],
+          violations: { email: 'Email already exists' },
         });
       });
   });
@@ -669,7 +669,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Username already exists',
-        violations: [{ field: 'username', error: 'Username already exists' }],
+        violations: { username: 'Username already exists' },
       });
     });
 
@@ -684,7 +684,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Email already exists',
-        violations: [{ field: 'email', error: 'Email already exists' }],
+        violations: { email: 'Email already exists' },
       });
     });
 
@@ -699,7 +699,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
       expect(response.body).toEqual({
         status: 500,
         message: 'Internal server error',
-        violations: [],
+        violations: {},
       });
     });
 
@@ -714,7 +714,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
       expect(response.body).toEqual({
         status: 500,
         message: 'Internal server error',
-        violations: [],
+        violations: {},
       });
     });
   });
@@ -787,7 +787,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
         expect(response.body).toEqual({
           status: 401,
           message: 'User is inactive',
-          violations: [],
+          violations: {},
         });
       });
 
@@ -823,7 +823,7 @@ describe('Step 7 final authorization integration (e2e)', () => {
           expect(response.body).toEqual({
             status: 500,
             message: 'Internal server error',
-            violations: [],
+            violations: {},
           });
         });
     } finally {

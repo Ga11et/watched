@@ -162,8 +162,8 @@ const onSubmit = async () => {
 
     await navigateTo(`/movies/directors/${props.directorId}`)
   } catch (e) {
-    const { message, fieldErrors } = parseFormRequestError(e, ['fullName', 'photo', 'comment'])
-    errors.value = fieldErrors
+    const { message, violations } = parseRequestError(e)
+    errors.value = violations
     error.value = message
   } finally {
     submitting.value = false

@@ -5,11 +5,6 @@ import { User } from './entities/user.entity';
 
 type BasicUserFields = Pick<User, 'name' | 'username' | 'email'>;
 
-export interface UserViolation {
-  field: keyof BasicUserFields | 'password';
-  error: string;
-}
-
 /** Trims provided strings; a blank username or email becomes null. Absent fields stay absent. */
 export function normalizeUser(
   input: Partial<BasicUserFields>,
@@ -32,39 +27,28 @@ export function normalizeUser(
 }
 
 /** Checks the whole resulting profile, including fields the request did not change. */
-export function validateUser(user: BasicUserFields): UserViolation[] {
-  const violations: UserViolation[] = [];
+export function validateUser(user: BasicUserFields): Record<string, string> {
+  const violations: Record<string, string> = {};
   const nameLength = [...user.name.trim()].length;
 
   if (nameLength === 0) {
-    violations.push({ field: 'name', error: 'Name is required' });
+    violations.name = 'Name is required';
   } else if (nameLength > 255) {
-    violations.push({
-      field: 'name',
-      error: 'Name must be at most 255 characters',
-    });
+    violations.name = 'Name must be at most 255 characters';
   }
 
   if (user.username !== null && !/^[A-Za-z0-9_]{1,50}$/.test(user.username)) {
-    violations.push({
-      field: 'username',
-      error:
-        'Username must contain 1 to 50 Latin letters, digits or underscores',
-    });
+    violations.username =
+      'Username must contain 1 to 50 Latin letters, digits or underscores';
   }
 
   if (user.email !== null && !isEmail(user.email)) {
-    violations.push({
-      field: 'email',
-      error: 'Email must be a valid email address',
-    });
+    violations.email = 'Email must be a valid email address';
   }
 
   if (user.username === null && user.email === null) {
-    violations.push(
-      { field: 'username', error: 'Username or email is required' },
-      { field: 'email', error: 'Username or email is required' },
-    );
+    violations.username ??= 'Username or email is required';
+    violations.email ??= 'Username or email is required';
   }
 
   return violations;
@@ -79,7 +63,7 @@ export async function assertAvailable(
   fields: BasicUserFields,
   target?: User,
 ): Promise<void> {
-  const violations: UserViolation[] = [];
+  const violations: Record<string, string> = {};
 
   if (fields.username !== null && fields.username !== target?.username) {
     const taken = await manager
@@ -91,7 +75,7 @@ export async function assertAvailable(
       .getExists();
 
     if (taken) {
-      violations.push({ field: 'username', error: 'Username already exists' });
+      violations.username = 'Username already exists';
     }
   }
 
@@ -106,14 +90,14 @@ export async function assertAvailable(
       .getExists();
 
     if (taken) {
-      violations.push({ field: 'email', error: 'Email already exists' });
+      violations.email = 'Email already exists';
     }
   }
 
-  if (violations.length > 0) {
+  if (Object.keys(violations).length > 0) {
     throw new UnprocessableEntityException({
       status: 422,
-      message: violations[0].error,
+      message: Object.values(violations)[0],
       violations,
     });
   }
@@ -133,7 +117,7 @@ export function normalizeConstraintError(
       return new UnprocessableEntityException({
         status: 422,
         message: 'Username already exists',
-        violations: [{ field: 'username', error: 'Username already exists' }],
+        violations: { username: 'Username already exists' },
       });
     }
 
@@ -141,7 +125,7 @@ export function normalizeConstraintError(
       return new UnprocessableEntityException({
         status: 422,
         message: 'Email already exists',
-        violations: [{ field: 'email', error: 'Email already exists' }],
+        violations: { email: 'Email already exists' },
       });
     }
   }

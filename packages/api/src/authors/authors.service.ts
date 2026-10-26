@@ -32,7 +32,7 @@ export class AuthorsService {
     if (!createAuthorDto.fullName?.trim()) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при создании автора',
-        violations: [{ field: 'fullName', error: 'Имя автора обязательно' }],
+        violations: { fullName: 'Имя автора обязательно' },
       });
     }
 
@@ -105,9 +105,7 @@ export class AuthorsService {
     ) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при обновлении автора',
-        violations: [
-          { field: 'fullName', error: 'Имя автора не может быть пустым' },
-        ],
+        violations: { fullName: 'Имя автора не может быть пустым' },
       });
     }
 

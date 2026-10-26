@@ -147,7 +147,7 @@ describe('GamesController (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Произошла ошибка при создании игры',
-        violations: [{ field: 'title', error: 'Название обязательно' }],
+        violations: { title: 'Название обязательно' },
       });
     });
 
@@ -160,12 +160,7 @@ describe('GamesController (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Произошла ошибка при создании игры',
-        violations: [
-          {
-            field: 'publisherIds',
-            error: `Издатели не найдены: ${MISSING_ID}`,
-          },
-        ],
+        violations: { publisherIds: `Издатели не найдены: ${MISSING_ID}` },
       });
     });
 
@@ -178,12 +173,7 @@ describe('GamesController (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Произошла ошибка при создании игры',
-        violations: [
-          {
-            field: 'developerIds',
-            error: `Разработчики не найдены: ${MISSING_ID}`,
-          },
-        ],
+        violations: { developerIds: `Разработчики не найдены: ${MISSING_ID}` },
       });
     });
 
@@ -193,7 +183,7 @@ describe('GamesController (e2e)', () => {
       expect(response.body).toEqual({
         status: 401,
         message: 'Authorization token required',
-        violations: [],
+        violations: {},
       });
     });
 
@@ -203,7 +193,7 @@ describe('GamesController (e2e)', () => {
       expect(response.body).toEqual({
         status: 403,
         message: 'Admin access required',
-        violations: [],
+        violations: {},
       });
     });
   });
@@ -223,9 +213,7 @@ describe('GamesController (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Произошла ошибка при обновлении игры',
-        violations: [
-          { field: 'title', error: 'Название не может быть пустым' },
-        ],
+        violations: { title: 'Название не может быть пустым' },
       });
     });
   });
@@ -240,7 +228,7 @@ describe('GamesController (e2e)', () => {
       expect(response.body).toEqual({
         status: 404,
         message: `Игра с ID ${MISSING_ID} не найдена`,
-        violations: [],
+        violations: {},
       });
     });
   });

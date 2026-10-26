@@ -406,18 +406,8 @@ const onSubmit = async () => {
 
     navigateTo('/series')
   } catch (e) {
-    const { message, fieldErrors } = parseFormRequestError(e, [
-      'title',
-      'country',
-      'genres',
-      'poster',
-      'rating',
-      'totalSeasons',
-      'watchedSeasons',
-      'watchedAt',
-      'comment',
-    ])
-    errors.value = fieldErrors
+    const { message, violations } = parseRequestError(e)
+    errors.value = violations
     error.value = message
   } finally {
     submitting.value = false

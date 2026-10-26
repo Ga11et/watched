@@ -130,8 +130,8 @@ const onSubmit = async () => {
     const redirectTo = route.query.redirectTo as string
     navigateTo(redirectTo || '/books/authors')
   } catch (e: unknown) {
-    const { message, fieldErrors } = parseFormRequestError(e, ['fullName', 'photo', 'comment'])
-    errors.value = fieldErrors
+    const { message, violations } = parseRequestError(e)
+    errors.value = violations
     error.value = message
   } finally {
     submitting.value = false

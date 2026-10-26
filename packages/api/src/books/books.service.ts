@@ -44,12 +44,9 @@ export class BooksService {
 
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при сохранении книги',
-        violations: [
-          {
-            field: 'authorIds',
-            error: `Авторы не найдены: ${missingIds.join(', ')}`,
-          },
-        ],
+        violations: {
+          authorIds: `Авторы не найдены: ${missingIds.join(', ')}`,
+        },
       });
     }
 
@@ -63,7 +60,7 @@ export class BooksService {
     if (!createBookDto.title?.trim()) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при создании книги',
-        violations: [{ field: 'title', error: 'Название обязательно' }],
+        violations: { title: 'Название обязательно' },
       });
     }
 
@@ -168,9 +165,7 @@ export class BooksService {
     if (updateBookDto.title !== undefined && !updateBookDto.title?.trim()) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при обновлении книги',
-        violations: [
-          { field: 'title', error: 'Название не может быть пустым' },
-        ],
+        violations: { title: 'Название не может быть пустым' },
       });
     }
 

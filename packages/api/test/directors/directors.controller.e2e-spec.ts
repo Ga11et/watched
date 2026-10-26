@@ -147,7 +147,7 @@ describe('DirectorsController (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Произошла ошибка при создании режиссёра',
-        violations: [{ field: 'fullName', error: 'ФИО обязательно' }],
+        violations: { fullName: 'ФИО обязательно' },
       });
     });
 
@@ -157,7 +157,7 @@ describe('DirectorsController (e2e)', () => {
       expect(response.body).toEqual({
         status: 401,
         message: 'Authorization token required',
-        violations: [],
+        violations: {},
       });
     });
 
@@ -167,7 +167,7 @@ describe('DirectorsController (e2e)', () => {
       expect(response.body).toEqual({
         status: 403,
         message: 'Admin access required',
-        violations: [],
+        violations: {},
       });
     });
   });
@@ -188,7 +188,7 @@ describe('DirectorsController (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Произошла ошибка при обновлении режиссёра',
-        violations: [{ field: 'fullName', error: 'ФИО не может быть пустым' }],
+        violations: { fullName: 'ФИО не может быть пустым' },
       });
     });
   });
@@ -203,7 +203,7 @@ describe('DirectorsController (e2e)', () => {
       expect(response.body).toEqual({
         status: 404,
         message: `Режиссёр с ID ${MISSING_ID} не найден`,
-        violations: [],
+        violations: {},
       });
     });
   });

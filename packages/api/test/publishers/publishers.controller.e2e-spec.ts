@@ -147,9 +147,7 @@ describe('PublishersController (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Произошла ошибка при создании издателя',
-        violations: [
-          { field: 'fullName', error: 'Название издателя обязательно' },
-        ],
+        violations: { fullName: 'Название издателя обязательно' },
       });
     });
 
@@ -159,7 +157,7 @@ describe('PublishersController (e2e)', () => {
       expect(response.body).toEqual({
         status: 401,
         message: 'Authorization token required',
-        violations: [],
+        violations: {},
       });
     });
 
@@ -169,7 +167,7 @@ describe('PublishersController (e2e)', () => {
       expect(response.body).toEqual({
         status: 403,
         message: 'Admin access required',
-        violations: [],
+        violations: {},
       });
     });
   });
@@ -190,12 +188,7 @@ describe('PublishersController (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Произошла ошибка при обновлении издателя',
-        violations: [
-          {
-            field: 'fullName',
-            error: 'Название издателя не может быть пустым',
-          },
-        ],
+        violations: { fullName: 'Название издателя не может быть пустым' },
       });
     });
   });
@@ -210,7 +203,7 @@ describe('PublishersController (e2e)', () => {
       expect(response.body).toEqual({
         status: 404,
         message: `Издатель с ID ${MISSING_ID} не найден`,
-        violations: [],
+        violations: {},
       });
     });
   });

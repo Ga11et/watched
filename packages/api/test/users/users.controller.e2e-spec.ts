@@ -77,8 +77,6 @@ class UsersControllerTestModule implements NestModule {
   }
 }
 
-type Violation = { field: string; error: string };
-
 type ApiUser = {
   id: string;
   name: string;
@@ -93,10 +91,10 @@ const IDENTIFIER_REQUIRED = 'Username or email is required';
 const USERNAME_FORMAT =
   'Username must contain 1 to 50 Latin letters, digits or underscores';
 const EMAIL_FORMAT = 'Email must be a valid email address';
-const BOTH_IDENTIFIERS_MISSING: Violation[] = [
-  { field: 'username', error: IDENTIFIER_REQUIRED },
-  { field: 'email', error: IDENTIFIER_REQUIRED },
-];
+const BOTH_IDENTIFIERS_MISSING = {
+  username: IDENTIFIER_REQUIRED,
+  email: IDENTIFIER_REQUIRED,
+};
 const MISSING_ID = '00000000-0000-4000-8000-000000000404';
 const MISSING_USERNAME = 'missing_user';
 
@@ -311,12 +309,12 @@ describe('UsersController (e2e)', () => {
 
   const expectViolations = (
     response: request.Response,
-    violations: Violation[],
+    violations: Record<string, string>,
   ): void => {
     expect(response.status).toBe(422);
     expect(response.body).toEqual({
       status: 422,
-      message: violations[0].error,
+      message: Object.values(violations)[0],
       violations,
     });
   };
@@ -656,9 +654,9 @@ describe('UsersController (e2e)', () => {
     it('rejects a name-only change while the stored username is invalid', async () => {
       const legacy = await seedUser({ username: 'legacy-user' });
 
-      expectViolations(await patchUser(legacy.id, { name: 'Only Name' }), [
-        { field: 'username', error: USERNAME_FORMAT },
-      ]);
+      expectViolations(await patchUser(legacy.id, { name: 'Only Name' }), {
+        username: USERNAME_FORMAT,
+      });
       expect(await fetchUser(legacy.id)).toMatchObject({
         name: legacy.name,
         role: UserRole.USER,
@@ -691,9 +689,9 @@ describe('UsersController (e2e)', () => {
     it('rejects null for name and a role field', async () => {
       const user = await seedUser();
 
-      expectViolations(await patchUser(user.id, { name: null }), [
-        { field: 'name', error: 'name must be a string' },
-      ]);
+      expectViolations(await patchUser(user.id, { name: null }), {
+        name: 'name must be a string',
+      });
       const roleResponse = await patchUser(user.id, { role: null });
       expect(roleResponse.status).toBe(422);
       expect(roleResponse.body.message).toBe('property role should not exist');
@@ -714,12 +712,12 @@ describe('UsersController (e2e)', () => {
       }).expect(200);
       expect(longest.body.name).toBe('n'.repeat(255));
 
-      expectViolations(await patchUser(user.id, { name: 'n'.repeat(256) }), [
-        { field: 'name', error: 'Name must be at most 255 characters' },
-      ]);
-      expectViolations(await patchUser(user.id, { name: '   ' }), [
-        { field: 'name', error: 'Name is required' },
-      ]);
+      expectViolations(await patchUser(user.id, { name: 'n'.repeat(256) }), {
+        name: 'Name must be at most 255 characters',
+      });
+      expectViolations(await patchUser(user.id, { name: '   ' }), {
+        name: 'Name is required',
+      });
     });
 
     it('checks the trimmed username: 1 and 50 characters pass, 51 and other characters fail', async () => {
@@ -744,9 +742,9 @@ describe('UsersController (e2e)', () => {
         'кириллица',
         'at@sign.dev',
       ]) {
-        expectViolations(await patchUser(user.id, { username }), [
-          { field: 'username', error: USERNAME_FORMAT },
-        ]);
+        expectViolations(await patchUser(user.id, { username }), {
+          username: USERNAME_FORMAT,
+        });
       }
     });
 
@@ -764,9 +762,9 @@ describe('UsersController (e2e)', () => {
         'two@@test.dev',
         'inner space@test.dev',
       ]) {
-        expectViolations(await patchUser(user.id, { email }), [
-          { field: 'email', error: EMAIL_FORMAT },
-        ]);
+        expectViolations(await patchUser(user.id, { email }), {
+          email: EMAIL_FORMAT,
+        });
       }
 
       const blank = await patchUser(user.id, { email: '   ' }).expect(200);
@@ -782,9 +780,9 @@ describe('UsersController (e2e)', () => {
         ['email', 42],
         ['email', true],
       ] as const) {
-        expectViolations(await patchUser(user.id, { [field]: value }), [
-          { field, error: `${field} must be a string` },
-        ]);
+        expectViolations(await patchUser(user.id, { [field]: value }), {
+          [field]: `${field} must be a string`,
+        });
       }
     });
 
@@ -853,7 +851,7 @@ describe('UsersController (e2e)', () => {
 
       expectViolations(
         await patchUser(legacy.id, {}, jwtService.generateToken(legacy)),
-        [{ field: 'username', error: USERNAME_FORMAT }],
+        { username: USERNAME_FORMAT },
       );
     });
 
@@ -877,7 +875,7 @@ describe('UsersController (e2e)', () => {
 
       expectViolations(
         await patchUser(legacy.id, { name: 'Only Name' }, token),
-        [{ field: 'username', error: USERNAME_FORMAT }],
+        { username: USERNAME_FORMAT },
       );
       expect((await fetchUser(legacy.id)).name).toBe(legacy.name);
     });
@@ -918,7 +916,7 @@ describe('UsersController (e2e)', () => {
 
       expectViolations(
         await patchUser(owner.id, { username: 'Taken_Name' }, token),
-        [{ field: 'username', error: 'Username already exists' }],
+        { username: 'Username already exists' },
       );
       expect((await fetchUser(owner.id)).username).toBe(owner.username);
     });
@@ -926,9 +924,9 @@ describe('UsersController (e2e)', () => {
     it('rejects an empty PATCH while the stored profile is invalid', async () => {
       const legacy = await seedUser({ username: 'still-legacy' });
 
-      expectViolations(await patchUser(legacy.id, {}), [
-        { field: 'username', error: USERNAME_FORMAT },
-      ]);
+      expectViolations(await patchUser(legacy.id, {}), {
+        username: USERNAME_FORMAT,
+      });
     });
 
     it('writes nothing when one of the fields is rejected', async () => {
@@ -939,7 +937,7 @@ describe('UsersController (e2e)', () => {
           name: 'Partial Name',
           username: 'bad-name',
         }),
-        [{ field: 'username', error: USERNAME_FORMAT }],
+        { username: USERNAME_FORMAT },
       );
       expect(await fetchUser(user.id)).toMatchObject({
         name: user.name,
@@ -970,7 +968,7 @@ describe('UsersController (e2e)', () => {
             name: 'Rolled Back',
             email: 'raced@test.dev',
           }),
-          [{ field: 'email', error: 'Email already exists' }],
+          { email: 'Email already exists' },
         );
       } finally {
         updateSpy.mockRestore();
@@ -988,7 +986,7 @@ describe('UsersController (e2e)', () => {
 
       expectViolations(
         await patchUser(user.id, { email: 'old.login@legacy.DEV' }),
-        [{ field: 'email', error: 'Email already exists' }],
+        { email: 'Email already exists' },
       );
       expect((await fetchUser(user.id)).email).toBe(user.email);
     });
@@ -1193,7 +1191,7 @@ describe('UsersController (e2e)', () => {
             { name: 'Rolled Back', username: 'raced_owner' },
             token,
           ),
-          [{ field: 'username', error: 'Username already exists' }],
+          { username: 'Username already exists' },
         );
       } finally {
         updateSpy.mockRestore();
@@ -1210,12 +1208,12 @@ describe('UsersController (e2e)', () => {
     it('reject role change and deactivation until the stored profile is fixed', async () => {
       const legacy = await seedUser({ username: 'legacy-role-target' });
 
-      expectViolations(await changeRole(legacy.id, UserRole.GUEST), [
-        { field: 'username', error: USERNAME_FORMAT },
-      ]);
-      expectViolations(await deactivate(legacy.id), [
-        { field: 'username', error: USERNAME_FORMAT },
-      ]);
+      expectViolations(await changeRole(legacy.id, UserRole.GUEST), {
+        username: USERNAME_FORMAT,
+      });
+      expectViolations(await deactivate(legacy.id), {
+        username: USERNAME_FORMAT,
+      });
       expect(await fetchUser(legacy.id)).toMatchObject({
         role: UserRole.USER,
         isActive: true,

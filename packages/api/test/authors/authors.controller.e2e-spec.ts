@@ -147,7 +147,7 @@ describe('AuthorsController (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Произошла ошибка при создании автора',
-        violations: [{ field: 'fullName', error: 'Имя автора обязательно' }],
+        violations: { fullName: 'Имя автора обязательно' },
       });
     });
 
@@ -157,7 +157,7 @@ describe('AuthorsController (e2e)', () => {
       expect(response.body).toEqual({
         status: 401,
         message: 'Authorization token required',
-        violations: [],
+        violations: {},
       });
     });
 
@@ -167,7 +167,7 @@ describe('AuthorsController (e2e)', () => {
       expect(response.body).toEqual({
         status: 403,
         message: 'Admin access required',
-        violations: [],
+        violations: {},
       });
     });
   });
@@ -188,9 +188,7 @@ describe('AuthorsController (e2e)', () => {
       expect(response.body).toEqual({
         status: 422,
         message: 'Произошла ошибка при обновлении автора',
-        violations: [
-          { field: 'fullName', error: 'Имя автора не может быть пустым' },
-        ],
+        violations: { fullName: 'Имя автора не может быть пустым' },
       });
     });
   });
@@ -205,7 +203,7 @@ describe('AuthorsController (e2e)', () => {
       expect(response.body).toEqual({
         status: 404,
         message: `Автор с ID ${MISSING_ID} не найден`,
-        violations: [],
+        violations: {},
       });
     });
   });

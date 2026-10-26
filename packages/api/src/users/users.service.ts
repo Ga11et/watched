@@ -251,10 +251,10 @@ export class UsersService {
     const next = { ...current, ...fields };
     const violations = validateUser(next);
 
-    if (violations.length > 0) {
+    if (Object.keys(violations).length > 0) {
       throw new UnprocessableEntityException({
         status: 422,
-        message: violations[0].error,
+        message: Object.values(violations)[0],
         violations,
       });
     }

@@ -141,8 +141,8 @@ const preparePayload = () => {
 }
 
 const handleErrors = (e: unknown) => {
-  const { message, fieldErrors } = parseFormRequestError(e, ['fullName', 'photo'])
-  errors.value = fieldErrors
+  const { message, violations } = parseRequestError(e)
+  errors.value = violations
   error.value = message
 }
 

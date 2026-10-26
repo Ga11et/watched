@@ -32,7 +32,7 @@ export class SeriesService {
     if (!createSeriesDto.title?.trim()) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при создании сериала',
-        violations: [{ field: 'title', error: 'Название обязательно' }],
+        violations: { title: 'Название обязательно' },
       });
     }
 
@@ -44,13 +44,10 @@ export class SeriesService {
     ) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при создании сериала',
-        violations: [
-          {
-            field: 'watchedSeasons',
-            error:
-              'Просмотренных сезонов не может быть больше общего количества',
-          },
-        ],
+        violations: {
+          watchedSeasons:
+            'Просмотренных сезонов не может быть больше общего количества',
+        },
       });
     }
 
@@ -134,9 +131,7 @@ export class SeriesService {
     if (updateSeriesDto.title !== undefined && !updateSeriesDto.title?.trim()) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при обновлении сериала',
-        violations: [
-          { field: 'title', error: 'Название не может быть пустым' },
-        ],
+        violations: { title: 'Название не может быть пустым' },
       });
     }
 
@@ -148,13 +143,10 @@ export class SeriesService {
     ) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при обновлении сериала',
-        violations: [
-          {
-            field: 'watchedSeasons',
-            error:
-              'Просмотренных сезонов не может быть больше общего количества',
-          },
-        ],
+        violations: {
+          watchedSeasons:
+            'Просмотренных сезонов не может быть больше общего количества',
+        },
       });
     }
 

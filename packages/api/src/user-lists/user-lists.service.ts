@@ -181,12 +181,9 @@ export class UserListsService {
 
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при сохранении книги',
-        violations: [
-          {
-            field: 'authorIds',
-            error: `Авторы не найдены: ${missingIds.join(', ')}`,
-          },
-        ],
+        violations: {
+          authorIds: `Авторы не найдены: ${missingIds.join(', ')}`,
+        },
       });
     }
 
