@@ -39,9 +39,7 @@ export class DevelopersService {
     if (!createDeveloperDto.fullName?.trim()) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при создании разработчика',
-        violations: [
-          { field: 'fullName', message: 'Название разработчика обязательно' },
-        ],
+        violations: { fullName: 'Название разработчика обязательно' },
       });
     }
 
@@ -119,12 +117,7 @@ export class DevelopersService {
     ) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при обновлении разработчика',
-        violations: [
-          {
-            field: 'fullName',
-            message: 'Название разработчика не может быть пустым',
-          },
-        ],
+        violations: { fullName: 'Название разработчика не может быть пустым' },
       });
     }
 

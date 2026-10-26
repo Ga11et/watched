@@ -272,18 +272,9 @@ const onSubmit = async () => {
 
     await router.push(`/books/${props.bookId}`)
   } catch (e: unknown) {
-    const err = e as {
-      message?: string
-      data?: { message?: string; violations?: Array<{ field: string; message: string }> }
-    }
-    const base = err?.data?.message || err?.message || 'Произошла ошибка при обновлении книги'
-    const violations = err?.data?.violations
-    if (Array.isArray(violations) && violations.length) {
-      violations.forEach((v) => {
-        errors.value[v.field] = v.message
-      })
-    }
-    error.value = base
+    const { message, violations } = parseRequestError(e)
+    errors.value = violations
+    error.value = message
   } finally {
     submitting.value = false
   }

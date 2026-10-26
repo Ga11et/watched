@@ -342,11 +342,9 @@ describe('Games Module E2E Tests', () => {
         .send({ title: '   ' })
         .expect(422)
         .expect((res) => {
-          expect(res.body.violations).toBeDefined();
-          const v = (res.body.violations as Array<{ field: string }>).find(
-            (x: { field: string }) => x.field === 'title',
-          );
-          expect(v).toBeDefined();
+          expect(res.body.violations).toEqual({
+            title: 'Название обязательно',
+          });
         });
     });
   });

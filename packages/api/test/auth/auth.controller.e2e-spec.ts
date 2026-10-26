@@ -24,8 +24,6 @@ const e2eDbConfig = {
   autoLoadEntities: true,
 };
 
-type Violation = { field: string; error: string };
-
 const IDENTIFIER_REQUIRED = 'Username or email is required';
 const USERNAME_FORMAT =
   'Username must contain 1 to 50 Latin letters, digits or underscores';
@@ -54,12 +52,12 @@ describe('AuthController (e2e)', () => {
 
   const expectViolations = (
     response: request.Response,
-    violations: Violation[],
+    violations: Record<string, string>,
   ): void => {
     expect(response.status).toBe(422);
     expect(response.body).toEqual({
       status: 422,
-      message: violations[0].error,
+      message: Object.values(violations)[0],
       violations,
     });
   };
@@ -92,10 +90,10 @@ describe('AuthController (e2e)', () => {
 
   describe('POST /auth/register', () => {
     it('rejects registration without username and email with violations on both fields', async () => {
-      const bothMissing = [
-        { field: 'username', error: IDENTIFIER_REQUIRED },
-        { field: 'email', error: IDENTIFIER_REQUIRED },
-      ];
+      const bothMissing = {
+        username: IDENTIFIER_REQUIRED,
+        email: IDENTIFIER_REQUIRED,
+      };
 
       expectViolations(
         await register({ name: 'No Identifiers', password: 'password123' }),
@@ -143,19 +141,19 @@ describe('AuthController (e2e)', () => {
       ).expect(201);
       expect(longest.body.user.name).toBe('n'.repeat(255));
 
-      expectViolations(await register(validBody({ name: 'n'.repeat(256) })), [
-        { field: 'name', error: 'Name must be at most 255 characters' },
-      ]);
-      expectViolations(await register(validBody({ name: '   ' })), [
-        { field: 'name', error: 'Name is required' },
-      ]);
+      expectViolations(await register(validBody({ name: 'n'.repeat(256) })), {
+        name: 'Name must be at most 255 characters',
+      });
+      expectViolations(await register(validBody({ name: '   ' })), {
+        name: 'Name is required',
+      });
     });
 
     it('rejects null and non-string names', async () => {
       for (const name of [null, 42]) {
-        expectViolations(await register(validBody({ name })), [
-          { field: 'name', error: 'name must be a string' },
-        ]);
+        expectViolations(await register(validBody({ name })), {
+          name: 'name must be a string',
+        });
       }
     });
 
@@ -179,9 +177,9 @@ describe('AuthController (e2e)', () => {
         'кириллица',
         'at@sign.dev',
       ]) {
-        expectViolations(await register(validBody({ username })), [
-          { field: 'username', error: USERNAME_FORMAT },
-        ]);
+        expectViolations(await register(validBody({ username })), {
+          username: USERNAME_FORMAT,
+        });
       }
     });
 
@@ -191,9 +189,9 @@ describe('AuthController (e2e)', () => {
         expect(response.body.user.username).toBeNull();
       }
 
-      expectViolations(await register(validBody({ username: 42 })), [
-        { field: 'username', error: 'username must be a string' },
-      ]);
+      expectViolations(await register(validBody({ username: 42 })), {
+        username: 'username must be a string',
+      });
     });
 
     it('trims the email before checking its format and rejects invalid emails', async () => {
@@ -208,9 +206,9 @@ describe('AuthController (e2e)', () => {
         'two@@test.dev',
         'inner space@test.dev',
       ]) {
-        expectViolations(await register(validBody({ email })), [
-          { field: 'email', error: EMAIL_FORMAT },
-        ]);
+        expectViolations(await register(validBody({ email })), {
+          email: EMAIL_FORMAT,
+        });
       }
     });
 
@@ -221,9 +219,9 @@ describe('AuthController (e2e)', () => {
       }
 
       for (const email of [42, true]) {
-        expectViolations(await register(validBody({ email })), [
-          { field: 'email', error: 'email must be a string' },
-        ]);
+        expectViolations(await register(validBody({ email })), {
+          email: 'email must be a string',
+        });
       }
     });
 
@@ -239,7 +237,7 @@ describe('AuthController (e2e)', () => {
 
       expectViolations(
         await register(validBody({ email: 'legacy.login@old.DEV' })),
-        [{ field: 'email', error: 'Email already exists' }],
+        { email: 'Email already exists' },
       );
     });
 
@@ -259,23 +257,22 @@ describe('AuthController (e2e)', () => {
     it('reports a blank password together with profile violations', async () => {
       expectViolations(
         await register(validBody({ name: ' ', password: '      ' })),
-        [
-          { field: 'name', error: 'Name is required' },
-          { field: 'password', error: 'Password is required' },
-        ],
+        { name: 'Name is required', password: 'Password is required' },
       );
     });
 
-    it('rejects null and non-string passwords', async () => {
+    it('keeps the first validation message when a password violates multiple constraints', async () => {
       for (const password of [null, 12345678]) {
         const response = await register(validBody({ password }));
 
         expect(response.status).toBe(422);
-        expect(response.body.violations).toEqual(
-          expect.arrayContaining([
-            { field: 'password', error: 'password must be a string' },
-          ]),
-        );
+        expect(response.body).toEqual({
+          status: 422,
+          message: 'password must be longer than or equal to 6 characters',
+          violations: {
+            password: 'password must be longer than or equal to 6 characters',
+          },
+        });
       }
     });
   });

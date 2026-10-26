@@ -91,7 +91,7 @@ export const useAuth = () => {
       user.value = me
       initialized.value = true
     } catch (error: unknown) {
-      if (getApiErrorStatus(error) !== 401) {
+      if (parseRequestError(error).statusCode !== 401) {
         throw error
       }
     }

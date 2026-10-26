@@ -108,18 +108,20 @@ const publisherFormLayout: FormRowConfig[] = [
   },
 ]
 
-const validateForm = () => {
+const validateForm = (): boolean => {
   errors.value = {}
 
   if (!form.fullName.trim()) {
     errors.value.fullName = 'Полное имя издателя обязательно'
-    throw new Error('Validation failed')
+    return false
   }
 
   if (form.fullName.length > 200) {
     errors.value.fullName = 'Имя слишком длинное'
-    throw new Error('Validation failed')
+    return false
   }
+
+  return true
 }
 
 const preparePayload = () => {
@@ -138,17 +140,10 @@ const preparePayload = () => {
   return formData
 }
 
-const handleErrors = (e: any) => {
-  const base = e?.data?.message || e?.message || 'Произошла ошибка при создании издателя'
-  const violations = e?.data?.violations
-
-  if (Array.isArray(violations) && violations.length) {
-    violations.forEach((v) => {
-      errors.value[v.field] = v.message
-    })
-  }
-
-  error.value = base
+const handleErrors = (e: unknown) => {
+  const { message, violations } = parseRequestError(e)
+  errors.value = violations
+  error.value = message
 }
 
 const onSubmit = async () => {
@@ -160,16 +155,19 @@ const onSubmit = async () => {
   errors.value = {}
   error.value = ''
 
-  try {
-    validateForm()
+  if (!validateForm()) {
+    submitting.value = false
+    return
+  }
 
+  try {
     const payload = preparePayload()
 
     await create(payload)
 
     const redirectTo = route.query.redirectTo as string
     await navigateTo(redirectTo || '/games/publishers')
-  } catch (e: any) {
+  } catch (e: unknown) {
     handleErrors(e)
   } finally {
     submitting.value = false

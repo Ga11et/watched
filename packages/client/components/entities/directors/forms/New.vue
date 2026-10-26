@@ -147,18 +147,9 @@ const onSubmit = async () => {
 
     await navigateTo(redirectTo.value)
   } catch (e) {
-    const err = e as {
-      data?: { message?: string; violations?: Array<{ field: string; message: string }> }
-    }
-    const base = err.data?.message
-    const violations = err.data?.violations
-
-    if (Array.isArray(violations) && violations.length) {
-      violations.forEach((v) => {
-        errors.value[v.field] = v.message
-      })
-    }
-    error.value = base ?? 'Произошла ошибка при создании режиссёра'
+    const { message, violations } = parseRequestError(e)
+    errors.value = violations
+    error.value = message
   } finally {
     submitting.value = false
   }

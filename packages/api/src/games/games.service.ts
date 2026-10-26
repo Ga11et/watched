@@ -38,7 +38,7 @@ export class GamesService {
     if (!createGameDto.title?.trim()) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при создании игры',
-        violations: [{ field: 'title', message: 'Название обязательно' }],
+        violations: { title: 'Название обязательно' },
       });
     }
 
@@ -135,9 +135,7 @@ export class GamesService {
     if (updateGameDto.title !== undefined && !updateGameDto.title?.trim()) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при обновлении игры',
-        violations: [
-          { field: 'title', message: 'Название не может быть пустым' },
-        ],
+        violations: { title: 'Название не может быть пустым' },
       });
     }
 
@@ -249,12 +247,9 @@ export class GamesService {
     if (missingPublisherIds.length > 0) {
       throw new UnprocessableEntityException({
         message: errorMessage,
-        violations: [
-          {
-            field: 'publisherIds',
-            message: `Издатели не найдены: ${missingPublisherIds.join(', ')}`,
-          },
-        ],
+        violations: {
+          publisherIds: `Издатели не найдены: ${missingPublisherIds.join(', ')}`,
+        },
       });
     }
 
@@ -283,12 +278,9 @@ export class GamesService {
     if (missingDeveloperIds.length > 0) {
       throw new UnprocessableEntityException({
         message: errorMessage,
-        violations: [
-          {
-            field: 'developerIds',
-            message: `Разработчики не найдены: ${missingDeveloperIds.join(', ')}`,
-          },
-        ],
+        violations: {
+          developerIds: `Разработчики не найдены: ${missingDeveloperIds.join(', ')}`,
+        },
       });
     }
 

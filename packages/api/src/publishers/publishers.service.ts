@@ -39,12 +39,7 @@ export class PublishersService {
     if (!createPublisherDto.fullName?.trim()) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при создании издателя',
-        violations: [
-          {
-            field: 'fullName',
-            message: 'Название издателя обязательно',
-          },
-        ],
+        violations: { fullName: 'Название издателя обязательно' },
       });
     }
 
@@ -122,12 +117,7 @@ export class PublishersService {
     ) {
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при обновлении издателя',
-        violations: [
-          {
-            field: 'fullName',
-            message: 'Название издателя не может быть пустым',
-          },
-        ],
+        violations: { fullName: 'Название издателя не может быть пустым' },
       });
     }
 

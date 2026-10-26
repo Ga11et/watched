@@ -181,12 +181,9 @@ export class UserListsService {
 
       throw new UnprocessableEntityException({
         message: 'Произошла ошибка при сохранении книги',
-        violations: [
-          {
-            field: 'authorIds',
-            message: `Авторы не найдены: ${missingIds.join(', ')}`,
-          },
-        ],
+        violations: {
+          authorIds: `Авторы не найдены: ${missingIds.join(', ')}`,
+        },
       });
     }
 
@@ -361,7 +358,9 @@ export class UserListsService {
         'constraint' in error &&
         error.constraint === 'UQ_user_movies_user_movie'
       ) {
-        throw new ConflictException('UserMovie already exists', { cause: error });
+        throw new ConflictException('UserMovie already exists', {
+          cause: error,
+        });
       }
       if (
         error instanceof QueryFailedError &&

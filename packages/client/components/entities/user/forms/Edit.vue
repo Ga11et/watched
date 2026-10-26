@@ -18,9 +18,7 @@ const {
 
 const errorStatus = computed(() => parseRequestError(error.value).statusCode)
 
-const PROFILE_FIELDS = ['name', 'username', 'email'] as const
-
-type ProfileErrors = Partial<Record<(typeof PROFILE_FIELDS)[number], string>>
+type ProfileErrors = Partial<Record<'name' | 'username' | 'email', string>>
 
 const USERNAME_PATTERN = /^[A-Za-z0-9_]{1,50}$/
 
@@ -135,22 +133,8 @@ const submit = async () => {
     if (statusCode === 401) {
       // Сессию завершает глобальная обработка в useApiRequest.
     } else if (statusCode === 422) {
-      const mapped: ProfileErrors = {}
-      let generalMessage = ''
-
-      // Нарушения известных полей показываются у полей, остальные — общим сообщением.
-      for (const { field, error: text } of violations) {
-        const profileField = PROFILE_FIELDS.find((known) => known === field)
-
-        if (profileField) {
-          mapped[profileField] ??= text
-        } else {
-          generalMessage ||= text
-        }
-      }
-
-      fieldErrors.value = mapped
-      errorMessage.value = generalMessage || (Object.keys(mapped).length > 0 ? '' : message)
+      fieldErrors.value = violations
+      errorMessage.value = message
     } else if (statusCode === null) {
       lostResponse.value = true
     } else if (statusCode === 403) {

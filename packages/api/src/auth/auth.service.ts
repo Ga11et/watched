@@ -38,13 +38,13 @@ export class AuthService {
     const violations = validateUser(user);
 
     if (!data.password.trim()) {
-      violations.push({ field: 'password', error: 'Password is required' });
+      violations.password = 'Password is required';
     }
 
-    if (violations.length > 0) {
+    if (Object.keys(violations).length > 0) {
       throw new UnprocessableEntityException({
         status: 422,
-        message: violations[0].error,
+        message: Object.values(violations)[0],
         violations,
       });
     }

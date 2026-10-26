@@ -791,27 +791,20 @@ describe('UserList-Book module (e2e)', () => {
       res: { body: { violations?: unknown } },
       expectedFields: string[],
     ) => {
-      expect(Array.isArray(res.body.violations)).toBe(true);
-      expect((res.body.violations as unknown[]).length).toBeGreaterThan(0);
+      expect(res.body.violations).toEqual(expect.any(Object));
+      expect(Array.isArray(res.body.violations)).toBe(false);
 
-      const violations = res.body.violations as Array<Record<string, unknown>>;
+      const violations = res.body.violations as Record<string, unknown>;
+      expect(Object.keys(violations).length).toBeGreaterThan(0);
 
-      violations.forEach((violation) => {
-        expect(violation).toEqual(
-          expect.objectContaining({
-            field: expect.any(String),
-            error: expect.any(String),
-          }),
-        );
-        expect((violation.error as string).trim().length).toBeGreaterThan(0);
-      });
+      for (const message of Object.values(violations)) {
+        expect(message).toEqual(expect.any(String));
+        expect((message as string).trim().length).toBeGreaterThan(0);
+      }
 
-      expectedFields.forEach((expectedField) => {
-        const fieldViolation = violations.find(
-          (violation) => violation.field === expectedField,
-        );
-        expect(fieldViolation).toBeDefined();
-      });
+      for (const expectedField of expectedFields) {
+        expect(violations[expectedField]).toEqual(expect.any(String));
+      }
     };
 
     it('POST /user-books rejects invalid payload', async () => {

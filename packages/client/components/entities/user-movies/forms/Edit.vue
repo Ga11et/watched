@@ -195,22 +195,9 @@ const onSubmit = async () => {
     clearNuxtData([`user-movie-${props.userMovieId}`, 'user-movies'])
     await router.push(`/user-movies/${props.userMovieId}`)
   } catch (error: unknown) {
-    saveError.value = getApiErrorMessage(error)
-    const response = error as {
-      data?: { message?: string | string[]; violations?: { field: string; message: string }[] }
-    }
-    const messages = response?.data?.message
-    if (Array.isArray(messages)) {
-      for (const message of messages) {
-        const field = message.split(' ')[0]
-        if (['rating', 'watchedAt', 'comment'].includes(field)) errors.value[field] = message
-      }
-    }
-    for (const violation of response?.data?.violations ?? []) {
-      if (['rating', 'watchedAt', 'comment'].includes(violation.field)) {
-        errors.value[violation.field] = violation.message
-      }
-    }
+    const { message, violations } = parseRequestError(error)
+    errors.value = violations
+    saveError.value = message
   } finally {
     submitting.value = false
   }

@@ -405,11 +405,9 @@ describe('Books Module E2E Tests', () => {
         .expect(422)
         .expect((res) => {
           expect(res.body.message).toBeDefined();
-          expect(res.body.violations).toBeDefined();
-          const titleViolation = (
-            res.body.violations as Array<{ field: string }>
-          ).find((v: { field: string }) => v.field === 'title');
-          expect(titleViolation).toBeDefined();
+          expect(res.body.violations).toEqual({
+            title: 'Название обязательно',
+          });
         });
     });
 
