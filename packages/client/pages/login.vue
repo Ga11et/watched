@@ -17,9 +17,21 @@ const noticeMessage = computed(() =>
   route.query.reason === SESSION_EXPIRED_REASON ? SESSION_EXPIRED_MESSAGE : '',
 )
 
+const guestPending = ref(false)
+const guestErrorMessage = ref('')
+
 const submitGuest = async () => {
-  auth.loginAsGuest()
-  await navigateTo(redirectTo.value)
+  guestPending.value = true
+  guestErrorMessage.value = ''
+
+  try {
+    await auth.loginAsGuest()
+    await navigateTo(redirectTo.value)
+  } catch (error: unknown) {
+    guestErrorMessage.value = parseRequestError(error).message
+  } finally {
+    guestPending.value = false
+  }
 }
 </script>
 
@@ -39,12 +51,20 @@ const submitGuest = async () => {
           <p class="mt-1 text-sm text-slate-600">
             Гость может просматривать данные, но защищенные операции могут быть недоступны.
           </p>
+          <p
+            v-if="guestErrorMessage"
+            role="alert"
+            class="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+          >
+            {{ guestErrorMessage }}
+          </p>
           <button
             type="button"
-            class="mt-4 w-full rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+            class="mt-4 w-full rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            :disabled="guestPending"
             @click="submitGuest"
           >
-            Продолжить как гость
+            {{ guestPending ? 'Входим...' : 'Продолжить как гость' }}
           </button>
         </div>
       </section>

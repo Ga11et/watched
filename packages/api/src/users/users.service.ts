@@ -13,6 +13,7 @@ import {
   canSearchUsersByEmail,
   canViewInactiveUser,
   canViewPrivateUserFields,
+  isGuestAccount,
 } from './users.policy';
 import {
   assertAvailable,
@@ -146,6 +147,10 @@ export class UsersService {
           throw new ForbiddenException('Cannot edit this user');
         }
 
+        if (isGuestAccount(current.id)) {
+          throw new ConflictException('Cannot edit guest account');
+        }
+
         return this.saveUser(manager, current, normalizeUser(dto));
       });
     } catch (error) {
@@ -186,6 +191,10 @@ export class UsersService {
       throw new ConflictException('Cannot delete self');
     }
 
+    if (isGuestAccount(user.id)) {
+      throw new ConflictException('Cannot delete guest account');
+    }
+
     const [books, movies, series, games] = await Promise.all([
       this.userBooksRepository.count({ where: { userId: user.id } }),
       this.userMoviesRepository.count({ where: { userId: user.id } }),
@@ -201,6 +210,10 @@ export class UsersService {
 
     if (user.id === actor.id) {
       throw new ConflictException('Cannot delete self');
+    }
+
+    if (isGuestAccount(user.id)) {
+      throw new ConflictException('Cannot delete guest account');
     }
 
     await this.usersRepository.manager.transaction(async (manager) => {
@@ -233,6 +246,10 @@ export class UsersService {
 
       if (!current) {
         throw new NotFoundException('User not found');
+      }
+
+      if (isGuestAccount(current.id)) {
+        throw new ConflictException('Cannot change guest account role');
       }
 
       return this.saveUser(manager, current, { role: dto.role });

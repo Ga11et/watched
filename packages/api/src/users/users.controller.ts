@@ -177,6 +177,10 @@ export class UsersController {
       'User not found; an inactive user is reported the same way to everyone except ADMIN',
   })
   @ApiResponse({
+    status: 409,
+    description: 'Cannot edit guest account',
+  })
+  @ApiResponse({
     status: 422,
     description:
       'Invalid body (including any role or other non-editable field), invalid resulting profile, or taken username/email',
@@ -268,7 +272,7 @@ export class UsersController {
   })
   @ApiResponse({
     status: 409,
-    description: 'Cannot delete self',
+    description: 'Cannot delete self or guest account',
   })
   async getDeletionSummary(
     @Request() req: AuthRequest,
@@ -309,7 +313,7 @@ export class UsersController {
   })
   @ApiResponse({
     status: 409,
-    description: 'Cannot delete self',
+    description: 'Cannot delete self or guest account',
   })
   async deleteUser(
     @Request() req: AuthRequest,
@@ -346,6 +350,10 @@ export class UsersController {
   @ApiResponse({
     status: 404,
     description: 'User not found',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Cannot change guest account role',
   })
   @ApiResponse({
     status: 422,
