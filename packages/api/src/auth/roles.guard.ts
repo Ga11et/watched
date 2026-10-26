@@ -9,7 +9,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 import { UserRole } from '../users/entities/user.entity';
-import type { AuthUser } from './auth.middleware';
+import type { AuthUser } from './auth.types';
 import { UserBook } from '../user-lists/entities/user-book.entity';
 import { UserMovie } from '../user-lists/entities/user-movie.entity';
 import { UserSeries } from '../user-lists/entities/user-series.entity';

@@ -21,7 +21,7 @@ import { LoginDto } from './dto/login.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { AuthUserDto } from './dto/auth-user.dto';
 import { User } from '../users/entities/user.entity';
-import type { AuthUser } from './auth.middleware';
+import type { AuthUser } from './auth.types';
 
 interface AuthenticatedRequest {
   user?: AuthUser;

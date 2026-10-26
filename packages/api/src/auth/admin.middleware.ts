@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { UserRole } from '../users/entities/user.entity';
-import type { AuthUser } from './auth.middleware';
+import type { AuthUser } from './auth.types';
 
 interface AuthenticatedRequest {
   user?: AuthUser;

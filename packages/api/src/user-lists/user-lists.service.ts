@@ -13,16 +13,14 @@ import { UserBook } from './entities/user-book.entity';
 import { UserMovie } from './entities/user-movie.entity';
 import { UserSeries } from './entities/user-series.entity';
 import { UserGame } from './entities/user-game.entity';
-import {
-  CreateUserBookDto,
-  CreateUserGameDto,
-  CreateUserMovieDto,
-  CreateUserSeriesDto,
-  UpdateUserBookDto,
-  UpdateUserGameDto,
-  UpdateUserMovieDto,
-  UpdateUserSeriesDto,
-} from './dto/user-list.dto';
+import { CreateUserBookDto } from './dto/create-user-book.dto';
+import { CreateUserGameDto } from './dto/create-user-game.dto';
+import { CreateUserMovieDto } from './dto/create-user-movie.dto';
+import { CreateUserSeriesDto } from './dto/create-user-series.dto';
+import { UpdateUserBookDto } from './dto/update-user-book.dto';
+import { UpdateUserGameDto } from './dto/update-user-game.dto';
+import { UpdateUserMovieDto } from './dto/update-user-movie.dto';
+import { UpdateUserSeriesDto } from './dto/update-user-series.dto';
 import { Book } from '../books/entities/book.entity';
 import { Author } from '../authors/entities/author.entity';
 import { Movie } from '../movies/entities/movie.entity';

@@ -1,4 +1,4 @@
-import type { AuthUser } from '../auth/auth.middleware';
+import type { AuthUser } from '../auth/auth.types';
 import { UserRole } from './entities/user.entity';
 
 // View
