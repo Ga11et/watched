@@ -13,26 +13,20 @@ import { UserBook } from './entities/user-book.entity';
 import { UserMovie } from './entities/user-movie.entity';
 import { UserSeries } from './entities/user-series.entity';
 import { UserGame } from './entities/user-game.entity';
-import {
-  CreateUserBookDto,
-  CreateUserGameDto,
-  CreateUserMovieDto,
-  CreateUserSeriesDto,
-  UpdateUserBookDto,
-  UpdateUserGameDto,
-  UpdateUserMovieDto,
-  UpdateUserSeriesDto,
-} from './dto/user-list.dto';
+import type { AuthUser } from '../auth/auth.types';
+import { CreateUserBookDto } from './dto/create-user-book.dto';
+import { CreateUserGameDto } from './dto/create-user-game.dto';
+import { CreateUserMovieDto } from './dto/create-user-movie.dto';
+import { CreateUserSeriesDto } from './dto/create-user-series.dto';
+import { UpdateUserBookDto } from './dto/update-user-book.dto';
+import { UpdateUserGameDto } from './dto/update-user-game.dto';
+import { UpdateUserMovieDto } from './dto/update-user-movie.dto';
+import { UpdateUserSeriesDto } from './dto/update-user-series.dto';
 import { Book } from '../books/entities/book.entity';
 import { Author } from '../authors/entities/author.entity';
 import { Movie } from '../movies/entities/movie.entity';
 import * as fs from 'fs';
 import * as path from 'path';
-
-export interface Actor {
-  id: string;
-  role: UserRole;
-}
 
 type UserMovieResponse = Omit<UserMovie, 'movieId'>;
 
@@ -118,7 +112,7 @@ export class UserListsService {
   }
 
   async createCurrentUserBook(
-    actor: Actor,
+    actor: AuthUser,
     dto: CreateUserBookDto,
     cover?: Express.Multer.File,
   ): Promise<UserBook> {
@@ -192,7 +186,7 @@ export class UserListsService {
 
   async updateCurrentUserBook(
     id: string,
-    actor: Actor,
+    actor: AuthUser,
     dto: UpdateUserBookDto,
   ): Promise<UserBook> {
     this.ensureCanMutate(actor);
@@ -219,7 +213,7 @@ export class UserListsService {
 
   async removeCurrentUserBook(
     id: string,
-    actor: Actor,
+    actor: AuthUser,
   ): Promise<{ id: string }> {
     this.ensureCanMutate(actor);
 
@@ -314,7 +308,7 @@ export class UserListsService {
   }
 
   async createCurrentUserMovie(
-    actor: Actor,
+    actor: AuthUser,
     dto: CreateUserMovieDto,
   ): Promise<UserMovieResponse> {
     this.ensureCanMutate(actor);
@@ -375,7 +369,7 @@ export class UserListsService {
 
   async updateCurrentUserMovie(
     id: string,
-    actor: Actor,
+    actor: AuthUser,
     dto: UpdateUserMovieDto,
   ): Promise<UserMovieResponse> {
     this.ensureCanMutate(actor);
@@ -403,7 +397,7 @@ export class UserListsService {
 
   async removeCurrentUserMovie(
     id: string,
-    actor: Actor,
+    actor: AuthUser,
   ): Promise<{ id: string }> {
     this.ensureCanMutate(actor);
 
@@ -427,7 +421,7 @@ export class UserListsService {
   }
 
   async createCurrentUserSeries(
-    actor: Actor,
+    actor: AuthUser,
     dto: CreateUserSeriesDto,
   ): Promise<UserSeries> {
     this.ensureCanMutate(actor);
@@ -445,7 +439,7 @@ export class UserListsService {
 
   async updateCurrentUserSeries(
     id: string,
-    actor: Actor,
+    actor: AuthUser,
     dto: UpdateUserSeriesDto,
   ): Promise<UserSeries> {
     this.ensureCanMutate(actor);
@@ -475,7 +469,7 @@ export class UserListsService {
 
   async removeCurrentUserSeries(
     id: string,
-    actor: Actor,
+    actor: AuthUser,
   ): Promise<{ id: string }> {
     this.ensureCanMutate(actor);
 
@@ -499,7 +493,7 @@ export class UserListsService {
   }
 
   async createCurrentUserGame(
-    actor: Actor,
+    actor: AuthUser,
     dto: CreateUserGameDto,
   ): Promise<UserGame> {
     this.ensureCanMutate(actor);
@@ -517,7 +511,7 @@ export class UserListsService {
 
   async updateCurrentUserGame(
     id: string,
-    actor: Actor,
+    actor: AuthUser,
     dto: UpdateUserGameDto,
   ): Promise<UserGame> {
     this.ensureCanMutate(actor);
@@ -547,7 +541,7 @@ export class UserListsService {
 
   async removeCurrentUserGame(
     id: string,
-    actor: Actor,
+    actor: AuthUser,
   ): Promise<{ id: string }> {
     this.ensureCanMutate(actor);
 
@@ -585,13 +579,16 @@ export class UserListsService {
     return this.userGamesRepository.find({ where: { userId: guid } });
   }
 
-  private ensureCanMutate(actor: Actor): void {
+  private ensureCanMutate(actor: AuthUser): void {
     if (actor.role === UserRole.GUEST) {
       throw new ForbiddenException('Access denied');
     }
   }
 
-  private ensureCanAccessResource(actor: Actor, resourceUserId: string): void {
+  private ensureCanAccessResource(
+    actor: AuthUser,
+    resourceUserId: string,
+  ): void {
     if (actor.role === UserRole.ADMIN) {
       return;
     }

@@ -5,14 +5,10 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { JwtPayload, JwtService } from './jwt.service';
-import { User, UserRole } from '../users/entities/user.entity';
+import { JwtService } from './jwt.service';
+import type { AuthUser, JwtPayload } from './auth.types';
+import { User } from '../users/entities/user.entity';
 import { isUuid } from '../common/utils/uuid.util';
-
-export interface AuthUser {
-  id: string;
-  role: UserRole;
-}
 
 interface AuthRequest {
   headers?: Record<string, string | undefined>;

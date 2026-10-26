@@ -29,7 +29,7 @@ import { UserDeletionSummaryDto } from './dto/user-deletion-summary.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangeUserRoleDto } from './dto/change-user-role.dto';
 import { isUuid } from '../common/utils/uuid.util';
-import type { AuthUser } from '../auth/auth.middleware';
+import type { AuthUser } from '../auth/auth.types';
 
 type EditableUserFields = Partial<
   Pick<User, 'name' | 'username' | 'email' | 'role' | 'isActive'>

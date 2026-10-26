@@ -32,7 +32,7 @@ import {
   canFilterUsersByRole,
   canViewInactiveUser,
 } from './users.policy';
-import type { AuthUser } from '../auth/auth.middleware';
+import type { AuthUser } from '../auth/auth.types';
 
 interface AuthRequest {
   user?: AuthUser;

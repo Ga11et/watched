@@ -1,17 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import jwt, { Algorithm, SignOptions, TokenExpiredError } from 'jsonwebtoken';
-import { User, UserRole } from '../users/entities/user.entity';
+import { User } from '../users/entities/user.entity';
+import type { JwtPayload } from './auth.types';
 
-export interface JwtPayload {
-  userId: string;
-  username: string | null;
-  name: string;
-  role: UserRole;
-  iat?: number;
-  exp?: number;
-}
-
-export interface GenerateTokenOptions {
+interface GenerateTokenOptions {
   expiresIn?: SignOptions['expiresIn'];
 }
 

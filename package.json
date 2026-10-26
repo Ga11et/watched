@@ -8,6 +8,7 @@
     "dev:migrate": "bash scripts/dev.sh migrate",
     "dev:stop": "bash scripts/dev.sh stop",
     "test": "bash scripts/test.sh",
+    "test:api:e2e": "bash scripts/test.sh",
     "prod:build": "bash scripts/production.sh build",
     "prod:migrate": "bash scripts/production.sh migrate",
     "prod:start": "bash scripts/production.sh start",
