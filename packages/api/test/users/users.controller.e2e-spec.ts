@@ -36,6 +36,8 @@ import { UserGame } from '../../src/user-lists/entities/user-game.entity';
 import { ApplicationValidationPipe } from '../../src/common/application-validation.pipe';
 import { User, UserRole } from '../../src/users/entities/user.entity';
 import { UsersModule } from '../../src/users/users.module';
+import { GUEST_USER_ID } from '../../src/users/users.types';
+import { GuestAccount1793042069400 } from '../../src/database/migrations/1793042069400-GuestAccount';
 
 const TEST_DB_NAME = 'watched_test';
 
@@ -1571,6 +1573,114 @@ describe('UsersController (e2e)', () => {
         });
       },
     );
+  });
+
+  describe('guest account', () => {
+    const guestLogin = async (): Promise<string> => {
+      const response = await request(app.getHttpServer())
+        .post('/auth/guest')
+        .expect(200);
+
+      return response.body.token as string;
+    };
+
+    const expectConflict = (response: request.Response, message: string) => {
+      expect(response.status).toBe(409);
+      expect(response.body).toEqual({ status: 409, message, violations: {} });
+    };
+
+    beforeAll(async () => {
+      const queryRunner = dataSource.createQueryRunner();
+
+      try {
+        await new GuestAccount1793042069400().up(queryRunner);
+      } finally {
+        await queryRunner.release();
+      }
+    });
+
+    afterEach(async () => {
+      await usersRepository.update(GUEST_USER_ID, { isActive: true });
+    });
+
+    it('shows the guest account in the list and the profile like a regular user', async () => {
+      const guestToken = await guestLogin();
+
+      const list = await fetchUsers(guestToken);
+      expect(list.map(({ id }) => id)).toContain(GUEST_USER_ID);
+
+      const profile = await getUser('guest', guestToken).expect(200);
+      expect(profile.body).toMatchObject({
+        id: GUEST_USER_ID,
+        username: 'guest',
+        name: 'Гость',
+        role: UserRole.GUEST,
+        isActive: true,
+      });
+    });
+
+    it('rejects a role change of the guest account by UUID and username with 409', async () => {
+      for (const identifier of [GUEST_USER_ID, 'guest']) {
+        expectConflict(
+          await changeRole(identifier, UserRole.USER),
+          'Cannot change guest account role',
+        );
+      }
+
+      expect((await fetchUser(GUEST_USER_ID)).role).toBe(UserRole.GUEST);
+    });
+
+    it('rejects the deletion and the deletion summary of the guest account with 409', async () => {
+      for (const identifier of [GUEST_USER_ID, 'guest']) {
+        expectConflict(
+          await getSummary(identifier, adminToken),
+          'Cannot delete guest account',
+        );
+        expectConflict(
+          await deleteUser(identifier, adminToken),
+          'Cannot delete guest account',
+        );
+      }
+
+      await getUser(GUEST_USER_ID).expect(200);
+    });
+
+    it('rejects editing the guest profile by UUID and username with 409', async () => {
+      for (const identifier of [GUEST_USER_ID, 'guest']) {
+        expectConflict(
+          await patchUser(identifier, { name: 'Renamed Guest' }),
+          'Cannot edit guest account',
+        );
+      }
+
+      expect((await fetchUser(GUEST_USER_ID)).name).toBe('Гость');
+    });
+
+    it('lets ADMIN deactivate the guest account and rejects its issued token afterwards', async () => {
+      const guestToken = await guestLogin();
+
+      const response = await deactivate('guest').expect(200);
+
+      expect(response.body).toMatchObject({
+        id: GUEST_USER_ID,
+        isActive: false,
+      });
+      await request(app.getHttpServer())
+        .get('/users')
+        .set('Authorization', `Bearer ${guestToken}`)
+        .expect(401);
+      await getUser('guest', guestToken).expect(401);
+    });
+
+    it('keeps another user with the GUEST role editable and deletable', async () => {
+      const user = await seedUser({ role: UserRole.GUEST });
+
+      await patchUser(user.id, { name: 'Edited Guest Role' }).expect(200);
+      await changeRole(user.id, UserRole.USER).expect(200);
+      await changeRole(user.id, UserRole.GUEST).expect(200);
+      await getSummary(user.id, adminToken).expect(200);
+      await deleteUser(user.id, adminToken).expect(200);
+    });
   });
 });
 

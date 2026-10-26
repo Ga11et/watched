@@ -39,6 +39,8 @@ import { AuthorsModule } from '../../src/authors/authors.module';
 import { DirectorsModule } from '../../src/directors/directors.module';
 import { APP_FILTER } from '@nestjs/core';
 import type { JwtPayload } from '../../src/auth/auth.types';
+import { GUEST_USER_ID } from '../../src/users/users.types';
+import { GuestAccount1793042069400 } from '../../src/database/migrations/1793042069400-GuestAccount';
 
 const TEST_DB_NAME = 'watched_test';
 
@@ -1185,6 +1187,112 @@ describe('Step 7 final authorization integration (e2e)', () => {
     });
 
     expect([70, 80]).toContain(updated.rating as number);
+  });
+
+  describe('POST /auth/guest', () => {
+    const guestLogin = () => request(app.getHttpServer()).post('/auth/guest');
+
+    const createGuestAccount = async (): Promise<void> => {
+      const queryRunner = dataSource.createQueryRunner();
+
+      try {
+        await new GuestAccount1793042069400().up(queryRunner);
+      } finally {
+        await queryRunner.release();
+      }
+    };
+
+    beforeAll(createGuestAccount);
+
+    afterEach(async () => {
+      await dataSource
+        .getRepository(User)
+        .update(GUEST_USER_ID, { isActive: true });
+    });
+
+    it('issues a real token of the guest account that /auth/me resolves to the same user', async () => {
+      const response = await guestLogin().expect(200);
+
+      expect(response.body.user).toMatchObject({
+        id: GUEST_USER_ID,
+        username: 'guest',
+        email: null,
+        name: 'Гость',
+        role: UserRole.GUEST,
+        isActive: true,
+      });
+      expect(typeof response.body.token).toBe('string');
+
+      const me = await request(app.getHttpServer())
+        .get('/auth/me')
+        .set('Authorization', `Bearer ${response.body.token as string}`)
+        .expect(200);
+      expect(me.body).toEqual(response.body.user);
+    });
+
+    it('does not log in to the guest account by password', async () => {
+      for (const password of ['password123', '!!!!!!']) {
+        await request(app.getHttpServer())
+          .post('/auth/login')
+          .send({ identifier: 'guest', password })
+          .expect(401)
+          .expect(expectInvalidCredentials);
+      }
+    });
+
+    it('reserves the guest username for registration in any case', async () => {
+      for (const username of ['guest', 'GUEST']) {
+        await request(app.getHttpServer())
+          .post('/auth/register')
+          .send({ name: 'Not Guest', username, password: 'password123' })
+          .expect(422)
+          .expect((response) => {
+            expect(response.body).toEqual({
+              status: 422,
+              message: 'Username already exists',
+              violations: { username: 'Username already exists' },
+            });
+          });
+      }
+    });
+
+    it('rejects the guest login and a previously issued guest token after deactivation', async () => {
+      const { token } = (await guestLogin().expect(200)).body as {
+        token: string;
+      };
+
+      await dataSource
+        .getRepository(User)
+        .update(GUEST_USER_ID, { isActive: false });
+
+      await guestLogin()
+        .expect(401)
+        .expect((response) => {
+          expect(response.body).toEqual({
+            status: 401,
+            message: 'User is inactive',
+            violations: {},
+          });
+        });
+
+      await request(app.getHttpServer())
+        .get('/auth/me')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(401);
+    });
+
+    it('returns 401 when the guest account is missing', async () => {
+      await dataSource.getRepository(User).delete(GUEST_USER_ID);
+
+      try {
+        const response = await guestLogin().expect(401);
+        expect(response.body.status).toBe(401);
+        expect(response.body.violations).toEqual({});
+        expect(response.body.token).toBeUndefined();
+      } finally {
+        await createGuestAccount();
+      }
+    });
   });
 });
 

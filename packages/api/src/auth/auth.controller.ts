@@ -60,6 +60,22 @@ export class AuthController {
     };
   }
 
+  @Post('auth/guest')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Вход в общий гостевой аккаунт' })
+  @ApiResponse({ status: 200, type: AuthResponseDto })
+  @ApiResponse({
+    status: 401,
+    description: 'Гостевой аккаунт отсутствует или деактивирован',
+  })
+  async loginAsGuest(): Promise<AuthResponseDto> {
+    const user = await this.authService.loginAsGuest();
+    return {
+      user: this.toAuthUserDto(user),
+      token: this.jwtService.generateToken(user),
+    };
+  }
+
   @Get('auth/me')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Получение текущего пользователя' })

@@ -1,5 +1,6 @@
 import type { AuthUser } from '../auth/auth.types';
 import { UserRole } from './entities/user.entity';
+import { GUEST_USER_ID } from './users.types';
 
 // View
 
@@ -43,4 +44,11 @@ export function canDeactivateUsers(actor: AuthUser): boolean {
 
 export function canDeleteUsers(actor: AuthUser): boolean {
   return actor.role === UserRole.ADMIN;
+}
+
+// Guest account
+
+/** Nobody, ADMIN included, can edit, re-role or delete the shared guest account; it can only be deactivated. */
+export function canModifyAccount(actor: AuthUser, userId: string): boolean {
+  return userId !== GUEST_USER_ID;
 }

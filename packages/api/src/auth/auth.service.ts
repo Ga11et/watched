@@ -14,6 +14,7 @@ import {
   normalizeUser,
   validateUser,
 } from '../users/users.rules';
+import { GUEST_USER_ID } from '../users/users.types';
 import { RegisterDto } from './dto/register.dto';
 
 export interface LoginResult {
@@ -104,6 +105,20 @@ export class AuthService {
       user,
       token: this.generateLoginToken(),
     };
+  }
+
+  async loginAsGuest(): Promise<User> {
+    const user = await this.findUserById(GUEST_USER_ID);
+
+    if (!user) {
+      throw new UnauthorizedException('Guest account not found');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('User is inactive');
+    }
+
+    return user;
   }
 
   async hashPassword(password: string): Promise<string> {

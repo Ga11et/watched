@@ -34,6 +34,7 @@ import { UsersModule } from '../../src/users/users.module';
 import { Game } from '../../src/games/entities/game.entity';
 import { Book } from '../../src/books/entities/book.entity';
 import { Author } from '../../src/authors/entities/author.entity';
+import { GuestAccount1793042069400 } from '../../src/database/migrations/1793042069400-GuestAccount';
 
 const TEST_DB_NAME = 'watched_test';
 
@@ -237,6 +238,37 @@ describe('GamesController (e2e)', () => {
         message: `Игра с ID ${MISSING_ID} не найдена`,
         violations: {},
       });
+    });
+  });
+
+  describe('Токен из POST /auth/guest', () => {
+    let guestAccountToken: string;
+
+    beforeAll(async () => {
+      const queryRunner = app.get(DataSource).createQueryRunner();
+
+      try {
+        await new GuestAccount1793042069400().up(queryRunner);
+      } finally {
+        await queryRunner.release();
+      }
+
+      const response = await request(app.getHttpServer())
+        .post('/auth/guest')
+        .expect(200);
+      guestAccountToken = response.body.token;
+    });
+
+    it('GET /games возвращает 200, POST /games возвращает 403', async () => {
+      await request(app.getHttpServer())
+        .get('/games')
+        .set('Authorization', `Bearer ${guestAccountToken}`)
+        .expect(200);
+      await request(app.getHttpServer())
+        .post('/games')
+        .set('Authorization', `Bearer ${guestAccountToken}`)
+        .send({})
+        .expect(403);
     });
   });
 });

@@ -124,20 +124,13 @@ export const useAuth = () => {
     return response
   }
 
-  const loginAsGuest = () => {
-    token.value = null
-    user.value = {
-      id: 'guest',
-      username: 'guest',
-      email: null,
-      name: 'Guest',
-      role: 'GUEST',
-      isActive: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-    persistToken()
-    initialized.value = true
+  const loginAsGuest = async () => {
+    const response = await request<AuthResponse>('/auth/guest', {
+      method: 'POST',
+    })
+
+    setSession(response)
+    return response
   }
 
   const authHeaders = computed<Record<string, string>>(() => {

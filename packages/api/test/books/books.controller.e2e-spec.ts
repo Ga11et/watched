@@ -35,6 +35,7 @@ import { UsersModule } from '../../src/users/users.module';
 import { Book } from '../../src/books/entities/book.entity';
 import { Author } from '../../src/authors/entities/author.entity';
 import { UserBook } from '../../src/user-lists/entities/user-book.entity';
+import { GuestAccount1793042069400 } from '../../src/database/migrations/1793042069400-GuestAccount';
 
 const TEST_DB_NAME = 'watched_test';
 
@@ -225,6 +226,37 @@ describe('BooksController (e2e)', () => {
         message: `Книга с ID ${MISSING_ID} не найдена`,
         violations: {},
       });
+    });
+  });
+
+  describe('Токен из POST /auth/guest', () => {
+    let guestAccountToken: string;
+
+    beforeAll(async () => {
+      const queryRunner = app.get(DataSource).createQueryRunner();
+
+      try {
+        await new GuestAccount1793042069400().up(queryRunner);
+      } finally {
+        await queryRunner.release();
+      }
+
+      const response = await request(app.getHttpServer())
+        .post('/auth/guest')
+        .expect(200);
+      guestAccountToken = response.body.token;
+    });
+
+    it('GET /books возвращает 200, POST /books возвращает 403', async () => {
+      await request(app.getHttpServer())
+        .get('/books')
+        .set('Authorization', `Bearer ${guestAccountToken}`)
+        .expect(200);
+      await request(app.getHttpServer())
+        .post('/books')
+        .set('Authorization', `Bearer ${guestAccountToken}`)
+        .send({})
+        .expect(403);
     });
   });
 });
