@@ -8,6 +8,7 @@
       <input
         :id="id"
         v-model="model"
+        type="text"
         :disabled="disabled"
         :class="[
           'block w-full h-10 rounded-lg border py-2 text-sm text-gray-900 placeholder:text-gray-400 shadow-sm focus:ring-2 px-3',
