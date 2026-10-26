@@ -3,7 +3,7 @@ import jwt, { Algorithm, SignOptions, TokenExpiredError } from 'jsonwebtoken';
 import { User } from '../users/entities/user.entity';
 import type { JwtPayload } from './auth.types';
 
-export interface GenerateTokenOptions {
+interface GenerateTokenOptions {
   expiresIn?: SignOptions['expiresIn'];
 }
 
