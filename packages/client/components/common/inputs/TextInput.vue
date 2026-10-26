@@ -8,6 +8,7 @@
       <input
         :id="id"
         v-model="model"
+        :type="type"
         :disabled="disabled"
         :class="[
           'block w-full h-10 rounded-lg border py-2 text-sm text-gray-900 placeholder:text-gray-400 shadow-sm focus:ring-2 px-3',
@@ -29,6 +30,7 @@
 interface Props {
   id: string
   label: string
+  type?: 'text' | 'password' | 'email'
   placeholder?: string
   hint?: string
   error?: string
@@ -36,6 +38,7 @@ interface Props {
 }
 
 withDefaults(defineProps<Props>(), {
+  type: 'text',
   placeholder: '',
   hint: '',
   error: '',
