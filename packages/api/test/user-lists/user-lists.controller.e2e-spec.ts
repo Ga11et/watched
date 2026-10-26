@@ -38,6 +38,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Director } from '../../src/directors/entities/director.entity';
 import { Movie } from '../../src/movies/entities/movie.entity';
 import { UserMovie } from '../../src/user-lists/entities/user-movie.entity';
+import { GuestAccount1793042069400 } from '../../src/database/migrations/1793042069400-GuestAccount';
 
 const TEST_DB_NAME = 'watched_test';
 
@@ -191,6 +192,33 @@ describe('UserListsController (e2e)', () => {
         message: 'UserBook not found',
         violations: {},
       });
+    });
+  });
+
+  describe('token from POST /auth/guest', () => {
+    let guestAccountToken: string;
+
+    beforeAll(async () => {
+      const queryRunner = app.get(DataSource).createQueryRunner();
+
+      try {
+        await new GuestAccount1793042069400().up(queryRunner);
+      } finally {
+        await queryRunner.release();
+      }
+
+      const response = await request(app.getHttpServer())
+        .post('/auth/guest')
+        .expect(200);
+      guestAccountToken = response.body.token;
+    });
+
+    it('returns 403 for POST /user-books', async () => {
+      await request(app.getHttpServer())
+        .post('/user-books')
+        .set('Authorization', `Bearer ${guestAccountToken}`)
+        .send({ title: 'guest book' })
+        .expect(403);
     });
   });
 });

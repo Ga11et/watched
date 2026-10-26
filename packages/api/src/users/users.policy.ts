@@ -48,7 +48,7 @@ export function canDeleteUsers(actor: AuthUser): boolean {
 
 // Guest account
 
-/** The shared guest account cannot be edited, re-roled or deleted, only deactivated. */
-export function isGuestAccount(userId: string): boolean {
-  return userId === GUEST_USER_ID;
+/** Nobody, ADMIN included, can edit, re-role or delete the shared guest account; it can only be deactivated. */
+export function canModifyAccount(actor: AuthUser, userId: string): boolean {
+  return userId !== GUEST_USER_ID;
 }

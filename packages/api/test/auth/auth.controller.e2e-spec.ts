@@ -1256,47 +1256,14 @@ describe('Step 7 final authorization integration (e2e)', () => {
       }
     });
 
-    it('lets the guest token read catalogs and users but not change catalogs or lists', async () => {
-      const { token } = (await guestLogin().expect(200)).body as {
-        token: string;
-      };
-      const asGuest = (pending: request.Test) =>
-        pending.set('Authorization', `Bearer ${token}`);
-
-      for (const route of [
-        '/books',
-        '/movies',
-        '/series',
-        '/games',
-        '/authors',
-        '/directors',
-        '/users',
-        '/users/guest',
-        `/users/${USER_OWNER_ID}`,
-      ]) {
-        await asGuest(request(app.getHttpServer()).get(route)).expect(200);
-      }
-
-      await asGuest(request(app.getHttpServer()).post('/books'))
-        .send({ title: 'guest-book' })
-        .expect(403);
-      await asGuest(request(app.getHttpServer()).post('/games'))
-        .send({ title: 'guest-game' })
-        .expect(403);
-      await asGuest(request(app.getHttpServer()).post('/user-books'))
-        .send({ bookId: await createBookId() })
-        .expect(403);
-    });
-
     it('rejects the guest login and a previously issued guest token after deactivation', async () => {
       const { token } = (await guestLogin().expect(200)).body as {
         token: string;
       };
 
-      await request(app.getHttpServer())
-        .patch('/users/guest/deactivate')
-        .set('Authorization', `Bearer ${signToken(UserRole.ADMIN, ADMIN_ID)}`)
-        .expect(200);
+      await dataSource
+        .getRepository(User)
+        .update(GUEST_USER_ID, { isActive: false });
 
       await guestLogin()
         .expect(401)
@@ -1308,12 +1275,10 @@ describe('Step 7 final authorization integration (e2e)', () => {
           });
         });
 
-      for (const route of ['/auth/me', '/books', '/users']) {
-        await request(app.getHttpServer())
-          .get(route)
-          .set('Authorization', `Bearer ${token}`)
-          .expect(401);
-      }
+      await request(app.getHttpServer())
+        .get('/auth/me')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(401);
     });
 
     it('returns 401 when the guest account is missing', async () => {

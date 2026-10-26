@@ -1656,13 +1656,20 @@ describe('UsersController (e2e)', () => {
       expect((await fetchUser(GUEST_USER_ID)).name).toBe('Гость');
     });
 
-    it('lets ADMIN deactivate the guest account', async () => {
+    it('lets ADMIN deactivate the guest account and rejects its issued token afterwards', async () => {
+      const guestToken = await guestLogin();
+
       const response = await deactivate('guest').expect(200);
 
       expect(response.body).toMatchObject({
         id: GUEST_USER_ID,
         isActive: false,
       });
+      await request(app.getHttpServer())
+        .get('/users')
+        .set('Authorization', `Bearer ${guestToken}`)
+        .expect(401);
+      await getUser('guest', guestToken).expect(401);
     });
 
     it('keeps another user with the GUEST role editable and deletable', async () => {

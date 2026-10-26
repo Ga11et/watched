@@ -368,7 +368,11 @@ export class UsersController {
       throw new ForbiddenException('Admin access required');
     }
 
-    const user = await this.usersService.changeUserRole(identifier, dto);
+    const user = await this.usersService.changeUserRole(
+      identifier,
+      dto,
+      req.user,
+    );
     return this.usersService.toUserDto(user, req.user);
   }
 }

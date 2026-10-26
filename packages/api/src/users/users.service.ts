@@ -13,7 +13,7 @@ import {
   canSearchUsersByEmail,
   canViewInactiveUser,
   canViewPrivateUserFields,
-  isGuestAccount,
+  canModifyAccount,
 } from './users.policy';
 import {
   assertAvailable,
@@ -147,7 +147,7 @@ export class UsersService {
           throw new ForbiddenException('Cannot edit this user');
         }
 
-        if (isGuestAccount(current.id)) {
+        if (!canModifyAccount(actor, current.id)) {
           throw new ConflictException('Cannot edit guest account');
         }
 
@@ -191,7 +191,7 @@ export class UsersService {
       throw new ConflictException('Cannot delete self');
     }
 
-    if (isGuestAccount(user.id)) {
+    if (!canModifyAccount(actor, user.id)) {
       throw new ConflictException('Cannot delete guest account');
     }
 
@@ -212,7 +212,7 @@ export class UsersService {
       throw new ConflictException('Cannot delete self');
     }
 
-    if (isGuestAccount(user.id)) {
+    if (!canModifyAccount(actor, user.id)) {
       throw new ConflictException('Cannot delete guest account');
     }
 
@@ -233,6 +233,7 @@ export class UsersService {
   async changeUserRole(
     identifier: string,
     dto: ChangeUserRoleDto,
+    actor: AuthUser,
   ): Promise<User> {
     const id = isUuid(identifier)
       ? identifier
@@ -248,7 +249,7 @@ export class UsersService {
         throw new NotFoundException('User not found');
       }
 
-      if (isGuestAccount(current.id)) {
+      if (!canModifyAccount(actor, current.id)) {
         throw new ConflictException('Cannot change guest account role');
       }
 
