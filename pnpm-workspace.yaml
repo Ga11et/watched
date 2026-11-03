@@ -2,4 +2,10 @@ packages:
   - packages/api
   - packages/client
 
-onlyBuiltDependencies: []
+allowBuilds:
+  '@nestjs/core': false
+  '@parcel/watcher': true
+  '@scarf/scarf': false
+  esbuild: true
+  unrs-resolver: true
+  vue-demi: false
