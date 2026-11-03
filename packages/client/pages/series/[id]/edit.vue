@@ -296,9 +296,13 @@
 </template>
 
 <script setup lang="ts">
+import TmdbSeriesService from '~/components/integrations/tmdb-series.service'
+import type { TmdbSeries } from '~/types/api'
+
 const route = useRoute()
 const { get, update } = useSeries()
 const config = useRuntimeConfig()
+const tmdbSeriesService = new TmdbSeriesService(config.public.tmdbApiKey)
 
 const loadError = ref('')
 const error = ref('')
@@ -412,26 +416,8 @@ const onSubmit = async () => {
   }
 }
 
-interface TmdbSeries {
-  id: number
-  name: string
-  origin_country: string[]
-  genre_ids: number[]
-  number_of_seasons: number
-  poster_path?: string
-}
-
 interface TmdbSearchResponse {
   results: TmdbSeries[]
-}
-
-interface TmdbGenre {
-  id: number
-  name: string
-}
-
-interface TmdbGenresResponse {
-  genres: TmdbGenre[]
 }
 
 const loadFromTmdb = async () => {
@@ -449,51 +435,23 @@ const loadFromTmdb = async () => {
       },
     })
 
-    if (response.results && response.results.length > 0) {
-      const series = response.results[0]
-
-      // Update form with TMDB data
-      form.value.title = series.name
-      form.value.country = series.origin_country?.[0] || ''
-      form.value.totalSeasons = series.number_of_seasons || 0
-
-      // Fetch genres from TMDB
-      if (series.genre_ids && series.genre_ids.length > 0) {
-        try {
-          const genresResponse = await $fetch<TmdbGenresResponse>(
-            `https://api.themoviedb.org/3/genre/tv/list`,
-            {
-              params: {
-                api_key: config.public.tmdbApiKey,
-                language: 'ru-RU',
-              },
-            },
-          )
-          const genres = genresResponse.genres
-          const seriesGenres = series.genre_ids
-            .map((id) => genres.find((g) => g.id === id)?.name)
-            .filter(Boolean)
-          if (seriesGenres.length > 0) {
-            form.value.genres = seriesGenres.join(', ')
-          }
-        } catch (e) {
-          console.error('Failed to fetch TMDB genres:', e)
-        }
-      }
-
-      if (series.poster_path) {
-        const url = `https://image.tmdb.org/t/p/w500${series.poster_path}`
-        try {
-          const response = await fetch(url)
-          const blob = await response.blob()
-          posterFile.value = new File([blob], `${series.id}.jpg`, { type: blob.type })
-          posterPreview.value = url
-        } catch (e) {
-          console.error('Failed to fetch TMDB poster:', e)
-        }
-      }
-    } else {
+    const series = response.results?.[0]
+    if (!series) {
       tmdbError.value = 'Сериал не найден в TMDB'
+      return
+    }
+
+    const data = await tmdbSeriesService.getFormData(series)
+
+    form.value.title = series.name
+    form.value.country = data.country
+    form.value.totalSeasons = data.totalSeasons
+    if (data.genres) {
+      form.value.genres = data.genres
+    }
+    if (data.posterFile) {
+      posterFile.value = data.posterFile
+      posterPreview.value = data.posterPreview
     }
   } catch (e) {
     console.error('TMDB search error:', e)
