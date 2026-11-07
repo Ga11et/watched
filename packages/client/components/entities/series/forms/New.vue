@@ -122,6 +122,7 @@
 <script setup lang="ts">
 import TmdbSeriesService from '~/components/integrations/tmdb-series.service'
 import type { TmdbSeries } from '~/types/api'
+import { seriesFormLayout, seriesUtils } from './form'
 
 const { create } = useSeries()
 const tmdbSeriesService = new TmdbSeriesService(useRuntimeConfig().public.tmdbApiKey)
@@ -164,12 +165,12 @@ const onSubmit = async () => {
 
   error.value = ''
   const values = { ...form, poster: posterFile.value }
-  errors.value = validateSeriesForm(values)
+  errors.value = seriesUtils.validateForm(values)
   if (Object.keys(errors.value).length > 0) return
 
   submitting.value = true
   try {
-    await create(buildSeriesFormData(values))
+    await create(seriesUtils.buildFormData(values))
     await navigateTo('/series')
   } catch (e: unknown) {
     const { message, violations } = parseRequestError(e)

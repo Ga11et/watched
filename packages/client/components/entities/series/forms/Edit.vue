@@ -123,6 +123,7 @@
 <script setup lang="ts">
 import TmdbSeriesService from '~/components/integrations/tmdb-series.service'
 import type { TmdbSeries } from '~/types/api'
+import { seriesFormLayout, seriesUtils } from './form'
 
 interface Props {
   seriesId: string
@@ -206,10 +207,10 @@ const onSubmit = async () => {
 
   error.value = ''
   const values = { ...form, poster: posterFile.value }
-  errors.value = validateSeriesForm(values)
+  errors.value = seriesUtils.validateForm(values)
   if (Object.keys(errors.value).length > 0) return
 
-  const formData = buildSeriesFormData(values)
+  const formData = seriesUtils.buildFormData(values)
   if (!posterFile.value && hadPoster.value && !posterPreview.value) {
     formData.append('removePoster', 'true')
   }
