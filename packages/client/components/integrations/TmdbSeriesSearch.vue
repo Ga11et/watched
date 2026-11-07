@@ -69,6 +69,7 @@ const TMDB_API_KEY = config.public.tmdbApiKey
 
 interface Props {
   modelValue?: TmdbSeries | null
+  manualQuery?: string
   label?: string
   placeholder?: string
   error?: string
@@ -79,6 +80,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: null,
+  manualQuery: '',
   label: '',
   placeholder: 'Введите название сериала',
   error: '',
@@ -93,7 +95,7 @@ const emit = defineEmits<{
 }>()
 
 const containerRef = ref<HTMLElement | null>(null)
-const query = ref(props.modelValue?.name ?? '')
+const query = ref(props.modelValue?.name ?? props.manualQuery)
 const suggestions = ref<TmdbSeries[]>([])
 const showSuggestions = ref(false)
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
@@ -103,6 +105,15 @@ watch(
   (newVal) => {
     if (newVal) {
       query.value = newVal.name
+    }
+  },
+)
+
+watch(
+  () => props.manualQuery,
+  (newVal) => {
+    if (newVal !== query.value) {
+      query.value = newVal
     }
   },
 )

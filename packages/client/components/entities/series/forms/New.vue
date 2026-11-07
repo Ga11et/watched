@@ -145,15 +145,6 @@ const form = reactive({
   comment: '',
 })
 
-const seriesFormLayout = [
-  { columns: 1, fields: [{ id: 'title' }] },
-  { columns: 1, fields: [{ id: 'genres' }] },
-  { columns: 1, fields: [{ id: 'country' }] },
-  { columns: 2, fields: [{ id: 'rating' }, { id: 'watchedAt' }] },
-  { columns: 2, fields: [{ id: 'totalSeasons' }, { id: 'watchedSeasons' }] },
-  { columns: 1, fields: [{ id: 'comment' }] },
-]
-
 const onSeriesSelect = async (series: TmdbSeries) => {
   selectedSeries = series
   form.watchedSeasons = undefined
