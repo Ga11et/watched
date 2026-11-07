@@ -60,3 +60,12 @@ export const buildSeriesFormData = (values: SeriesFormValues): FormData => {
 
   return formData
 }
+
+export const seriesFormLayout = [
+  { columns: 1, fields: [{ id: 'title' }] },
+  { columns: 1, fields: [{ id: 'genres' }] },
+  { columns: 1, fields: [{ id: 'country' }] },
+  { columns: 2, fields: [{ id: 'rating' }, { id: 'watchedAt' }] },
+  { columns: 2, fields: [{ id: 'totalSeasons' }, { id: 'watchedSeasons' }] },
+  { columns: 1, fields: [{ id: 'comment' }] },
+]

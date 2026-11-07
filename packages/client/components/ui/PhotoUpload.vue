@@ -7,9 +7,10 @@
     >
       <img :src="preview" :alt="alt" class="w-full h-full object-cover" />
       <button
+        v-if="!disabled"
         type="button"
-        @click="remove"
         class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs"
+        @click="remove"
       >
         Удалить
       </button>
@@ -17,7 +18,10 @@
     <label
       v-else
       :class="[
-        'rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 text-xs cursor-pointer hover:border-indigo-400 hover:text-indigo-500 transition-colors',
+        'rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 text-xs transition-colors',
+        disabled
+          ? 'cursor-not-allowed opacity-60'
+          : 'cursor-pointer hover:border-indigo-400 hover:text-indigo-500',
         sizeClass,
       ]"
     >
@@ -30,7 +34,13 @@
         />
       </svg>
       {{ placeholder }}
-      <input type="file" :accept="accept" class="hidden" @change="onFileChange" />
+      <input
+        type="file"
+        :accept="accept"
+        :disabled="disabled"
+        class="hidden"
+        @change="onFileChange"
+      />
     </label>
     <p v-if="error" class="mt-1 text-sm text-red-600">{{ error }}</p>
   </div>
@@ -46,6 +56,7 @@ interface Props {
   accept?: string
   alt?: string
   size?: 'sm' | 'md' | 'lg'
+  disabled?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -57,6 +68,7 @@ const props = withDefaults(defineProps<Props>(), {
   accept: 'image/*',
   alt: 'Превью',
   size: 'md',
+  disabled: false,
 })
 
 const emit = defineEmits<{
