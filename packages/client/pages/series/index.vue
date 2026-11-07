@@ -47,9 +47,16 @@
       </div>
     </div>
 
-    <div v-if="!series?.length" class="text-center py-12 text-gray-500">
-      Сериалов пока нет. Добавьте свой первый сериал!
+    <div v-if="loading" class="text-center py-8">
+      <div
+        class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"
+      ></div>
     </div>
+
+    <UiEmpty
+      v-else-if="!series?.length"
+      message="Сериалов пока нет. Добавьте свой первый сериал!"
+    />
 
     <Transition name="fade" mode="out-in">
       <EntitiesSeriesCardsView
@@ -59,7 +66,7 @@
         :sort-order="sortOrder"
         :search-query="searchQuery"
         @update-sorting="updateSorting"
-        @update:searchQuery="updateSearchQuery"
+        @update:search-query="updateSearchQuery"
       />
       <EntitiesSeriesTableView
         v-else
@@ -72,37 +79,31 @@
   </div>
 </template>
 
-<script setup>
-const error = ref('')
+<script setup lang="ts">
+import type { Series, SortOrder } from '~/types/api'
+
 const { list } = useSeries()
 
-const viewMode = useCookie('watched_series_view_mode', {
+const error = ref('')
+
+const viewMode = useCookie<'cards' | 'table'>('watched_series_view_mode', {
   default: () => 'cards',
   sameSite: 'lax',
 })
 
-const sortBy = useCookie('watched_series_sort_by', {
+const sortBy = useCookie<string>('watched_series_sort_by', {
   default: () => 'watchedAt',
   sameSite: 'lax',
 })
 
-const sortOrder = useCookie('watched_series_sort_order', {
+const sortOrder = useCookie<SortOrder>('watched_series_sort_order', {
   default: () => 'DESC',
   sameSite: 'lax',
 })
 
 const searchQuery = ref('')
 
-const updateSorting = (newSortBy) => {
-  if (sortBy.value === newSortBy) {
-    sortOrder.value = sortOrder.value === 'ASC' ? 'DESC' : 'ASC'
-  } else {
-    sortBy.value = newSortBy
-    sortOrder.value = 'ASC'
-  }
-}
-
-const { data: series } = await useAsyncData(
+const { data: series, pending: loading } = await useAsyncData<Series[]>(
   'series',
   async () => {
     try {
@@ -129,10 +130,25 @@ const filteredSeries = computed(() => {
     return list
   }
 
-  return list.filter((item) => (item.title || '').toLowerCase().includes(query))
+  return list.filter((item) => item.title?.toLowerCase().includes(query))
 })
 
-const updateSearchQuery = (value) => {
+const updateSorting = (newSortBy: string) => {
+  if (sortBy.value === newSortBy) {
+    sortOrder.value = sortOrder.value === 'ASC' ? 'DESC' : 'ASC'
+  } else {
+    sortBy.value = newSortBy
+    sortOrder.value = 'ASC'
+  }
+}
+
+const updateSearchQuery = (value: string) => {
   searchQuery.value = value
 }
+
+watchEffect(() => {
+  if (viewMode.value !== 'cards' && viewMode.value !== 'table') {
+    viewMode.value = 'cards'
+  }
+})
 </script>
