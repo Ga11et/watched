@@ -8,6 +8,7 @@
       v-model.trim="query"
       type="text"
       autocomplete="off"
+      :disabled="disabled"
       @input="onSearchInput"
       @focus="showSuggestions = true"
       :class="[
@@ -15,6 +16,7 @@
         error
           ? 'border-red-300 focus:ring-red-200'
           : 'border-gray-300 focus:ring-indigo-200 focus:border-indigo-500',
+        disabled ? 'disabled:cursor-not-allowed disabled:opacity-60' : '',
       ]"
       :placeholder="placeholder"
     />
@@ -71,6 +73,7 @@ interface Props {
   placeholder?: string
   error?: string
   required?: boolean
+  disabled?: boolean
   id?: string
 }
 
@@ -80,6 +83,7 @@ const props = withDefaults(defineProps<Props>(), {
   placeholder: 'Введите название сериала',
   error: '',
   required: false,
+  disabled: false,
   id: 'tmdb-series-search',
 })
 
