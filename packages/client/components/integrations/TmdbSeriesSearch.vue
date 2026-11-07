@@ -60,19 +60,10 @@
 </template>
 
 <script setup lang="ts">
+import type { TmdbSeries } from '~/types/api'
+
 const config = useRuntimeConfig()
 const TMDB_API_KEY = config.public.tmdbApiKey
-
-export interface TmdbSeries {
-  id: number
-  name: string
-  poster_path: string | null
-  first_air_date: string | null
-  origin_country?: string[]
-  genre_ids: number[]
-  overview: string | null
-  number_of_seasons?: number
-}
 
 interface Props {
   modelValue?: TmdbSeries | null

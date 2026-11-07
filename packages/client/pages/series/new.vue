@@ -231,10 +231,11 @@
 </template>
 
 <script setup lang="ts">
+import TmdbSeriesService from '~/components/integrations/tmdb-series.service'
 import type { TmdbSeries } from '~/types/api'
 
 const { create } = useSeries()
-const config = useRuntimeConfig()
+const tmdbSeriesService = new TmdbSeriesService(useRuntimeConfig().public.tmdbApiKey)
 const error = ref('')
 const errors = ref<Record<string, string>>({})
 const submitting = ref(false)
@@ -297,60 +298,18 @@ watch(
 
 // Update form when TMDB series is selected
 watch(tmdbSeries, async (newSeries) => {
-  if (newSeries) {
-    form.value.country = newSeries.origin_country?.[0] || ''
-    form.value.totalSeasons = newSeries.number_of_seasons || 0
-    form.value.watchedSeasons = 0
+  if (!newSeries) return
 
-    // Fetch genres from TMDB
-    if (newSeries.genre_ids && newSeries.genre_ids.length > 0) {
-      try {
-        const response = await $fetch<{ genres: { id: number; name: string }[] }>(
-          `https://api.themoviedb.org/3/genre/tv/list`,
-          {
-            params: {
-              api_key: config.public.tmdbApiKey,
-              language: 'ru-RU',
-            },
-          },
-        )
-        const genres = response.genres
-        const seriesGenres = newSeries.genre_ids
-          .map((id) => genres.find((g) => g.id === id)?.name)
-          .filter(Boolean)
-        if (seriesGenres.length > 0) {
-          form.value.genres = seriesGenres.join(', ')
-        } else {
-          form.value.genres = ''
-        }
-      } catch (e) {
-        console.error('Failed to fetch TMDB genres:', e)
-        form.value.genres = ''
-      }
-    } else {
-      form.value.genres = ''
-    }
-  }
-})
+  form.value.watchedSeasons = 0
 
-// Update poster preview when TMDB series is selected
-watch(tmdbSeries, async (newSeries) => {
-  if (newSeries?.poster_path) {
-    posterPreview.value = `https://image.tmdb.org/t/p/w500${newSeries.poster_path}`
+  const data = await tmdbSeriesService.getFormData(newSeries)
+  if (tmdbSeries.value !== newSeries) return
 
-    // Load poster file
-    try {
-      const url = `https://image.tmdb.org/t/p/w500${newSeries.poster_path}`
-      const response = await fetch(url)
-      const blob = await response.blob()
-      posterFile.value = new File([blob], `${newSeries.id}.jpg`, { type: blob.type })
-    } catch (e) {
-      console.error('Failed to fetch TMDB poster:', e)
-    }
-  } else {
-    posterPreview.value = null
-    posterFile.value = null
-  }
+  form.value.country = data.country
+  form.value.totalSeasons = data.totalSeasons
+  form.value.genres = data.genres
+  posterFile.value = data.posterFile
+  posterPreview.value = data.posterPreview
 })
 
 const onSubmit = async () => {
