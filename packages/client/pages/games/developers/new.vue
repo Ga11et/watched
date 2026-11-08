@@ -12,7 +12,7 @@
         </div>
       </div>
 
-      <EntitiesGamesFormsDevelopersNew />
+      <EntitiesDevelopersFormsNew />
     </div>
   </div>
 </template>
