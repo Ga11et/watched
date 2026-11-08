@@ -2,6 +2,7 @@
   <div class="relative">
     <div class="relative">
       <input
+        :id="id"
         ref="inputRef"
         v-model="searchQuery"
         type="text"
@@ -41,7 +42,9 @@
       v-if="showDropdown && (results.length > 0 || loading)"
       class="absolute z-10 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg"
     >
-      <div v-if="loading" class="px-4 py-3 text-center text-sm text-gray-500">Поиск издателей...</div>
+      <div v-if="loading" class="px-4 py-3 text-center text-sm text-gray-500">
+        Поиск издателей...
+      </div>
 
       <div
         v-else-if="results.length === 0 && searchQuery"
@@ -78,6 +81,7 @@
 import GamesSearchService, { type RawgCompanySuggestion } from './igdb-games.service'
 
 interface Props {
+  id?: string
   modelValue?: RawgCompanySuggestion | null
   manualQuery?: string
   placeholder?: string
@@ -91,8 +95,10 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  id: undefined,
   modelValue: null,
   placeholder: 'Поиск издателя...',
+  error: '',
 })
 
 const emit = defineEmits<Emits>()
