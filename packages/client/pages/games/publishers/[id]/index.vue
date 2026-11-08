@@ -64,7 +64,7 @@
           {{ error }}
         </div>
         <div v-else-if="!publisher" class="text-gray-500">Издатель не найден.</div>
-        <EntitiesGamesOutputsPublishersDetails v-else :publisher="publisher" />
+        <EntitiesPublishersOutputsDetails v-else :publisher="publisher" />
       </div>
     </div>
 
@@ -108,8 +108,8 @@ const onDelete = async () => {
   try {
     await remove(String(route.params.id))
     router.push('/games/publishers')
-  } catch (e: any) {
-    error.value = e?.data?.message || 'Не удалось удалить издателя'
+  } catch (e) {
+    error.value = parseRequestError(e).message
   } finally {
     deleting.value = false
   }
