@@ -96,15 +96,7 @@ const formLayout = [
   { columns: 1, fields: [{ id: 'comment' }] },
 ]
 
-const redirectTo = computed(() => {
-  const target = route.query.redirectTo
-  return typeof target === 'string' &&
-    target.startsWith('/') &&
-    !target.startsWith('//') &&
-    !target.includes('\\')
-    ? target
-    : '/movies/directors'
-})
+const redirectTo = computed(() => safeRedirectTo(route.query.redirectTo, '/movies/directors'))
 
 watch(person, async (newPerson) => {
   if (newPerson?.profile_path) {
