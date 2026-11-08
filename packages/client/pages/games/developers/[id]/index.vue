@@ -64,7 +64,7 @@
           {{ error }}
         </div>
         <div v-else-if="!developer" class="text-gray-500">Разработчик не найден.</div>
-        <EntitiesGamesOutputsDevelopersDetails v-else :developer="developer" />
+        <EntitiesDevelopersOutputsDetails v-else :developer="developer" />
       </div>
     </div>
 

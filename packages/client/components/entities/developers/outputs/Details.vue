@@ -54,43 +54,15 @@
 </template>
 
 <script setup lang="ts">
-interface DeveloperDetailsModel {
-  fullName: string
-  comment?: string | null
-  photo?: string | null
-  createdAt: string
-  updatedAt: string
-}
+import type { Developer } from '~/types/api'
 
-interface OutputFieldConfig {
-  id: string
-}
-
-interface OutputRowConfig {
-  columns?: number
-  fields: OutputFieldConfig[]
-}
-
-interface Props {
-  developer: DeveloperDetailsModel
-}
-
-const props = defineProps<Props>()
+const props = defineProps<{ developer: Developer }>()
 const config = useRuntimeConfig()
 
-const outputLayout: OutputRowConfig[] = [
-  {
-    columns: 1,
-    fields: [{ id: 'fullName' }],
-  },
-  {
-    columns: 1,
-    fields: [{ id: 'comment' }],
-  },
-  {
-    columns: 2,
-    fields: [{ id: 'createdAt' }, { id: 'updatedAt' }],
-  },
+const outputLayout = [
+  { columns: 1, fields: [{ id: 'fullName' }] },
+  { columns: 1, fields: [{ id: 'comment' }] },
+  { columns: 2, fields: [{ id: 'createdAt' }, { id: 'updatedAt' }] },
 ]
 
 const photoUrl = computed(() => {
